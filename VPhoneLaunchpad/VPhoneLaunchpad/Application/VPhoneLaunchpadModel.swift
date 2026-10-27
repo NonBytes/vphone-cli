@@ -120,6 +120,12 @@ final class VPhoneLaunchpadModel {
                 return
             }
         #endif
+        if VPhoneLaunchpadCameraDevelopment.isEnabled {
+            // Keep the official app's control socket and privileged helper.
+            machines.startMonitoring()
+            await machines.refresh()
+            return
+        }
         startControl()
         // Host checks, installed bundles and the helper state were read at
         // init. These confirm them without holding up the machine list; the

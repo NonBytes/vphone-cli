@@ -17,7 +17,19 @@ struct VPhoneMacCameraTests {
             let channel = try VPhoneMacCameraChannel(path: CommandLine.arguments[2])
             for value in UInt8(1)...UInt8(12) {
                 let pixels = Data(repeating: value, count: VPhoneMacCameraChannel.pixelCount)
-                while try !channel.publish(pixels) { usleep(1000) }
+                let deadline = Date().addingTimeInterval(10)
+                while try !channel.publish(pixels) {
+                    try expect(Date() < deadline, "publisher timed out")
+                    usleep(1000)
+                }
+                // Parent acknowledges each observed frame. Without this the
+                // child can finish before a busy parent is scheduled once.
+                while channel.control() == .streaming {
+                    try expect(Date() < deadline, "reader acknowledgement timed out")
+                    usleep(1000)
+                }
+                try expect(channel.control() == .paused, "reader unexpectedly terminated")
+                channel.setControl(.streaming)
             }
             return
         }
@@ -166,6 +178,7 @@ struct VPhoneMacCameraTests {
                 reads += 1
                 let first = frame.pixels.first!
                 try expect(frame.pixels.allSatisfy { $0 == first }, "torn frame while another process wrote")
+                owner.setControl(.paused)
             }
             usleep(1000)
         }
@@ -180,7 +193,7 @@ struct VPhoneMacCameraTests {
             throw VPhoneCameraTestFailure(description: "final child frame missing")
         }
         try expect(final.sequence == 12 && final.pixels.allSatisfy { $0 == 12 }, "final child frame mismatch")
-        try expect(reads > 0, "no frames read during concurrent publication")
+        try expect(reads == 12, "not every published frame was acknowledged")
     }
 
     static func rotation() throws {

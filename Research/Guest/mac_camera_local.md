@@ -34,7 +34,7 @@ xcodebuild -workspace VPhone.xcworkspace -scheme VPhone \
   -derivedDataPath .build/XcodeBundle build
 ```
 
-Install using Launchpad of the matching 2.13 series:
+Install using Launchpad of the matching 2.14 series:
 
 ```sh
 vphone-launchpad-cli bundle install-local \
@@ -80,3 +80,50 @@ face verification are not established by this transport test.
 To roll back, stop the test VM, bind it to its previously installed release
 using `vm set-bundle <vm-name> <previous-version>`, then start it again.
 The original release remains installed when using `--keep-default`.
+
+## Launchpad camera edition (2.14)
+
+The camera-edition app packages Core Bundle 2.14 in
+`Contents/Resources/EmbeddedCore/VPhone.bundle`. In Core Bundle, select
+Install Included Camera Bundle, then Use for New Machines. Installation uses
+the normal signed privileged helper, archive/signature validation and host
+preflight. Existing VMs opt in while stopped from their inspector's Mac Camera
+section. This updates only the host bundle binding, not guest firmware/data.
+
+For running VMs, Start Mac Camera and Stop Camera send local `camera` requests
+through the VM's existing Unix socket. No new network listener is opened.
+Capability is declared by `VPhoneMacCameraControlVersion=1` in Core Bundle's
+Info.plist and requires the camera companion executable. An older local build
+is not assumed to support control. Menu state follows socket-driven changes.
+
+Build the trial app:
+
+```sh
+VPhoneLaunchpad/Build/BuildCameraEdition.sh --development
+```
+
+The result is `.build/CameraEdition/vphone-launchpad-camera.app`. The ad hoc
+signed development app has a separate bundle identifier. Launch with
+`VPHONE_LAUNCHPAD_CAMERA_COMPANION=1` to keep the official Launchpad's existing
+control socket and helper untouched. In this explicit Debug-only mode, the
+camera installer/default/binding buttons and host preflight delegate to the already installed
+signed app's CLI. Running VM camera control still uses the VM's local socket.
+The signed app must be installed at `/Applications/vphone-launchpad.app`.
+Other privileged operations in the development app still require a configured
+Developer ID; this mode is a camera integration trial, not a distributable
+replacement for Host Setup or VM provisioning.
+
+For distribution, build without `--development`, configure the fork's signing
+team, sign via `VPhoneLaunchpad/Build/SignLaunchpad.sh`, and notarize normally.
+No client requirement or signature verification is relaxed for development.
+
+Capability/version checks:
+
+```sh
+VPhoneLaunchpad/Tests/MacCameraSupportTests.sh
+VPhoneLaunchpad/Tests/BundleNamesTests.sh
+```
+
+The current camera socket command accepts only the VM owner's Unix peer UID,
+even if the machine folder is shared with other local accounts. Start/stop
+replies describe the transport request, not proof of granted camera consent.

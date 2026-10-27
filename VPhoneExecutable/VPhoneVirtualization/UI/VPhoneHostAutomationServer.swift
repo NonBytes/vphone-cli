@@ -80,6 +80,8 @@ class VPhoneHostAutomationServer {
     private var screenRecorder = VPhoneScreenRecorder()
     private weak var control: VPhoneGuestControl?
     /// For the `network` command; nil until the VM exists.
+    weak var cameraServer: VPhoneCameraServer?
+
     weak var virtualMachine: VPhoneVirtualMachine?
 
     /// Matches vphoned's JSON body limit, so an `rpc` line is never refused
@@ -178,7 +180,7 @@ class VPhoneHostAutomationServer {
 
     // MARK: - Commands
 
-    private func respond(to line: String) async -> Data {
+    private func respond(to line: String, peerUID: uid_t?) async -> Data {
         guard let data = line.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = json["t"] as? String
@@ -193,6 +195,26 @@ class VPhoneHostAutomationServer {
 
         do {
             switch type {
+            case "camera":
+                guard peerUID == getuid() else { return Self.reply(ok: false, error: "camera control requires the VM owner") }
+                guard let cameraServer else { return Self.reply(ok: false, error: "camera control unavailable") }
+                switch json["action"] as? String ?? "status" {
+                case "status": break
+                case "start":
+                    guard cameraServer.isConnected else { return Self.reply(ok: false, error: "camera transport not connected") }
+                    cameraServer.setSource(.macCamera)
+                    cameraServer.startStreaming()
+                case "stop":
+                    cameraServer.stopStreaming()
+                    cameraServer.setSource(.off)
+                default: return Self.reply(ok: false, error: "invalid camera action")
+                }
+                return Self.reply(ok: true, result: [
+                    "connected": cameraServer.isConnected,
+                    "streaming": cameraServer.isStreaming,
+                    "source": cameraServer.sourceKind.rawValue,
+                ])
+
             case "ping":
                 try await connectedControl().sendPing()
                 return Self.reply(ok: true)
@@ -523,8 +545,11 @@ class VPhoneHostAutomationServer {
             relayShell(fd, request: request, typedAhead: typedAhead, controller: controller)
             return
         }
+        var uid: uid_t = 0
+        var gid: gid_t = 0
+        let peerUID: uid_t? = getpeereid(fd, &uid, &gid) == 0 ? uid : nil
         Task { @MainActor in
-            let response = await controller?.respond(to: line)
+            let response = await controller?.respond(to: line, peerUID: peerUID)
                 ?? reply(ok: false, error: "host control stopped")
             clientQueue.async {
                 write(response, to: fd)

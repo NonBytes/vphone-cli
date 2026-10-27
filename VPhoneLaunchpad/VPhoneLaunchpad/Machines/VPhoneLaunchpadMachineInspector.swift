@@ -193,6 +193,7 @@ struct VPhoneLaunchpadMachineInspector: View {
         }
 
         coreBundleSection
+        VPhoneLaunchpadMachineCameraSection(machine: machine)
     }
 
     @ViewBuilder

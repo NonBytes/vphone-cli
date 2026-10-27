@@ -60,3 +60,10 @@ bundle so New Machine selects the `tvos-4k` preset for `AppleTV18,1`.
 Launchpad refuses a `VPhone.bundle` that is too old for it, but it may still list bundles from a newer series. Do not install those; update Launchpad to that series first. Launchpad does not update itself: download the new version from the release page and replace the old app.
 
 VMs created by 1.x do not start in 2.x. For 1.x, see the [1.0.14 release](https://github.com/Lakr233/vphone-cli/releases/tag/1.0.14).
+
+## Camera edition (fork)
+
+Launchpad 2.14 and Core Bundle 2.14 add local camera control over the VM socket.
+The camera-edition package includes its Core Bundle, which is installed through
+the normal privileged helper and signature/preflight checks. Existing VMs opt
+in while stopped; new VMs use it after setting it as the default.

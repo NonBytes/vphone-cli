@@ -305,6 +305,7 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
             }
             if let camServer = cameraServer {
                 mc.cameraServer = camServer
+                camServer.onSourceStateChange = { [weak mc] in mc?.refreshCameraControls() }
                 camServer.onConnectionStateChange = { [weak mc] connected in
                     Task { @MainActor in
                         mc?.updateCameraConnectionState(connected: connected)
@@ -416,6 +417,7 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
             screenHeight: options.screenHeight,
         )
         server.virtualMachine = vm
+        server.cameraServer = cameraServer
         hostAutomationServer = server
     }
 

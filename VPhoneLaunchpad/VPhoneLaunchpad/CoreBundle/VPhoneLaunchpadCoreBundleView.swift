@@ -18,6 +18,7 @@ struct VPhoneLaunchpadCoreBundleView: View {
         @Bindable var bundles = bundles
         VPhoneLaunchpadSheet(Text("Core Bundle")) {
             Form {
+                VPhoneLaunchpadMacCameraBundleSection()
                 if !bundles.installed.isEmpty {
                     installedSection
                 }

@@ -65,6 +65,14 @@ extension VPhoneMenuController {
         cameraStartStopItem?.isEnabled = connected && (cameraServer?.sourceKind ?? .off) != .off
     }
 
+    func refreshCameraControls() {
+        refreshCameraSourceCheckmarks()
+        cameraStartStopItem?.isEnabled = (cameraServer?.isConnected ?? false) && cameraServer?.sourceKind != .off
+        let streaming = cameraServer?.isStreaming ?? false
+        cameraStartStopItem?.title = VPhoneLocalization.text(streaming ? "Stop Streaming" : "Start Streaming")
+        cameraStartStopItem?.image = menuSymbol(streaming ? "stop" : "play")
+    }
+
     private func refreshCameraSourceCheckmarks() {
         let kind = cameraServer?.sourceKind ?? .off
         cameraSourceMacCameraItem?.state = (kind == .macCamera) ? .on : .off

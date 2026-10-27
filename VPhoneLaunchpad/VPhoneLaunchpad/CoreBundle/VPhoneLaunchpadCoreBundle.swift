@@ -319,6 +319,10 @@ final class VPhoneLaunchpadCoreBundle {
     /// checked in this session. Checks of one version are shared by every
     /// caller waiting on it.
     func prepare(_ version: String) async throws {
+        if VPhoneLaunchpadCameraDevelopment.isEnabled {
+            try await VPhoneLaunchpadCameraDevelopment.verify(version)
+            return
+        }
         guard installed.contains(where: { $0.version == version }) else {
             throw VPhoneLaunchpadError(
                 String(localized: "VPhone.bundle \(version) is not installed."),

@@ -112,3 +112,12 @@ Only `fw prepare` and `fw patch` differ for an iPad; DFU, `restore` and
   on an iPad guest.
 - **The VM window** follows `screenConfig`, so it opens at the iPad's aspect
   ratio.
+
+## Camera edition (fork)
+
+The camera-enabled Core Bundle supports both iPhone and iPad guests. With
+Launchpad 2.14 camera edition, install the included bundle from Core Bundle,
+use it for new machines, or opt an existing stopped VM in from its Mac Camera
+inspector section. Start the VM before starting camera capture. See
+[local Mac camera](../../Research/Guest/mac_camera_local.md) for builds,
+permissions, development-trial limitations and the local control protocol.

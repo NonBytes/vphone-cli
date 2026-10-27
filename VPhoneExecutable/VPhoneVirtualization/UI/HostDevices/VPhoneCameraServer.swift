@@ -33,6 +33,8 @@ final class VPhoneCameraServer {
     nonisolated static let defaultFPS: Double = 30.0
     nonisolated static let pixelFormat: UInt32 = 0x4247_5241 // 'BGRA' — kCMPixelFormat_32BGRA
 
+    var isStreaming: Bool { timer != nil }
+
     private(set) var sourceKind: SourceKind = .off
     private(set) var isConnected = false
 
@@ -50,6 +52,7 @@ final class VPhoneCameraServer {
     )
 
     var onConnectionStateChange: ((Bool) -> Void)?
+    var onSourceStateChange: (() -> Void)?
 
     // MARK: - Lifecycle
 
@@ -115,6 +118,7 @@ final class VPhoneCameraServer {
         if wasStreaming, producer != nil {
             startStreaming()
         }
+        onSourceStateChange?()
     }
 
     // MARK: - Streaming
@@ -167,6 +171,7 @@ final class VPhoneCameraServer {
         }
         timer = t
         t.resume()
+        onSourceStateChange?()
         print("[camera] streaming started — source=\(sourceKind.rawValue)")
     }
 
@@ -175,6 +180,7 @@ final class VPhoneCameraServer {
         guard let t = timer else { return }
         t.cancel()
         timer = nil
+        onSourceStateChange?()
         print("[camera] streaming stopped")
     }
 

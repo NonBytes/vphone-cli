@@ -16,7 +16,7 @@ struct VPhoneLaunchpadApp: App {
     }
 
     var body: some Scene {
-        Window(Text(verbatim: "vphone-launchpad"), id: "main") {
+        Window(Text(verbatim: VPhoneLaunchpadCameraDevelopment.isEnabled ? "VPhone Camera Development" : "vphone-launchpad"), id: "main") {
             VPhoneLaunchpadRootView()
                 .environment(model)
                 .confirmCloseDuringCreation(delegate)
