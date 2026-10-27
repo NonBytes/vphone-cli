@@ -99,6 +99,7 @@ class VPhoneMenuController {
     var cameraSourceOffItem: NSMenuItem?
     var cameraSourceTestPatternItem: NSMenuItem?
     var cameraSourceVideoFileItem: NSMenuItem?
+    var cameraSourceMacCameraItem: NSMenuItem?
     var cameraStartStopItem: NSMenuItem?
     weak var captureView: VPhoneVirtualMachineView?
     var batterySyncEnabled = false

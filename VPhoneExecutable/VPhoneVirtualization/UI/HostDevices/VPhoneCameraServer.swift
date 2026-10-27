@@ -21,6 +21,7 @@ import Virtualization
 @MainActor
 final class VPhoneCameraServer {
     enum SourceKind: String {
+        case macCamera
         case off
         case testPattern
         case videoFile // .mov / .mp4 / .m4v via AVAssetReader
@@ -82,6 +83,12 @@ final class VPhoneCameraServer {
         }
         sourceKind = kind
         switch kind {
+        case .macCamera:
+            do { producer = try VPhoneMacCameraProducer() }
+            catch {
+                print("[camera] Mac camera setup failed: \(error)")
+                producer = nil; sourceKind = .off
+            }
         case .off:
             producer = nil
         case .testPattern:
@@ -121,6 +128,7 @@ final class VPhoneCameraServer {
         if timer != nil {
             return
         }
+        producer?.start()
         let interval = 1.0 / Self.defaultFPS
         // Timer fires on the main queue so MainActor-isolated state
         // (producer, connectionFD) can be read directly without tripping
@@ -167,6 +175,7 @@ final class VPhoneCameraServer {
     }
 
     func stopStreaming() {
+        producer?.stop()
         guard let t = timer else { return }
         t.cancel()
         timer = nil

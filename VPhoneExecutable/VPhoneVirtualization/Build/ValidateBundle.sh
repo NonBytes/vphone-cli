@@ -10,6 +10,8 @@ frameworks="$bundle/Contents/Frameworks"
 guest="$resources/guest-resources"
 location_app="$bundle/Contents/Helpers/VPhoneLocation.app"
 location_helper="$location_app/Contents/MacOS/vphone-location"
+camera_app="$bundle/Contents/Helpers/VPhoneMacCamera.app"
+camera_helper="$camera_app/Contents/MacOS/vphone-mac-camera"
 
 file_copy_spawns="$(/usr/bin/find "$root/VPhoneExecutable" "$root/VPhoneKit" \
     "$root/VPhoneDaemon" "$root/VPhoneGuestComponents" \
@@ -53,7 +55,12 @@ for name in Ghostty terminfo; do
         exit 1
     }
 done
+require_signed_macho "$camera_helper"
+/usr/bin/codesign --verify --strict "$camera_app"
+[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$camera_app/Contents/Info.plist")" == "APPL" ]] || exit 1
+/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$camera_app/Contents/Info.plist" >/dev/null
 require_signed_macho "$location_helper"
+
 /usr/bin/codesign --verify --strict "$location_app"
 # One requirement for every build, so locationd keeps one grant for all of
 # them (see StageBundle.sh).
@@ -238,6 +245,9 @@ while IFS= read -r file; do
         "$macos/"*)
             [[ "$platform" != IOS ]] || { print -u2 "iOS binary in Contents/MacOS: ${file#$bundle/}"; exit 1; }
             ;;
+        "$camera_helper")
+            [[ "$platform" == MACOS ]] || { print -u2 "Non-macOS camera helper"; exit 1; }
+            ;;
         "$location_helper")
             [[ "$platform" != IOS ]] || { print -u2 "iOS binary in VPhoneLocation.app"; exit 1; }
             ;;
@@ -255,7 +265,7 @@ while IFS= read -r file; do
             [[ "$platform" == IOS ]] || { print -u2 "Non-iOS binary in guest-resources: ${file#$bundle/}"; exit 1; }
             ;;
         *)
-            print -u2 "Mach-O outside Contents/MacOS, Contents/Frameworks, VPhoneLocation.app and guest-resources: ${file#$bundle/}"
+            print -u2 "Mach-O outside Contents/MacOS, Contents/Frameworks, VPhoneLocation.app, VPhoneMacCamera.app and guest-resources: ${file#$bundle/}"
             exit 1
             ;;
     esac

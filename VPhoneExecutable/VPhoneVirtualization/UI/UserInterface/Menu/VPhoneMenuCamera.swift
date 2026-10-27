@@ -39,6 +39,10 @@ extension VPhoneMenuController {
         cameraSourceVideoFileItem = videoFile
         menu.addItem(videoFile)
 
+        let macCamera = makeItem("Source: Mac Camera…", action: #selector(setCameraSourceMacCamera))
+        cameraSourceMacCameraItem = macCamera
+        menu.addItem(macCamera)
+
         menu.addItem(NSMenuItem.separator())
 
         let startStop = makeItem(
@@ -63,11 +67,18 @@ extension VPhoneMenuController {
 
     private func refreshCameraSourceCheckmarks() {
         let kind = cameraServer?.sourceKind ?? .off
+        cameraSourceMacCameraItem?.state = (kind == .macCamera) ? .on : .off
         cameraSourceOffItem?.state = (kind == .off) ? .on : .off
         cameraSourceTestPatternItem?.state =
             (kind == .testPattern) ? .on : .off
         cameraSourceVideoFileItem?.state =
             (kind == .videoFile) ? .on : .off
+    }
+
+    @objc func setCameraSourceMacCamera() {
+        cameraServer?.setSource(.macCamera)
+        refreshCameraSourceCheckmarks()
+        cameraStartStopItem?.isEnabled = (cameraServer?.isConnected ?? false)
     }
 
     @objc func setCameraSourceOff() {
