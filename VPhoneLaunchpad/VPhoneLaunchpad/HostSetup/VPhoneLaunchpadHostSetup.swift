@@ -56,7 +56,7 @@ final class VPhoneLaunchpadHostSetup {
     var displayedChecks: [VPhoneLaunchpadHostCheck] {
         guard VPhoneLaunchpadCameraDevelopment.isEnabled else { return checks }
         return checks.map { check in
-            guard check.kind == .helper else { return check }
+            guard check.kind == .helper || check.kind == .developerTools else { return check }
             let status: VPhoneLaunchpadStatus
             let detail: String
             if isCheckingDelegatedCamera {
@@ -66,7 +66,12 @@ final class VPhoneLaunchpadHostSetup {
                 status = .failed
                 detail = delegatedCameraError
             } else if let delegatedCameraStatus {
-                if delegatedCameraStatus.cameraOperationsReady {
+                if check.kind == .developerTools {
+                    status = delegatedCameraStatus.developerTools ? .passed : .failed
+                    detail = delegatedCameraStatus.developerTools
+                        ? String(localized: "Allowed via official Launchpad")
+                        : String(localized: "Allow official Launchpad in Developer Tools")
+                } else if delegatedCameraStatus.cameraOperationsReady {
                     status = .passed
                     detail = String(localized: "Official Launchpad — camera operations only")
                 } else if delegatedCameraStatus.installing {
@@ -80,14 +85,16 @@ final class VPhoneLaunchpadHostSetup {
                 status = .pending
                 detail = String(localized: "Not checked")
             }
-            return .init(kind: .helper, title: String(localized: "Privileged helper (delegated)"), status: status, detail: detail)
+            let title = check.kind == .helper
+                ? String(localized: "Privileged helper (delegated)")
+                : String(localized: "Developer Tools access (delegated)")
+            return .init(kind: check.kind, title: title, status: status, detail: detail)
         }
     }
 
     var cameraTrialReady: Bool {
         VPhoneLaunchpadCameraDevelopment.isEnabled
-            && delegatedCameraStatus?.cameraOperationsReady == true
-            && checks.filter { $0.kind != .helper }.allSatisfy(isSatisfied)
+            && displayedChecks.allSatisfy(isSatisfied)
     }
 
     func refreshDelegatedCamera() async {

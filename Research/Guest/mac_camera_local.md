@@ -141,3 +141,10 @@ Use the official Launchpad for VM provisioning and firmware maintenance.
 ```sh
 VPhoneLaunchpad/Tests/DelegatedCameraStatusTests.sh
 ```
+
+Developer Tools is also labeled delegated in the camera trial: the displayed
+value comes from the signed app that actually requests policy exceptions.
+The trial app's own EPDeveloperTool value is preserved in its underlying
+checks and still applies to its own privileged operations. A toggled-on trial
+app permission therefore cannot hide a denied or unavailable signed-app grant,
+and a stale trial-app authorization snapshot does not block camera delegation.

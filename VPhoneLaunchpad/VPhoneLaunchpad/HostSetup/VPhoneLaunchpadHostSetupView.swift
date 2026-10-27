@@ -59,7 +59,7 @@ struct VPhoneLaunchpadHostSetupView: View {
                     Text("This camera trial delegates installation and preflight to the signed Launchpad. Use the official app for VM creation and firmware maintenance.")
                         .foregroundStyle(.secondary)
                 }
-                if host.checks.contains(where: { $0.kind == .developerTools && $0.status != .passed }) {
+                if !VPhoneLaunchpadCameraDevelopment.isEnabled, host.checks.contains(where: { $0.kind == .developerTools && $0.status != .passed }) {
                     Text("Allow vphone-launchpad in Privacy & Security → Developer Tools.")
                         .foregroundStyle(.secondary)
                 }
@@ -102,6 +102,10 @@ struct VPhoneLaunchpadHostSetupView: View {
                 skipButton(check)
                 Button("Change…") { chooseLibrary() }
                     .help("Choose the folder new machines are created in")
+            }
+        case .developerTools where VPhoneLaunchpadCameraDevelopment.isEnabled:
+            Button("Open Official Launchpad") {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/vphone-launchpad.app"))
             }
         case .developerTools where check.status != .passed:
             if host.canRequestDeveloperTools {
