@@ -82,7 +82,7 @@ final class VPhoneLaunchpadModel {
     // MARK: - Attention
 
     var hostNeedsAttention: Bool {
-        !host.isChecking && !host.requiredPassed
+        !host.isChecking && !(VPhoneLaunchpadCameraDevelopment.isEnabled ? host.cameraTrialReady : host.requiredPassed)
     }
 
     var bundleNeedsAttention: Bool {
@@ -122,6 +122,7 @@ final class VPhoneLaunchpadModel {
         #endif
         if VPhoneLaunchpadCameraDevelopment.isEnabled {
             // Keep the official app's control socket and privileged helper.
+            await host.refresh()
             machines.startMonitoring()
             await machines.refresh()
             return

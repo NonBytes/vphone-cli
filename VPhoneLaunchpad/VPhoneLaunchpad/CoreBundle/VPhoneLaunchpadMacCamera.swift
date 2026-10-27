@@ -24,6 +24,11 @@ nonisolated enum VPhoneLaunchpadCameraDevelopment {
         return ((try JSONSerialization.jsonObject(with: data)) as? [String: Any])?["version"] as? String
     }
 
+    @concurrent static func helperStatus() async throws -> VPhoneLaunchpadDelegatedCameraStatus {
+        let data = try await output(["status"])
+        return try JSONDecoder().decode(VPhoneLaunchpadDelegatedCameraStatus.self, from: data)
+    }
+
     @concurrent static func verify(_ version: String) async throws {
         let data = try await output(["bundle", "verify", version])
         guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any],

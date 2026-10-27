@@ -127,3 +127,17 @@ VPhoneLaunchpad/Tests/BundleNamesTests.sh
 The current camera socket command accepts only the VM owner's Unix peer UID,
 even if the machine folder is shared with other local accounts. Start/stop
 replies describe the transport request, not proof of granted camera consent.
+
+### Host Setup in the development companion
+
+The trial app's Host Setup presents the signed app's live status as
+Privileged helper (delegated), explicitly limited to camera operations. It
+checks helper readiness, host readiness, Developer Tools access and whether
+an installation is in progress. Errors and missing status fields fail closed.
+The trial's own requiredPassed remains unchanged, so presenting delegated
+camera readiness does not unlock this app's unsupported root operations.
+Use the official Launchpad for VM provisioning and firmware maintenance.
+
+```sh
+VPhoneLaunchpad/Tests/DelegatedCameraStatusTests.sh
+```

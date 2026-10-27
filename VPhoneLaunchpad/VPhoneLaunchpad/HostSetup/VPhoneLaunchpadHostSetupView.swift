@@ -38,22 +38,27 @@ struct VPhoneLaunchpadHostSetupView: View {
             VPhoneLaunchpadSkillInstallView()
         }
         .errorAlert($host.actionError)
+        .task { await host.refreshDelegatedCamera() }
     }
 
     private var form: some View {
         Form {
             Section {
-                ForEach(host.checks) { check in
+                ForEach(host.displayedChecks) { check in
                     row(check)
                 }
             } header: {
                 HStack {
                     Text("Checks")
                     Spacer()
-                    Text("\(host.passedCount) of \(host.checks.count) passed")
+                    Text("\(host.displayedChecks.count(where: host.isSatisfied)) of \(host.displayedChecks.count) passed")
                         .foregroundStyle(.secondary)
                 }
             } footer: {
+                if VPhoneLaunchpadCameraDevelopment.isEnabled {
+                    Text("This camera trial delegates installation and preflight to the signed Launchpad. Use the official app for VM creation and firmware maintenance.")
+                        .foregroundStyle(.secondary)
+                }
                 if host.checks.contains(where: { $0.kind == .developerTools && $0.status != .passed }) {
                     Text("Allow vphone-launchpad in Privacy & Security → Developer Tools.")
                         .foregroundStyle(.secondary)
@@ -107,6 +112,10 @@ struct VPhoneLaunchpadHostSetupView: View {
                     Button("Relaunch") { VPhoneLaunchpadHostSetup.relaunch() }
                         .help("Quit and open Launchpad again, if access granted in Settings does not show here")
                 }
+            }
+        case .helper where VPhoneLaunchpadCameraDevelopment.isEnabled:
+            Button("Open Official Launchpad") {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/vphone-launchpad.app"))
             }
         case .helper where check.status == .pending:
             Button(host.helper.state == .notInstalled ? "Install…" : "Update…") {

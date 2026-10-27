@@ -47,6 +47,62 @@ final class VPhoneLaunchpadHostSetup {
     /// reads "Not allowed" rather than "Not requested".
     private(set) var didOpenDeveloperTools = false
 
+    private(set) var delegatedCameraStatus: VPhoneLaunchpadDelegatedCameraStatus?
+    private(set) var delegatedCameraError: String?
+    private(set) var isCheckingDelegatedCamera = false
+
+    /// Presentation only. requiredPassed deliberately still checks this app's
+    /// own helper, so a camera trial cannot unlock unsupported root operations.
+    var displayedChecks: [VPhoneLaunchpadHostCheck] {
+        guard VPhoneLaunchpadCameraDevelopment.isEnabled else { return checks }
+        return checks.map { check in
+            guard check.kind == .helper else { return check }
+            let status: VPhoneLaunchpadStatus
+            let detail: String
+            if isCheckingDelegatedCamera {
+                status = .running
+                detail = String(localized: "Checking official Launchpad…")
+            } else if let delegatedCameraError {
+                status = .failed
+                detail = delegatedCameraError
+            } else if let delegatedCameraStatus {
+                if delegatedCameraStatus.cameraOperationsReady {
+                    status = .passed
+                    detail = String(localized: "Official Launchpad — camera operations only")
+                } else if delegatedCameraStatus.installing {
+                    status = .warning
+                    detail = String(localized: "Official Launchpad is installing a bundle")
+                } else {
+                    status = .failed
+                    detail = String(localized: "Complete Host Setup in official Launchpad")
+                }
+            } else {
+                status = .pending
+                detail = String(localized: "Not checked")
+            }
+            return .init(kind: .helper, title: String(localized: "Privileged helper (delegated)"), status: status, detail: detail)
+        }
+    }
+
+    var cameraTrialReady: Bool {
+        VPhoneLaunchpadCameraDevelopment.isEnabled
+            && delegatedCameraStatus?.cameraOperationsReady == true
+            && checks.filter { $0.kind != .helper }.allSatisfy(isSatisfied)
+    }
+
+    func refreshDelegatedCamera() async {
+        guard VPhoneLaunchpadCameraDevelopment.isEnabled, !isCheckingDelegatedCamera else { return }
+        isCheckingDelegatedCamera = true
+        defer { isCheckingDelegatedCamera = false }
+        do {
+            delegatedCameraStatus = try await VPhoneLaunchpadCameraDevelopment.helperStatus()
+            delegatedCameraError = nil
+        } catch {
+            delegatedCameraStatus = nil
+            delegatedCameraError = error.localizedDescription
+        }
+    }
+
     let helper: VPhoneLaunchpadHelperClient
     let libraryRoot: URL
 
@@ -123,6 +179,7 @@ final class VPhoneLaunchpadHostSetup {
         // recheck does not blank it.
         await helper.refresh()
         update(.helper, helperStatus())
+        await refreshDelegatedCamera()
     }
 
     /// The checks that need no helper. They run at init, so the
