@@ -130,6 +130,18 @@ replies describe the transport request, not proof of granted camera consent.
 
 ### Host Setup in the development companion
 
+For everyday use, run only the official Launchpad with a machine bound to the
+installed camera Core Bundle. The VM's Camera menu provides Source: Mac Camera
+without the development Launchpad running. The development app is optional for
+testing its additional UI; installing both apps creates two application-search
+entries. Remove the development app from Applications to keep only one entry;
+this does not remove the installed Core Bundle or machine data.
+
+After a delegated CLI operation finishes, the camera companion hides the
+official Launchpad's windows. The signed app keeps running to serve its helper;
+the camera companion remains the visible management window. This also covers
+an official app that was already open, which `open -j` alone does not hide.
+
 The trial app's Host Setup presents the signed app's live status as
 Privileged helper (delegated), explicitly limited to camera operations. It
 checks helper readiness, host readiness, Developer Tools access and whether

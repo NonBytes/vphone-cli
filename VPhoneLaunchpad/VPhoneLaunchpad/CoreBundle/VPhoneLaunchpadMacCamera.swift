@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -47,6 +48,17 @@ nonisolated enum VPhoneLaunchpadCameraDevelopment {
         try process.run()
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        // The signed app supplies the helper, while this companion owns the UI.
+        // open -j only hides a newly launched app; also hide an existing instance.
+        await MainActor.run {
+            let officialApp = officialCLI.deletingLastPathComponent()
+                .deletingLastPathComponent().deletingLastPathComponent()
+            for app in NSWorkspace.shared.runningApplications
+                where app.bundleURL?.standardizedFileURL == officialApp.standardizedFileURL
+            {
+                app.hide()
+            }
+        }
         guard process.terminationStatus == 0 else {
             throw VPhoneLaunchpadError("The installed Launchpad could not complete the operation.")
         }
