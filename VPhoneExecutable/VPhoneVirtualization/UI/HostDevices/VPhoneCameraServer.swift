@@ -84,11 +84,7 @@ final class VPhoneCameraServer {
         sourceKind = kind
         switch kind {
         case .macCamera:
-            do { producer = try VPhoneMacCameraProducer() }
-            catch {
-                print("[camera] Mac camera setup failed: \(error)")
-                producer = nil; sourceKind = .off
-            }
+            producer = VPhoneMacCameraProducer()
         case .off:
             producer = nil
         case .testPattern:

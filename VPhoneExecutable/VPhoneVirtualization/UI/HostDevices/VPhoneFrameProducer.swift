@@ -328,79 +328,82 @@ final class VPhoneVideoFileProducer: VPhoneFrameProducer, @unchecked Sendable {
     }
 }
 
-// MARK: - Mac camera (Camera consent belongs to a separate local application)
+// MARK: - Mac camera
 
 final class VPhoneMacCameraProducer: VPhoneFrameProducer, @unchecked Sendable {
-    private let fd: Int32
-    private let memory: UnsafeMutableRawPointer
-    private let path: String
-    private let capacity = 64 + 1280 * 720 * 4
+    // Access from MainActor lifecycle calls and the frame-production queue.
+    private let lock = NSLock()
+    private var channel: VPhoneMacCameraChannel?
     private var lastSequence: UInt64 = 0
     @MainActor private var application: NSRunningApplication?
     @MainActor private var launchGeneration: UInt64 = 0
 
-    init() throws {
-        var template = Array((NSTemporaryDirectory() + "vphone-camera-XXXXXX").utf8CString)
-        let descriptor = mkstemp(&template)
-        guard descriptor >= 0 else { throw CocoaError(.fileWriteUnknown) }
-        let name = String(decoding: template.dropLast().map { UInt8(bitPattern: $0) }, as: UTF8.self)
-        guard ftruncate(descriptor, off_t(capacity)) == 0,
-              let pointer = mmap(nil, capacity, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0),
-              pointer != MAP_FAILED else {
-            close(descriptor); unlink(name)
-            throw CocoaError(.fileWriteUnknown)
-        }
-        fd = descriptor; path = name; memory = pointer
-        memset(pointer, 0, capacity)
-    }
-
     deinit {
-        flock(fd, LOCK_EX)
-        memory.storeBytes(of: UInt32(2), as: UInt32.self)
-        flock(fd, LOCK_UN)
-        munmap(memory, capacity); close(fd); unlink(path)
+        channel?.setControl(.terminated)
     }
 
     @MainActor func start() {
+        // An already-running source must not launch a second companion.
+        if let application, !application.isTerminated { return }
         launchGeneration &+= 1
         let generation = launchGeneration
-        flock(fd, LOCK_EX)
-        memory.storeBytes(of: UInt32(1), as: UInt32.self)
-        memory.storeBytes(of: UInt64(0), toByteOffset: 8, as: UInt64.self)
+        let channel: VPhoneMacCameraChannel
+        do {
+            channel = try VPhoneMacCameraChannel()
+        } catch {
+            print("[camera] Mac camera channel: \(error.localizedDescription)")
+            return
+        }
+        lock.lock()
+        self.channel?.setControl(.terminated)
+        self.channel = channel
         lastSequence = 0
-        flock(fd, LOCK_UN)
-        if let application, !application.isTerminated { return }
-        let root = URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent().deletingLastPathComponent()
+        channel.setControl(.streaming)
+        lock.unlock()
+
+        let root = URL(fileURLWithPath: CommandLine.arguments[0])
+            .deletingLastPathComponent().deletingLastPathComponent()
         let helper = root.appendingPathComponent("Helpers/VPhoneMacCamera.app")
-        let config = NSWorkspace.OpenConfiguration()
-        config.arguments = [path, String(getpid())]
-        config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: helper, configuration: config) { [weak self] app, error in
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.arguments = [channel.path, String(getpid())]
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: helper, configuration: configuration) { [weak self] app, error in
             Task { @MainActor [weak self] in
-                guard let self, self.launchGeneration == generation else { app?.terminate(); return }
-                self.application = app
-                if let error { print("[camera] Mac camera helper: \(error.localizedDescription)") }
+                guard let self, launchGeneration == generation else {
+                    app?.terminate()
+                    return
+                }
+                application = app
+                if let error {
+                    channel.setControl(.terminated)
+                    print("[camera] Mac camera helper: \(error.localizedDescription)")
+                }
             }
         }
     }
 
     @MainActor func stop() {
         launchGeneration &+= 1
-        flock(fd, LOCK_EX)
-        memory.storeBytes(of: UInt32(0), as: UInt32.self)
-        flock(fd, LOCK_UN)
+        lock.lock()
+        channel?.setControl(.terminated)
+        channel = nil
+        lastSequence = 0
+        lock.unlock()
         application?.terminate()
         application = nil
     }
 
     func nextFrame() -> VPhoneCameraFrame? {
-        guard flock(fd, LOCK_SH | LOCK_NB) == 0 else { return nil }
-        defer { flock(fd, LOCK_UN) }
-        let sequence = memory.load(fromByteOffset: 8, as: UInt64.self)
-        guard memory.load(as: UInt32.self) == 1, sequence != 0, sequence != lastSequence else { return nil }
-        lastSequence = sequence
-        return VPhoneCameraFrame(width: 1280, height: 720, bytesPerRow: 5120,
+        lock.lock()
+        defer { lock.unlock() }
+        guard let frame = channel?.readFrame(after: lastSequence) else { return nil }
+        lastSequence = frame.sequence
+        return VPhoneCameraFrame(
+            width: VPhoneMacCameraChannel.width,
+            height: VPhoneMacCameraChannel.height,
+            bytesPerRow: VPhoneMacCameraChannel.bytesPerRow,
             timestampNS: UInt64(ProcessInfo.processInfo.systemUptime * 1e9),
-            pixels: Data(bytes: memory.advanced(by: 64), count: 1280 * 720 * 4))
+            pixels: frame.pixels
+        )
     }
 }

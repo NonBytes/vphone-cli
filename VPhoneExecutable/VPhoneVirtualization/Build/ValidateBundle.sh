@@ -59,6 +59,18 @@ require_signed_macho "$camera_helper"
 /usr/bin/codesign --verify --strict "$camera_app"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$camera_app/Contents/Info.plist")" == "APPL" ]] || exit 1
 /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$camera_app/Contents/Info.plist" >/dev/null
+for language in en zh-Hans ja ko vi; do
+    camera_strings="$camera_app/Contents/Resources/$language.lproj"
+    /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$camera_strings/InfoPlist.strings" >/dev/null 2>&1 || {
+        print -u2 "Missing camera permission prompt: $language"
+        exit 1
+    }
+    /usr/libexec/PlistBuddy -c 'Print :"Stop Camera"' "$camera_strings/Localizable.strings" >/dev/null 2>&1 || {
+        print -u2 "Missing camera companion translations: $language"
+        exit 1
+    }
+done
+
 require_signed_macho "$location_helper"
 
 /usr/bin/codesign --verify --strict "$location_app"

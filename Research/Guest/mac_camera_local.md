@@ -4,11 +4,13 @@ Adds Camera > Source: Mac Camera and a separately launched VPhoneMacCamera.app.
 The companion owns macOS Camera consent. Launchpad's Developer ID signature,
 helper, VM guest environment and security settings stay as installed.
 
-Frames use a per-producer mkstemp file (0600), mapped into both processes.
+Each streaming session creates a fresh mkstemp file (0600), mapped into both
+processes. Stopped helpers cannot write into a later session's buffer.
 The fixed 64-byte header contains control (UInt32 at offset 0, 0 pause / 1
 capture / 2 exit) and frame sequence (UInt64 at offset 8). Pixels are 1280x720
-BGRA at offset 64, stride 5120. Both processes flock before access; capture
-and producer drop frames rather than blocking when the other owns the lock.
+BGRA at offset 64, stride 5120. Both processes flock before access;
+an NSLock also serializes threads sharing one descriptor. Frame reads and
+publication drop a frame when the other process owns the mapping lock.
 No socket listener, recording or external video service is involved.
 
 Start Streaming opens the companion and asks Camera consent. Stop Streaming,
@@ -47,7 +49,26 @@ In Features, choose Source: Mac Camera, then Start Streaming. Allow Camera
 access to VPhone Mac Camera when macOS prompts. The companion's rotation
 selector offers 0/90/180/270 degrees. Stop Camera or Stop Streaming ends capture.
 
+## Automated regression tests
+
+```sh
+VPhoneExecutable/VPhoneVirtualization/Camera/Tests/run-tests.sh
+```
+
+This compiles the actual shared channel, capture policy and rotation code with
+Swift 6 and system frameworks. No Camera permission or physical camera is used.
+The tests cover pending/denied permission, stop/start policy, owner exit and
+late permission after shutdown; private-buffer validation; pause/termination;
+fresh-buffer isolation on restart; malformed files and symlinks; concurrent
+publication from a separate process with torn-frame checks; and all four
+rotations with colored markers and letterbox borders.
+
+The companion UI, permission prompt and menu label are localized in English,
+Japanese, Korean, Vietnamese and Simplified Chinese. Bundle validation checks
+that each language's permission prompt and companion strings were staged.
+
 ## Verification
+
 
 The full VPhone Xcode scheme, including ValidateBundle, passed on an Apple
 Silicon Mac. Launchpad installed the local build with policy and preflight

@@ -1,128 +1,228 @@
-import AppKit
 import AVFoundation
+import AppKit
 import CoreImage
 import Darwin
 
-// Separate application: owns Camera consent instead of changing Launchpad's signature.
-final class CameraBridge: NSObject, NSApplicationDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
-    let session = AVCaptureSession()
-    let queue = DispatchQueue(label: "com.vphone.mac-camera.capture")
-    let context = CIContext()
-    @MainActor var window: NSWindow!
-    @MainActor var status: NSTextField!
-    var timer: Timer?
-    var fd: Int32 = -1
-    var memory: UnsafeMutableRawPointer!
-    let capacity = 64 + 1280 * 720 * 4
-    var sequence: UInt64 = 0
-    var rotation = 0
-    var path = ""
-    var owner: pid_t = 0
+/// Independently launched application: Camera consent belongs to this helper,
+/// without replacing or re-signing the user's installed Launchpad.
+@MainActor
+final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
+    private var window: NSWindow?
+    private var status: NSTextField?
+    private var timer: Timer?
+    private var channel: VPhoneMacCameraChannel?
+    private var capture: VPhoneMacCameraCapture?
+    private var owner: pid_t = 0
+    private var isTerminating = false
 
-    @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
-        let args = CommandLine.arguments
-        guard args.count == 3, let pid = Int32(args[2]) else { NSApp.terminate(nil); return }
-        path = args[1]; owner = pid
-        fd = open(path, O_RDWR | O_NOFOLLOW)
-        var st = stat()
-        guard fd >= 0, fstat(fd, &st) == 0, st.st_uid == getuid(), st.st_size == capacity else {
-            NSApp.terminate(nil); return
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let arguments = CommandLine.arguments
+        guard arguments.count == 3, let owner = Int32(arguments[2]), owner > 1 else {
+            NSApp.terminate(nil)
+            return
         }
-        memory = mmap(nil, capacity, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)
-        guard memory != MAP_FAILED else { NSApp.terminate(nil); return }
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 160),
-                          styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.title = "VPhone — Mac Camera"
-        status = NSTextField(labelWithString: "Waiting for Camera permission…")
-        status.frame = NSRect(x: 20, y: 112, width: 400, height: 24)
-        window.contentView!.addSubview(status)
-        let rotate = NSPopUpButton(frame: NSRect(x: 20, y: 65, width: 250, height: 28))
-        rotate.addItems(withTitles: ["Rotation: 0°", "Rotation: 90° clockwise", "Rotation: 180°", "Rotation: 90° counterclockwise"])
-        rotate.target = self; rotate.action = #selector(rotateChanged(_:))
-        window.contentView!.addSubview(rotate)
-        let stop = NSButton(title: "Stop Camera", target: self, action: #selector(stopCamera))
-        stop.frame = NSRect(x: 290, y: 65, width: 130, height: 28)
-        window.contentView!.addSubview(stop)
-        window.center(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
-        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-            guard let self else { return }
-            guard kill(self.owner, 0) == 0 else { NSApp.terminate(nil); return }
-            flock(self.fd, LOCK_SH)
-            let control = self.memory.load(as: UInt32.self)
-            flock(self.fd, LOCK_UN)
-            if control == 2 { NSApp.terminate(nil); return }
-            self.queue.async {
-                if control == 0, self.session.isRunning { self.session.stopRunning() }
-                if control == 1, !self.session.inputs.isEmpty, !self.session.isRunning { self.session.startRunning() }
-            }
-            }
-        }
-        AVCaptureDevice.requestAccess(for: .video) { granted in
-            DispatchQueue.main.async {
-                guard granted else { self.status.stringValue = "Camera denied — enable in Privacy & Security → Camera."; return }
-                self.queue.async { self.configure() }
-            }
-        }
-    }
-    @MainActor @objc func rotateChanged(_ sender: NSPopUpButton) {
-        let value = sender.indexOfSelectedItem
-        queue.async { self.rotation = value }
-    }
-    @MainActor @objc func stopCamera() { NSApp.terminate(nil) }
-    @MainActor func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
-    @MainActor func applicationWillTerminate(_ notification: Notification) {
-        timer?.invalidate()
-        queue.sync { if session.isRunning { session.stopRunning() } }
-        if memory != nil, memory != MAP_FAILED { munmap(memory, capacity) }
-        if fd >= 0 { close(fd) }
-
-    }
-    func configure() {
         do {
-            let devices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified).devices
-            guard let device = devices.first ?? AVCaptureDevice.default(for: .video) else {
-                throw NSError(domain: "VPhoneCamera", code: 1, userInfo: [NSLocalizedDescriptionKey: "No Mac camera found"])
+            channel = try VPhoneMacCameraChannel(path: arguments[1])
+        } catch {
+            NSApp.terminate(nil)
+            return
+        }
+        guard let channel, channel.control() == .streaming, kill(owner, 0) == 0 else {
+            NSApp.terminate(nil)
+            return
+        }
+        self.owner = owner
+        showWindow()
+        capture = VPhoneMacCameraCapture(channel: channel) { [weak self] message in
+            Task { @MainActor [weak self] in
+                guard let self, !isTerminating else { return }
+                status?.stringValue = message
             }
-            session.beginConfiguration()
-            session.sessionPreset = .hd1280x720
+        }
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateCapture() }
+        }
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+            Task { @MainActor [weak self] in
+                guard let self, !isTerminating else { return }
+                capture?.setPermission(granted)
+                updateCapture()
+            }
+        }
+    }
+
+    private func showWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 160),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.title = NSLocalizedString("VPhone — Mac Camera", comment: "Camera companion title")
+        let status = NSTextField(
+            labelWithString: NSLocalizedString("Waiting for Camera permission…", comment: "Camera permission pending"))
+        status.frame = NSRect(x: 20, y: 106, width: 480, height: 38)
+        status.maximumNumberOfLines = 2
+        window.contentView?.addSubview(status)
+        let rotation = NSPopUpButton(frame: NSRect(x: 20, y: 52, width: 290, height: 28))
+        rotation.addItems(withTitles: VPhoneMacCameraRotation.allCases.map(\.title))
+        rotation.target = self
+        rotation.action = #selector(rotationChanged(_:))
+        window.contentView?.addSubview(rotation)
+        let stop = NSButton(
+            title: NSLocalizedString("Stop Camera", comment: "Stop capture and close companion"),
+            target: self, action: #selector(stopCamera)
+        )
+        stop.frame = NSRect(x: 330, y: 52, width: 170, height: 28)
+        window.contentView?.addSubview(stop)
+        self.window = window
+        self.status = status
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func updateCapture() {
+        guard !isTerminating, let channel else { return }
+        let control = channel.control()
+        guard kill(owner, 0) == 0, control != .terminated else {
+            NSApp.terminate(nil)
+            return
+        }
+        capture?.update(control: control)
+    }
+
+    @objc private func rotationChanged(_ sender: NSPopUpButton) {
+        guard let rotation = VPhoneMacCameraRotation(rawValue: sender.indexOfSelectedItem) else { return }
+        capture?.setRotation(rotation)
+    }
+
+    @objc private func stopCamera() {
+        NSApp.terminate(nil)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        isTerminating = true
+        timer?.invalidate()
+        timer = nil
+        channel?.setControl(.terminated)
+        capture?.shutdown()
+        capture = nil
+        channel = nil
+    }
+}
+
+/// All mutable capture state and sample callbacks are confined to queue.
+/// shutdown drains that queue before releasing the shared channel.
+final class VPhoneMacCameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
+    private let session = AVCaptureSession()
+    private let queue = DispatchQueue(label: "com.vphone.mac-camera.capture")
+    private let context = CIContext()
+    private let channel: VPhoneMacCameraChannel
+    private let report: @Sendable (String) -> Void
+    private var output: AVCaptureVideoDataOutput?
+    private var state = VPhoneMacCameraState()
+    private var rotation = VPhoneMacCameraRotation.upright
+
+    init(channel: VPhoneMacCameraChannel, report: @escaping @Sendable (String) -> Void) {
+        self.channel = channel
+        self.report = report
+    }
+
+    func setPermission(_ granted: Bool) {
+        queue.async { [self] in
+            guard !state.shuttingDown else { return }
+            state.permission = granted ? .granted : .denied
+            guard granted else {
+                report(
+                    NSLocalizedString(
+                        "Camera denied — enable in Privacy & Security → Camera.", comment: "Camera permission denied"))
+                return
+            }
+            configure()
+        }
+    }
+
+    func setRotation(_ rotation: VPhoneMacCameraRotation) {
+        queue.async { [self] in self.rotation = rotation }
+    }
+
+    func update(control: VPhoneMacCameraChannel.Control) {
+        queue.async { [self] in
+            switch state.action(control: control, ownerAlive: true, running: session.isRunning) {
+            case .start: session.startRunning()
+            case .stop, .exit:
+                if session.isRunning { session.stopRunning() }
+            case .idle: break
+            }
+        }
+    }
+
+    func shutdown() {
+        queue.sync {
+            state.shuttingDown = true
+            output?.setSampleBufferDelegate(nil, queue: nil)
+            if session.isRunning { session.stopRunning() }
+        }
+    }
+
+    private func configure() {
+        guard !state.configured, !state.shuttingDown, channel.control() == .streaming else { return }
+        do {
+            let devices = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified
+            ).devices
+            guard let device = devices.first ?? AVCaptureDevice.default(for: .video) else {
+                report(NSLocalizedString("No Mac camera found", comment: "Camera unavailable"))
+                return
+            }
             let input = try AVCaptureDeviceInput(device: device)
+            session.beginConfiguration()
+            defer { session.commitConfiguration() }
+            guard session.canSetSessionPreset(.hd1280x720) else {
+                report(NSLocalizedString("Cannot configure capture", comment: "Unsupported camera configuration"))
+                return
+            }
+            session.sessionPreset = .hd1280x720
             let output = AVCaptureVideoDataOutput()
             output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
             output.alwaysDiscardsLateVideoFrames = true
-            output.setSampleBufferDelegate(self, queue: queue)
             guard session.canAddInput(input), session.canAddOutput(output) else {
-                session.commitConfiguration()
-                throw NSError(domain: "VPhoneCamera", code: 2, userInfo: [NSLocalizedDescriptionKey: "Cannot configure capture"])
+                report(NSLocalizedString("Cannot configure capture", comment: "Unsupported camera configuration"))
+                return
             }
-            session.addInput(input); session.addOutput(output); session.commitConfiguration()
-            let deviceName = device.localizedName
-            DispatchQueue.main.async { self.status.stringValue = "Camera: \(deviceName) — local VM feed" }
-        } catch { DispatchQueue.main.async { self.status.stringValue = error.localizedDescription } }
+            output.setSampleBufferDelegate(self, queue: queue)
+            session.addInput(input)
+            session.addOutput(output)
+            self.output = output
+            state.configured = true
+            report(
+                String(
+                    format: NSLocalizedString("Camera: %@ — local VM feed", comment: "Selected Mac camera"),
+                    device.localizedName))
+        } catch {
+            report(error.localizedDescription)
+        }
     }
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        var image = CIImage(cvPixelBuffer: buffer)
-        let orientations: [CGImagePropertyOrientation] = [.up, .right, .down, .left]
-        image = image.oriented(orientations[rotation])
-        let bounds = image.extent
-        let scale = min(1280 / bounds.width, 720 / bounds.height)
-        image = image.transformed(by: CGAffineTransform(translationX: -bounds.minX, y: -bounds.minY))
-            .transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-            .transformed(by: CGAffineTransform(translationX: (1280 - bounds.width * scale) / 2, y: (720 - bounds.height * scale) / 2))
-        image = image.composited(over: CIImage(color: .black).cropped(to: CGRect(x: 0, y: 0, width: 1280, height: 720)))
-        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { return }
-        defer { flock(fd, LOCK_UN) }
-        guard memory.load(as: UInt32.self) == 1 else { return }
-        context.render(image, toBitmap: memory.advanced(by: 64), rowBytes: 5120,
-                       bounds: CGRect(x: 0, y: 0, width: 1280, height: 720), format: .BGRA8,
-                       colorSpace: CGColorSpaceCreateDeviceRGB())
-        sequence &+= 1
-        memory.storeBytes(of: sequence, toByteOffset: 8, as: UInt64.self)
+
+    func captureOutput(
+        _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection
+    ) {
+        guard !state.shuttingDown, channel.control() == .streaming,
+            let buffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+        else { return }
+        let image = rotation.fittedImage(CIImage(cvPixelBuffer: buffer))
+        var pixels = Data(count: VPhoneMacCameraChannel.pixelCount)
+        pixels.withUnsafeMutableBytes { bytes in
+            context.render(
+                image, toBitmap: bytes.baseAddress!, rowBytes: VPhoneMacCameraChannel.bytesPerRow,
+                bounds: CGRect(x: 0, y: 0, width: VPhoneMacCameraChannel.width, height: VPhoneMacCameraChannel.height),
+                format: .BGRA8, colorSpace: CGColorSpaceCreateDeviceRGB()
+            )
+        }
+        do { try channel.publish(pixels) } catch { report(error.localizedDescription) }
     }
 }
-let app = NSApplication.shared
-let delegate = CameraBridge()
-app.delegate = delegate
-app.run()
