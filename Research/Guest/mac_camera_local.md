@@ -18,11 +18,35 @@ Source: Off, closing the camera window or closing the VM stops capture.
 The companion also monitors the VM PID and exits when it disappears.
 A rotation selector compensates for the guest application's camera orientation.
 
+The companion's camera picker discovers built-in, external USB and Continuity
+Camera devices. The helper opts into `NSCameraUseContinuityCameraDeviceType`.
+It initially prefers the built-in camera, then keeps the selected device ID
+while refreshing the list once a second. Changing devices stops the session,
+clears the previous frame, replaces its input and restarts on the capture
+queue; output remains 1280x720 BGRA even when the device needs another preset.
+Disconnecting a selected camera keeps that selection and clears the frame,
+rather than silently capturing another device. Reconnecting it resumes capture.
+
+To use an iPhone, enable Settings > General > AirPlay & Continuity > Continuity
+Camera, sign into the same Apple Account with two-factor authentication on both
+devices, and connect by USB (trust the Mac) or use wireless Continuity Camera.
+Select the iPhone by name in the companion. A USB cable alone does not expose
+arbitrary iPhone camera access. See [Apple's setup requirements](https://support.apple.com/en-us/102546)
+and [AVFoundation Continuity Camera support](https://developer.apple.com/documentation/avfoundation/supporting-continuity-camera-in-your-macos-app).
+
 Validation: build the VPhone bundle, verify signatures, bind a test VM
 to the local bundle, open Mac Camera and grant consent, verify advancing frames
 and upright capture in the guest, then Stop Streaming and confirm camera stops.
 Transport success does not validate face verification, hardware camera parity,
 or the app's original signing/provisioning behavior.
+
+Continuity picker validation (2026-10-28): full VPhone build and all seven
+camera regression tests passed. The installed local bundle passed Launchpad
+policy/preflight. A steady-state 12-second built-in-camera smoke test on
+doctor-ipad delivered 357 frames (29.75 FPS). An earlier window had a 7-second
+gap, so this does not establish uninterrupted or end-to-end latency. macOS
+reported the built-in camera and OBS Virtual Camera, but no iPhone camera;
+physical Continuity capture and unplug/reconnect still need hardware validation.
 
 ## Build and install
 

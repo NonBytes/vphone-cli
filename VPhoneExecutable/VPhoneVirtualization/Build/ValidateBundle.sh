@@ -59,6 +59,10 @@ require_signed_macho "$camera_helper"
 /usr/bin/codesign --verify --strict "$camera_app"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$camera_app/Contents/Info.plist")" == "APPL" ]] || exit 1
 /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$camera_app/Contents/Info.plist" >/dev/null
+[[ $(/usr/libexec/PlistBuddy -c 'Print :NSCameraUseContinuityCameraDeviceType' "$camera_app/Contents/Info.plist") == true ]] || {
+    print -u2 'Mac Camera helper must opt in to Continuity Camera device discovery'
+    exit 1
+}
 for language in en zh-Hans ja ko vi; do
     camera_strings="$camera_app/Contents/Resources/$language.lproj"
     /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$camera_strings/InfoPlist.strings" >/dev/null 2>&1 || {

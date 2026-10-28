@@ -14,6 +14,12 @@ final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
     private var capture: VPhoneMacCameraCapture?
     private var owner: pid_t = 0
     private var isTerminating = false
+    private var cameraPicker: NSPopUpButton?
+    private var discovery: AVCaptureDevice.DiscoverySession?
+    private var deviceSnapshot: [String] = []
+    private var selectedDeviceID: String?
+    private var selectedDeviceName = ""
+    private var nextDiscovery = Date.distantPast
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let arguments = CommandLine.arguments
@@ -46,6 +52,12 @@ final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor [weak self] in
                 guard let self, !isTerminating else { return }
                 capture?.setPermission(granted)
+                if granted {
+                    discovery = AVCaptureDevice.DiscoverySession(
+                        deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
+                        mediaType: .video, position: .unspecified)
+                    refreshDevices()
+                }
                 updateCapture()
             }
         }
@@ -53,16 +65,30 @@ final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
 
     private func showWindow() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 160),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 220),
             styleMask: [.titled, .closable], backing: .buffered, defer: false
         )
         window.isReleasedWhenClosed = false
         window.title = NSLocalizedString("VPhone — Mac Camera", comment: "Camera companion title")
         let status = NSTextField(
             labelWithString: NSLocalizedString("Waiting for Camera permission…", comment: "Camera permission pending"))
-        status.frame = NSRect(x: 20, y: 106, width: 480, height: 38)
+        status.frame = NSRect(x: 20, y: 166, width: 480, height: 38)
         status.maximumNumberOfLines = 2
         window.contentView?.addSubview(status)
+        let picker = NSPopUpButton(frame: NSRect(x: 20, y: 118, width: 480, height: 28))
+        picker.addItem(withTitle: NSLocalizedString("Select Camera", comment: "Camera device picker"))
+        picker.isEnabled = false
+        picker.target = self
+        picker.action = #selector(cameraChanged(_:))
+        window.contentView?.addSubview(picker)
+        cameraPicker = picker
+        let hint = NSTextField(labelWithString: NSLocalizedString(
+            "iPhone: enable Continuity Camera and connect to this Mac.", comment: "Continuity Camera hint"))
+        hint.frame = NSRect(x: 20, y: 12, width: 480, height: 30)
+        hint.maximumNumberOfLines = 2
+        hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hint.textColor = .secondaryLabelColor
+        window.contentView?.addSubview(hint)
         let rotation = NSPopUpButton(frame: NSRect(x: 20, y: 52, width: 290, height: 28))
         rotation.addItems(withTitles: VPhoneMacCameraRotation.allCases.map(\.title))
         rotation.target = self
@@ -89,6 +115,47 @@ final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         capture?.update(control: control)
+        if Date() >= nextDiscovery {
+            nextDiscovery = Date().addingTimeInterval(1)
+            refreshDevices()
+        }
+    }
+
+    private func refreshDevices() {
+        guard let discovery, let picker = cameraPicker else { return }
+        let devices = discovery.devices
+        let snapshot = devices.map { $0.uniqueID + "\n" + $0.localizedName + "\n" + String($0.isConnected) }
+        guard snapshot != deviceSnapshot || selectedDeviceID == nil else { return }
+        deviceSnapshot = snapshot
+        if selectedDeviceID == nil, let device = devices.first(where: { $0.deviceType == .builtInWideAngleCamera }) ?? devices.first {
+            selectedDeviceID = device.uniqueID
+            selectedDeviceName = device.localizedName
+        }
+        picker.removeAllItems()
+        for device in devices {
+            picker.addItem(withTitle: device.localizedName)
+            picker.lastItem?.representedObject = device.uniqueID
+        }
+        if let id = selectedDeviceID {
+            if !devices.contains(where: { $0.uniqueID == id }) {
+                picker.addItem(withTitle: String(format: NSLocalizedString(
+                    "%@ (Disconnected)", comment: "Selected camera disconnected"), selectedDeviceName))
+                picker.lastItem?.representedObject = id
+            }
+            picker.select(picker.itemArray.first { $0.representedObject as? String == id })
+            // Reconfigure after a disconnect/reconnect, keeping the user's choice.
+            capture?.selectDevice(id)
+        } else {
+            picker.addItem(withTitle: NSLocalizedString("No camera found", comment: "No capture devices"))
+        }
+        picker.isEnabled = !devices.isEmpty
+    }
+
+    @objc private func cameraChanged(_ sender: NSPopUpButton) {
+        guard let item = sender.selectedItem, let id = item.representedObject as? String else { return }
+        selectedDeviceID = id
+        selectedDeviceName = item.title
+        capture?.selectDevice(id)
     }
 
     @objc private func rotationChanged(_ sender: NSPopUpButton) {
@@ -126,6 +193,7 @@ final class VPhoneMacCameraCapture: NSObject, AVCaptureVideoDataOutputSampleBuff
     private var output: AVCaptureVideoDataOutput?
     private var state = VPhoneMacCameraState()
     private var rotation = VPhoneMacCameraRotation.upright
+    private var selectedDeviceID: String?
 
     init(channel: VPhoneMacCameraChannel, report: @escaping @Sendable (String) -> Void) {
         self.channel = channel
@@ -142,6 +210,20 @@ final class VPhoneMacCameraCapture: NSObject, AVCaptureVideoDataOutputSampleBuff
                         "Camera denied — enable in Privacy & Security → Camera.", comment: "Camera permission denied"))
                 return
             }
+        }
+    }
+
+    func selectDevice(_ id: String) {
+        queue.async { [self] in
+            guard !state.shuttingDown else { return }
+            if session.isRunning { session.stopRunning() }
+            session.beginConfiguration()
+            for input in session.inputs { session.removeInput(input) }
+            session.commitConfiguration()
+            selectedDeviceID = id
+            state.configured = false
+            // Clear the previous source while switching or waiting for reconnection.
+            _ = try? channel.publish(Data(count: VPhoneMacCameraChannel.pixelCount))
             configure()
         }
     }
@@ -170,34 +252,44 @@ final class VPhoneMacCameraCapture: NSObject, AVCaptureVideoDataOutputSampleBuff
     }
 
     private func configure() {
-        guard !state.configured, !state.shuttingDown, channel.control() == .streaming else { return }
+        guard !state.configured, !state.shuttingDown, state.permission == .granted,
+            channel.control() == .streaming, let selectedDeviceID else { return }
         do {
             let devices = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified
+                deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
+                mediaType: .video, position: .unspecified
             ).devices
-            guard let device = devices.first ?? AVCaptureDevice.default(for: .video) else {
-                report(NSLocalizedString("No Mac camera found", comment: "Camera unavailable"))
+            guard let device = devices.first(where: { $0.uniqueID == selectedDeviceID }), device.isConnected else {
+                report(NSLocalizedString("Selected camera disconnected — reconnect it or choose another camera.",
+                                        comment: "Selected device unavailable"))
                 return
             }
             let input = try AVCaptureDeviceInput(device: device)
             session.beginConfiguration()
             defer { session.commitConfiguration() }
-            guard session.canSetSessionPreset(.hd1280x720) else {
+            guard session.canAddInput(input) else {
                 report(NSLocalizedString("Cannot configure capture", comment: "Unsupported camera configuration"))
                 return
             }
-            session.sessionPreset = .hd1280x720
-            let output = AVCaptureVideoDataOutput()
-            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-            output.alwaysDiscardsLateVideoFrames = true
-            guard session.canAddInput(input), session.canAddOutput(output) else {
-                report(NSLocalizedString("Cannot configure capture", comment: "Unsupported camera configuration"))
-                return
-            }
-            output.setSampleBufferDelegate(self, queue: queue)
             session.addInput(input)
-            session.addOutput(output)
-            self.output = output
+            if session.canSetSessionPreset(.hd1280x720) {
+                session.sessionPreset = .hd1280x720
+            } else if session.canSetSessionPreset(.high) {
+                session.sessionPreset = .high
+            }
+            if output == nil {
+                let output = AVCaptureVideoDataOutput()
+                output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+                output.alwaysDiscardsLateVideoFrames = true
+                guard session.canAddOutput(output) else {
+                    session.removeInput(input)
+                    report(NSLocalizedString("Cannot configure capture", comment: "Unsupported camera configuration"))
+                    return
+                }
+                output.setSampleBufferDelegate(self, queue: queue)
+                session.addOutput(output)
+                self.output = output
+            }
             state.configured = true
             report(
                 String(
