@@ -1,3 +1,4 @@
+import AppKit
 import AVFoundation
 import CoreGraphics
 import CoreVideo
@@ -20,6 +21,13 @@ struct VPhoneCameraFrame: Sendable {
 /// check.
 protocol VPhoneFrameProducer: AnyObject, Sendable {
     func nextFrame() -> VPhoneCameraFrame?
+    @MainActor func start()
+    @MainActor func stop()
+}
+
+extension VPhoneFrameProducer {
+    @MainActor func start() {}
+    @MainActor func stop() {}
 }
 
 // MARK: - Test pattern
@@ -317,5 +325,85 @@ final class VPhoneVideoFileProducer: VPhoneFrameProducer, @unchecked Sendable {
         print("[camera] video frame mismatch: \(srcWidth)x\(srcHeight) "
             + "format \(CVPixelBufferGetPixelFormatType(pb))")
         return nil
+    }
+}
+
+// MARK: - Mac camera
+
+final class VPhoneMacCameraProducer: VPhoneFrameProducer, @unchecked Sendable {
+    // Access from MainActor lifecycle calls and the frame-production queue.
+    private let lock = NSLock()
+    private var channel: VPhoneMacCameraChannel?
+    private var lastSequence: UInt64 = 0
+    @MainActor private var application: NSRunningApplication?
+    @MainActor private var launchGeneration: UInt64 = 0
+
+    deinit {
+        channel?.setControl(.terminated)
+    }
+
+    @MainActor func start() {
+        // An already-running source must not launch a second companion.
+        if let application, !application.isTerminated { return }
+        launchGeneration &+= 1
+        let generation = launchGeneration
+        let channel: VPhoneMacCameraChannel
+        do {
+            channel = try VPhoneMacCameraChannel()
+        } catch {
+            print("[camera] Mac camera channel: \(error.localizedDescription)")
+            return
+        }
+        lock.lock()
+        self.channel?.setControl(.terminated)
+        self.channel = channel
+        lastSequence = 0
+        channel.setControl(.streaming)
+        lock.unlock()
+
+        let root = URL(fileURLWithPath: CommandLine.arguments[0])
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let helper = root.appendingPathComponent("Helpers/VPhoneMacCamera.app")
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.arguments = [channel.path, String(getpid())]
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: helper, configuration: configuration) { [weak self] app, error in
+            Task { @MainActor [weak self] in
+                guard let self, launchGeneration == generation else {
+                    app?.terminate()
+                    return
+                }
+                application = app
+                if let error {
+                    channel.setControl(.terminated)
+                    print("[camera] Mac camera helper: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    @MainActor func stop() {
+        launchGeneration &+= 1
+        lock.lock()
+        channel?.setControl(.terminated)
+        channel = nil
+        lastSequence = 0
+        lock.unlock()
+        application?.terminate()
+        application = nil
+    }
+
+    func nextFrame() -> VPhoneCameraFrame? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let frame = channel?.readFrame(after: lastSequence) else { return nil }
+        lastSequence = frame.sequence
+        return VPhoneCameraFrame(
+            width: VPhoneMacCameraChannel.width,
+            height: VPhoneMacCameraChannel.height,
+            bytesPerRow: VPhoneMacCameraChannel.bytesPerRow,
+            timestampNS: UInt64(ProcessInfo.processInfo.systemUptime * 1e9),
+            pixels: frame.pixels
+        )
     }
 }

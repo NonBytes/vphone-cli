@@ -211,6 +211,25 @@ fi
     "$root/VPhoneExecutable/VPhoneVirtualization/Resources/InfoPlist.xcstrings" \
     --output-directory "$location_app/Contents/Resources"
 
+# Camera consent belongs to this independently launched app, leaving the
+# signed Launchpad and its helper untouched. No frames leave this Mac.
+camera_app="$bundle/Contents/Helpers/VPhoneMacCamera.app"
+/bin/mkdir -p "$camera_app/Contents/MacOS" "$camera_app/Contents/Resources"
+/bin/cp "$root/VPhoneExecutable/VPhoneVirtualization/Camera/Info.plist" "$camera_app/Contents/Info.plist"
+/usr/bin/xcrun --sdk macosx swiftc -swift-version 6 -target arm64-apple-macosx15.0 -O \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Camera/main.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Camera/VPhoneMacCamera.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Camera/VPhoneMacCameraState.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/UI/HostDevices/VPhoneMacCameraChannel.swift" \
+    -o "$camera_app/Contents/MacOS/vphone-mac-camera" \
+    -framework AppKit -framework AVFoundation -framework CoreImage
+for catalog in Localizable InfoPlist; do
+    /usr/bin/xcrun xcstringstool compile \
+        "$root/VPhoneExecutable/VPhoneVirtualization/Camera/$catalog.xcstrings" \
+        --output-directory "$camera_app/Contents/Resources"
+done
+/usr/bin/codesign --force --sign - -r='designated => identifier "com.vphone.bundle.camera"' "$camera_app"
+
 # vphone-vm needs Swift's span back-deployment library on macOS 15. Xcode's
 # generic bundle has no main executable. Use a private load name for the VM child.
 compatibility_library="$(/usr/bin/xcrun swift-stdlib-tool --print \

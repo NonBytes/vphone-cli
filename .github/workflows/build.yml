@@ -68,6 +68,9 @@ jobs:
             [[ "$archs" == *" $arch "* ]] || { echo "::error::vphone-escalator lacks $arch"; exit 1; }
           done
 
+      - name: Mac camera regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Camera/Tests/run-tests.sh
+
       - name: Guest component tests
         run: |
           make -C VPhoneGuestComponents test-loader-links

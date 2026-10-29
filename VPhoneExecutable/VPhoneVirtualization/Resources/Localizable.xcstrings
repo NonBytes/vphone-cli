@@ -23800,6 +23800,40 @@
         }
       }
     },
+    "Source: Mac Camera…" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source: Mac Camera…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ソース: Macのカメラ…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소스: Mac 카메라…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nguồn: Camera Mac…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源：Mac 摄像头…"
+          }
+        }
+      }
+    },
     "Source: Test Pattern" : {
       "localizations" : {
         "en" : {

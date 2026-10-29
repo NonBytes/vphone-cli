@@ -1,0 +1,40 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send live video from your Mac camera to your local vphone test VM."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macのカメラのライブ映像を、ローカルのvphoneテストVMに送信します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac 카메라의 실시간 영상을 로컬 vphone 테스트 VM으로 전송합니다."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi video trực tiếp từ camera Mac đến VM thử nghiệm vphone cục bộ."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将 Mac 摄像头的实时视频发送到本地 vphone 测试虚拟机。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
