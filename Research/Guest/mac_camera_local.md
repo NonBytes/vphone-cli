@@ -59,7 +59,7 @@ xcodebuild -workspace VPhone.xcworkspace -scheme VPhone \
   -derivedDataPath .build/XcodeBundle build
 ```
 
-Install using Launchpad of the matching 2.13 series:
+Install using Launchpad of the matching 2.15 series:
 
 ```sh
 vphone-launchpad-cli bundle install-local \
