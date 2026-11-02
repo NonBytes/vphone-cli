@@ -68,6 +68,9 @@ jobs:
             [[ "$archs" == *" $arch "* ]] || { echo "::error::vphone-escalator lacks $arch"; exit 1; }
           done
 
+      - name: Guest proxy tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-tests.sh
+
       - name: Guest component tests
         run: |
           make -C VPhoneGuestComponents test-loader-links
