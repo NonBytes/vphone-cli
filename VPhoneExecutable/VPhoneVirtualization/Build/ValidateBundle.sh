@@ -186,7 +186,7 @@ if /usr/bin/grep -q 'AVPSEPBooter-' "$resources/OpenSEP/OpenSEP.bin"; then
     exit 1
 fi
 
-for name in vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
+for name in vphone-guest-proxy vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
     libvcamcaptured.dylib libmisfix.dylib libhapticsfix.dylib libbatteryhealthfix.dylib libdevicehubfix.dylib libdevicename.dylib \
     libprefsfix.dylib libsigninfix.dylib libvphoneios17desktop.dylib libvphonegyro.dylib libvphoneaccelerometer.dylib libvphonehinge.dylib libvphonefoldguard.dylib libvphonefolddisplay.dylib libvphoneattitude.dylib libvphonehomepoddisplay.dylib libvphonecryptexstaging.dylib libvphoneinstallpersona.dylib libvphonehomepodmisfix.dylib vphone-homepod-setup libAppleParavirtCompilerPluginIOGPUFamily.dylib; do
     require_signed_macho "$guest/$name"

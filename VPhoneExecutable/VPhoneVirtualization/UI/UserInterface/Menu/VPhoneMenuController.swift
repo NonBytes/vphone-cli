@@ -26,6 +26,7 @@ class VPhoneMenuController {
     var tvControlCenterItem: NSMenuItem?
     var tvRemoteItem: NSMenuItem?
     lazy var tvRemoteWindowController = VPhoneTVRemoteWindowController(control: control)
+    lazy var proxyWindowController = VPhoneProxyWindowController(control: control)
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
     var showsTVControls = false {
@@ -164,6 +165,7 @@ class VPhoneMenuController {
         // inspection and capture.
         mainMenu.addItem(buildDeviceMenu())
         mainMenu.addItem(buildFeaturesMenu())
+        mainMenu.addItem(buildNetworkMenu())
         mainMenu.addItem(buildDataMenu())
         mainMenu.addItem(buildAppsMenu())
         mainMenu.addItem(buildDiagnosticsMenu())
