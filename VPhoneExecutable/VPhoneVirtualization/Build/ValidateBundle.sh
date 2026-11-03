@@ -186,7 +186,7 @@ if /usr/bin/grep -q 'AVPSEPBooter-' "$resources/OpenSEP/OpenSEP.bin"; then
     exit 1
 fi
 
-for name in vphone-guest-proxy vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
+for name in vphone-guest-ca vphone-guest-proxy vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
     libvcamcaptured.dylib libmisfix.dylib libhapticsfix.dylib libbatteryhealthfix.dylib libdevicehubfix.dylib libdevicename.dylib \
     libprefsfix.dylib libsigninfix.dylib libvphoneios17desktop.dylib libvphonegyro.dylib libvphoneaccelerometer.dylib libvphonehinge.dylib libvphonefoldguard.dylib libvphonefolddisplay.dylib libvphoneattitude.dylib libvphonehomepoddisplay.dylib libvphonecryptexstaging.dylib libvphoneinstallpersona.dylib libvphonehomepodmisfix.dylib vphone-homepod-setup libAppleParavirtCompilerPluginIOGPUFamily.dylib; do
     require_signed_macho "$guest/$name"
@@ -291,6 +291,18 @@ while IFS= read -r file; do
     esac
 done < <(/usr/bin/find "$bundle/Contents" -type f)
 bundle_entitlements="$(/usr/bin/codesign -d --entitlements - --xml "$bundle" 2>/dev/null || true)"
+ca_entitlements="$(/usr/bin/codesign -d --entitlements - --xml "$guest/vphone-guest-ca" 2>/dev/null)"
+[[ "$(print -rn -- "$ca_entitlements" | /usr/bin/plutil -extract modify-anchor-certificates raw -o - -)" == true ]] || {
+    print -u2 "Guest CA trust entitlement is missing"
+    exit 1
+}
+for host in "$bundle" "$macos/vphone-vm" "$macos/vphone-cli"; do
+    host_entitlements="$(/usr/bin/codesign -d --entitlements - --xml "$host" 2>/dev/null || true)"
+    [[ "$host_entitlements" != *'modify-anchor-certificates'* ]] || {
+        print -u2 "Guest CA trust entitlement leaked into host code"
+        exit 1
+    }
+done
 [[ "$bundle_entitlements" != *'com.apple.private.virtualization'* ]] || {
     print -u2 "The bundle must not carry private virtualization entitlements"
     exit 1

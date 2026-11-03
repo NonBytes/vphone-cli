@@ -108,6 +108,14 @@ done
     "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
     -o "$guest/vphone-guest-proxy" -framework Foundation
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-proxy"
+/usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
+    -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/Certificates/main.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneCACertificate.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
+    -o "$guest/vphone-guest-ca" -framework Foundation -framework Security -framework CryptoKit
+/usr/bin/codesign --force --sign - \
+    --entitlements "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/Certificates/GuestCA.entitlements" "$guest/vphone-guest-ca"
 /bin/cp "$tvos_daemon_products/vphoned" "$guest/vphoned-tvos"
 # Watch guests still run the iOS daemon marked watchOS: watchOS 8 is iOS 15's
 # release.

@@ -2,10 +2,6 @@ import Foundation
 
 extension VPhoneGuestControl {
     func guestProxy(_ request: VPhoneProxyRequest? = nil) async throws -> VPhoneProxyStatus {
-        let root = URL(fileURLWithPath: CommandLine.arguments[0])
-            .deletingLastPathComponent().deletingLastPathComponent()
-        let helper = root.appendingPathComponent("Resources/guest-resources/vphone-guest-proxy")
-        let remote = "/private/var/tmp/vphone-guest-proxy"
         let arguments: [String]
         if let request {
             let request = try request.validated()
@@ -13,12 +9,24 @@ extension VPhoneGuestControl {
         } else {
             arguments = ["read"]
         }
+        return try await guestProxyTool("vphone-guest-proxy", arguments: arguments, as: VPhoneProxyStatus.self)
+    }
+
+    func guestCACertificates(_ arguments: [String] = ["list"]) async throws -> VPhoneCAList {
+        try await guestProxyTool("vphone-guest-ca", arguments: arguments, as: VPhoneCAList.self)
+    }
+
+    private func guestProxyTool<T: Decodable>(_ name: String, arguments: [String], as type: T.Type) async throws -> T {
+        let root = URL(fileURLWithPath: CommandLine.arguments[0])
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let helper = root.appendingPathComponent("Resources/guest-resources/\(name)")
+        let remote = "/private/var/tmp/\(name)"
         // Upload on each operation: a guest reboot may have cleared /var/tmp.
         try await uploadFile(path: remote, data: Data(contentsOf: helper), permissions: "700")
         let encoded = String(decoding: try JSONEncoder().encode(arguments), as: UTF8.self)
         let reply = try await call("script.eval", params: [
             "source": "proc.run(\"\(remote)\", \(encoded))", "timeout": 20,
         ])
-        return try VPhoneProxyScriptResult.decode(reply)
+        return try VPhoneProxyScriptResult.decode(reply, as: type)
     }
 }
