@@ -72,7 +72,9 @@ jobs:
         run: zsh VPhoneExecutable/VPhoneVirtualization/Camera/Tests/run-tests.sh
 
       - name: Guest proxy tests
-        run: zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-tests.sh
+        run: |
+          zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-tests.sh
+          zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-ca-tests.sh
 
       - name: Guest component tests
         run: |

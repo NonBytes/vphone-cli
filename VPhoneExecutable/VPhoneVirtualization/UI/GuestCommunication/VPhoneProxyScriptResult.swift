@@ -11,6 +11,10 @@ enum VPhoneProxyScriptResult {
     }
 
     static func decode(_ reply: [String: Any]) throws -> VPhoneProxyStatus {
+        try decode(reply, as: VPhoneProxyStatus.self)
+    }
+
+    static func decode<T: Decodable>(_ reply: [String: Any], as type: T.Type) throws -> T {
         guard reply["ok"] as? Bool == true, reply["crashed"] as? Bool != true,
               let text = reply["result"] as? String else {
             throw VPhoneProxyError(reply["error"] as? String ?? "The guest could not read proxy settings.")
@@ -20,6 +24,6 @@ enum VPhoneProxyScriptResult {
             let message = process.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             throw VPhoneProxyError(message.isEmpty ? "The guest proxy tool failed." : message)
         }
-        return try JSONDecoder().decode(VPhoneProxyStatus.self, from: Data(process.stdout.utf8))
+        return try JSONDecoder().decode(type, from: Data(process.stdout.utf8))
     }
 }

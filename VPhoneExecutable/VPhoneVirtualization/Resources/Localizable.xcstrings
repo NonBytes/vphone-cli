@@ -33527,6 +33527,128 @@
           }
         }
       }
+    },
+    "SHA-256: %@" : {
+    },
+    "Proxy settings applied successfully." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy settings applied successfully."
+          }
+        }
+      }
+    },
+    "Import CA Certificate…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import CA Certificate…"
+          }
+        }
+      }
+    },
+    "Trust CA in this VM?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust CA in this VM?"
+          }
+        }
+      }
+    },
+    "This VM will trust certificates issued by this CA. The Mac trust store is not changed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This VM will trust certificates issued by this CA. The Mac trust store is not changed."
+          }
+        }
+      }
+    },
+    "Trust in VM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust in VM"
+          }
+        }
+      }
+    },
+    "Remove CA from this VM?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove CA from this VM?"
+          }
+        }
+      }
+    },
+    "Connections signed by this CA may stop working." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connections signed by this CA may stop working."
+          }
+        }
+      }
+    },
+    "Remove from VM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from VM"
+          }
+        }
+      }
+    },
+    "CA Certificates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CA Certificates"
+          }
+        }
+      }
+    },
+    "No custom root CA certificates in this VM." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No custom root CA certificates in this VM."
+          }
+        }
+      }
+    },
+    "Trusted root CA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trusted root CA"
+          }
+        }
+      }
+    },
+    "Custom root CA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom root CA"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
