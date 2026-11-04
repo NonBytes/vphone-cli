@@ -236,6 +236,27 @@ public enum FirmwarePatchSetCatalog {
         selection: .block([FirmwareGuestSystemPatchSet.ios17Desktop, FirmwareGuestSystemPatchSet.homeViewEnvironmentService, FirmwareGuestSystemPatchSet.homeViewProfileLookup, FirmwareGuestSystemPatchSet.homeViewDisplayLookups, FirmwareGuestSystemPatchSet.homeViewSetupBypass, FirmwareGuestSystemPatchSet.tvLegacySetup, FirmwareGuestSystemPatchSet.tvSetupDisplayLookup, FirmwareGuestSystemPatchSet.tvSetupFocus, FirmwareGuestSystemPatchSet.tvLocalActivation, FirmwareGuestSystemPatchSet.homePodTopCap, FirmwareGuestSystemPatchSet.homePodSetupBypass, FirmwareGuestSystemPatchSet.homePodAirPlayVM, FirmwareGuestSystemPatchSet.homePodAudioProduct, FirmwareGuestSystemPatchSet.homePodWelcome, FirmwareGuestSystemPatchSet.homePodSiriSpeech, FirmwareGuestSystemPatchSet.homePodOTAUserland, FirmwareGuestSystemPatchSet.homePodSoundGlow, FirmwareGuestSystemPatchSet.homePodCryptexStaging, FirmwareGuestSystemPatchSet.homePodCryptexClass, FirmwareGuestSystemPatchSet.homePodAdHocInstall]),
     )
 
+    /// `standard` plus the Frida kernel relaxations only: none of
+    /// `experimental`'s unrelated hv_vmm_present concealment, iPhone17,3
+    /// identity rewrites or HomeView/HomePod/TV patches. A disposable VM
+    /// patched with this preset reached the Lock Screen normally and both
+    /// Spawn (Files/Safari) and Attach (Settings) worked, where `experimental`
+    /// on the same firmware pairing hung at the boot logo; see
+    /// `Research/Guest/frida_server.md`.
+    public static let fridaPreset = VPhonePatchPreset(
+        identifier: "frida",
+        title: "Frida",
+        summary: """
+        Standard plus the four opt-in Frida kernel relaxations (thread_set_state \
+        entitlement, vm_map_delete immutable-code, TPRO and syscall-filter), without \
+        experimental's unrelated hv_vmm_present, identity or HomeView/HomePod/TV patches.
+        """,
+        patchSets: bundledReferences,
+        selection: .block(
+            manualOnlyPatches.subtracting(Set(FirmwareKernelFridaPatchSet.manifest.patches.map(\.identifier))),
+        ),
+    )
+
     /// The iOS payloads, hooks and shared-cache patches an Apple TV guest has no
     /// validated port of: display, camera, audio, sensors, the GPU driver (a
     /// plain-arm64 HD cannot load it), debugserver, the environment hooks, and
@@ -458,5 +479,5 @@ public enum FirmwarePatchSetCatalog {
     )
 
     /// The presets the bundle ships.
-    public static let builtInPresets: [VPhonePatchPreset] = [standardPreset, experimentalPreset, tvOSPreset, tvOS4KPreset, homeViewPreset, homePodMiniPreset, minimalPreset, watchOSPreset]
+    public static let builtInPresets: [VPhonePatchPreset] = [standardPreset, experimentalPreset, fridaPreset, tvOSPreset, tvOS4KPreset, homeViewPreset, homePodMiniPreset, minimalPreset, watchOSPreset]
 }
