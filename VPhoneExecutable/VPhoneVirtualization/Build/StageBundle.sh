@@ -100,6 +100,13 @@ done
 /bin/cp -R "$TARGET_BUILD_DIR/GhosttyKit_GhosttyTerminal.bundle" \
     "$resources/GhosttyKit_GhosttyTerminal.bundle"
 /bin/cp "$command_products/vphone-cli" "$macos/vphone-cli"
+"${0:a:h}/BuildFridaClient.sh" "$root/.build/frida-client/products"
+/bin/cp "$root/.build/frida-client/products/vphone-frida-client" "$macos/"
+/bin/mkdir -p "$resources/FridaClient"
+/bin/rm -f "$resources/FridaClient/vphone-frida-client.o"
+/usr/bin/gzip -c "$root/.build/frida-client/products/vphone-frida-client.o" > "$resources/FridaClient/vphone-frida-client.o.gz"
+/usr/bin/gzip -c "$root/.build/frida-client/17.25.2/frida-core.h" > "$resources/FridaClient/frida-core.h.gz"
+/bin/cp "$root/VPhoneExecutable/VPhoneVirtualization/Frida/Client/"* "$resources/FridaClient/"
 /bin/cp "$amfi_products/vphone-escalator" "$macos/vphone-escalator"
 /bin/cp "$daemon_products/vphoned" "$guest/vphoned"
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
@@ -122,6 +129,26 @@ done
     "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneFridaStatus.swift" \
     -o "$guest/vphone-guest-frida" -framework Foundation
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-frida"
+/usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
+    -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Sandbox/main.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/Sandbox/VPhoneSandboxScanner.swift" \
+    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneSandboxSnapshot.swift" \
+    -o "$guest/vphone-guest-sandbox" -framework Foundation -framework CryptoKit
+/usr/bin/codesign --force --sign - "$guest/vphone-guest-sandbox"
+network="$root/VPhoneExecutable/VPhoneVirtualization/Network"
+network_shared="$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication"
+/bin/mkdir -p "$DERIVED_FILE_DIR"
+/usr/bin/xcrun --sdk iphoneos clang -arch arm64 -target arm64-apple-ios17.0 -O2 \
+    -c "$network/VPhoneCaptureNative.c" -o "$DERIVED_FILE_DIR/vphone-capture.o"
+/usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
+    -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
+    -import-objc-header "$network/VPhoneCaptureNative.h" \
+    "$network/main.swift" "$network/VPhoneGuestCapture.swift" \
+    "$network_shared/VPhoneNetworkCapture.swift" "$network_shared/VPhoneNetworkProbe.swift" \
+    "$network_shared/VPhoneProxyConfiguration.swift" "$DERIVED_FILE_DIR/vphone-capture.o" \
+    -o "$guest/vphone-guest-network" -framework Foundation
+/usr/bin/codesign --force --sign - "$guest/vphone-guest-network"
 /bin/cp "$tvos_daemon_products/vphoned" "$guest/vphoned-tvos"
 # Watch guests still run the iOS daemon marked watchOS: watchOS 8 is iOS 15's
 # release.

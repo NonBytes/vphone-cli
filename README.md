@@ -56,6 +56,19 @@ need the app to reopen. Settings and certificate trust apply to that VM;
 the Mac's proxy and trust store are unchanged. Importing a CA does not bypass
 an app's certificate pinning. See [proxy and CA details](Research/Guest/proxy_menu.md).
 
+### Network diagnostics and PCAP
+
+Open **Network → Diagnostics & PCAP…** in the VM window to inspect guest
+addresses, IPv4/DNS/router and proxy settings. Enter a hostname/IP and TCP port
+to compare DNS resolution and TCP reachability from the Mac VM process and
+the guest. TCP success does not verify HTTP, TLS or certificate trust.
+
+Choose an interface, protocol, optional numeric IP/port, duration, file limit
+and snap length, then **Start Capture**. **Stop** flushes the capture;
+**Save PCAP…** exports a local file for Wireshark. Capture is interface-wide
+and may include other apps' traffic. Save or discard before another capture.
+See [capture scope, limits and recovery](Research/Guest/network_diagnostics.md).
+
 ### Frida Server
 
 Open **Features → Frida Server…**, choose **Latest release** or a recent version
@@ -96,6 +109,48 @@ frida-ps -ai -H 127.0.0.1:27043 --token '<token>'
 
 The tested Frida client sends `--token` through `-H`; plain `-U` reports
 authentication required with this token-protected server.
+
+### App Inspector and Frida sessions
+
+Open **Apps → App Browser**, select an app, and click **App Inspector** (⌘I).
+The inspector shows the installed app's version/build, PID, bundle and data
+containers, URL schemes, Mach-O signing/entitlements, App Transport Security
+configuration and network policy. **Show in Files** opens a guest container;
+**Save Report…** exports a local JSON snapshot, including section errors and
+the limits of testing a re-signed app inside a VM.
+
+In the inspector's **Data Container** section, open **Sandbox Diff…**. Click
+**Capture Baseline**, exercise the app, then **Scan & Compare** to see added,
+removed, content/type-changed, metadata-changed and uncertain paths. Captures
+use SHA-256 and never follow symlinks. **Save Baseline… / Open Baseline…** keep
+a baseline across sessions; **Save Diff…** exports both captures and the diff
+as local JSON. App Groups and bundle files are excluded. Large, unreadable,
+unstable or unscanned paths are uncertain; this is a bounded live scan, not an
+atomic filesystem snapshot or a SQLite row-level comparison.
+See [Sandbox Diff details](Research/Guest/sandbox_diff.md).
+
+Open **Diagnostics → App Logs & Crash Viewer…**, or the same button in App
+Inspector, and select an app. **App Logs** starts paused: choose **Start** to
+collect new unified-log entries, then search, filter by level, inspect rows or
+save the visible log. **Crash Reports** lists filename candidates for that
+app, with report text, explicit bundle identity when available, and local
+export. A mismatched report bundle ID is highlighted. No app is launched or
+crashed and no guest report is deleted. See [scope and limits](Research/Guest/app_logs.md).
+
+Start the managed server in **Features → Frida Server…**, then open
+**Features → Frida Session…**. Select an app and choose **Spawn** to load a
+script before the app resumes, or **Attach to running PID** for a running app.
+Refresh Apps updates the PID list. Optionally choose a local UTF-8 `.js` file
+(up to 512 KiB); **Load / Replace Script** replaces the session's script.
+The console shows script messages and errors, and **Save Log…** saves it locally.
+Closing the Session window detaches and leaves the app and server running.
+**Use guest transport (VSOCK)** is enabled by default, so Session does not
+require a reachable guest IP. Clear it to enter a direct TCP endpoint instead.
+
+The bundle includes native Frida Core 17.25.2; no external Frida client,
+Python or Homebrew is needed for this panel. Prefer a matching server.
+Frida 17 scripts using ObjC/Swift bridges must bundle their bridges themselves.
+See [session details and validation](Research/Guest/frida_server.md#native-session-manager).
 
 ### Build and install this fork
 

@@ -40,10 +40,18 @@ require_signed_macho() {
     }
 }
 
-for name in vphone-vm vphone-cli vphone-escalator libswiftCompatibilitySpan.vphone.dylib; do
+for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client libswiftCompatibilitySpan.vphone.dylib; do
     require_signed_macho "$macos/$name"
 done
 require_signed_macho "$frameworks/VPhonePatchKit.framework/Versions/A/VPhonePatchKit"
+[[ "$("$macos/vphone-frida-client" --version)" == 17.25.2 ]] || {
+    print -u2 'Bundled native Frida client has the wrong version'; exit 1
+}
+for name in COPYING COPYING.LGPL README.md main.c frida-core.h.gz vphone-frida-client.o.gz; do
+    [[ -s "$resources/FridaClient/$name" ]] || {
+        print -u2 "Missing Frida client source or licence: $name"; exit 1
+    }
+done
 # The terminal reads these through Bundle.module, which searches
 # VPhone.bundle's Contents/Resources and root, never Contents/MacOS, and traps
 # when it finds nothing. A missing or misplaced resource bundle is therefore
@@ -186,7 +194,7 @@ if /usr/bin/grep -q 'AVPSEPBooter-' "$resources/OpenSEP/OpenSEP.bin"; then
     exit 1
 fi
 
-for name in vphone-guest-frida vphone-guest-ca vphone-guest-proxy vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
+for name in vphone-guest-network vphone-guest-sandbox vphone-guest-frida vphone-guest-ca vphone-guest-proxy vphoned vphoned-tvos vphoned-watchos libvphonetvsetupfocus.dylib libswiftCompatibilitySpan.dylib launchdhook-vphone.dylib SystemHook-vphone.dylib libcamfix.dylib \
     libvcamcaptured.dylib libmisfix.dylib libhapticsfix.dylib libbatteryhealthfix.dylib libdevicehubfix.dylib libdevicename.dylib \
     libprefsfix.dylib libsigninfix.dylib libvphoneios17desktop.dylib libvphonegyro.dylib libvphoneaccelerometer.dylib libvphonehinge.dylib libvphonefoldguard.dylib libvphonefolddisplay.dylib libvphoneattitude.dylib libvphonehomepoddisplay.dylib libvphonecryptexstaging.dylib libvphoneinstallpersona.dylib libvphonehomepodmisfix.dylib vphone-homepod-setup libAppleParavirtCompilerPluginIOGPUFamily.dylib; do
     require_signed_macho "$guest/$name"
@@ -324,7 +332,7 @@ for daemon in vphoned vphoned-tvos vphoned-watchos; do
         exit 1
     }
 done
-for name in vphone-cli vphone-escalator ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
+for name in vphone-cli vphone-escalator vphone-frida-client ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
     process_entitlements="$(/usr/bin/codesign -d --entitlements - --xml "$macos/$name" 2>/dev/null || true)"
     [[ "$process_entitlements" != *'com.apple.private.virtualization'* &&
         "$process_entitlements" != *'com.apple.CommCenter.fine-grained'* ]] || {
@@ -333,7 +341,7 @@ for name in vphone-cli vphone-escalator ../Helpers/VPhoneLocation.app/Contents/M
     }
 done
 
-for name in vphone-vm vphone-cli vphone-escalator ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
+for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
     /usr/bin/otool -L "$macos/$name" | /usr/bin/awk 'NR > 1 {print $1}' |
     while IFS= read -r dependency; do
         case "$dependency" in
