@@ -113,6 +113,7 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
         try await vm.start(forceDFU: command.dfu)
 
         let control = VPhoneGuestControl()
+        control.sandboxMachineScope = (vm.ecidHex ?? "unavailable") + "|" + options.configURL.resolvingSymlinksInPath().standardizedFileURL.path
         control.isHomePodGuest = options.isHomePodGuest
         control.isHomeViewGuest = options.isHomeViewGuest
         self.control = control
