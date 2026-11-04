@@ -4,6 +4,12 @@
 
 Run a virtual iPhone on an Apple Silicon Mac.
 
+This is [NonBytes' fork](https://github.com/NonBytes/vphone-cli) of
+[Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), with host camera
+selection, a per-VM proxy editor, and guest root CA management. These additions
+are included in this fork's `VPhone.bundle`; build and install it using the
+instructions below. Downloading an upstream Core Bundle does not include them.
+
 > [!WARNING]
 > This project has never issued or authorized any cryptocurrency or token, and does not accept cryptocurrency payments or donations. Any cryptocurrency or token issued or promoted in this project's name, or claiming any affiliation with it, is a scam.
 
@@ -16,6 +22,69 @@ vphone-cli runs iOS with Apple's Virtualization.framework and PCC research virtu
 - **Backup and Cloning:** You can export, import, and clone VMs.
 - **Automation API:** An optional local HTTP and WebSocket interface.
 - **No Extra Dependencies:** Needs no Xcode, Python, or Homebrew at runtime.
+
+## Features in this fork
+
+### Mac and iPhone cameras
+
+In the VM window, open **Features → Camera → Source: Mac Camera…**, select a
+camera, and click **Start Streaming**. Allow camera access when macOS prompts.
+The picker supports the Mac's built-in camera, external cameras, available
+virtual cameras, and iPhone cameras exposed by macOS Continuity Camera.
+Use the rotation selector to correct the image orientation.
+
+An iPhone must first be available to macOS as a Continuity Camera; connecting
+a USB cable alone does not guarantee it appears. Continuity Camera provides
+the physical iPhone's rear camera, without front-camera switching here.
+See [camera setup and limitations](Research/Guest/mac_camera_local.md).
+
+### Proxy and CA certificates
+
+Open **Network → Proxy…** in the VM window:
+
+1. Enable Proxy and enter a server address reachable from the VM and its port.
+   For Burp on the Mac with the default NAT network, this is typically
+   `192.168.64.1:8080`. Burp's listener must accept connections on that interface.
+2. Click **Apply**. A green checkmark and **Proxy settings applied successfully.**
+   confirm success. Clear Enable Proxy and Apply to turn it off.
+3. For HTTPS interception, export your proxy's root CA as DER or PEM, click
+   **Import CA Certificate…**, verify its fingerprint, and choose **Trust in VM**.
+
+The window lists custom root CAs and lets you remove an individual CA.
+Proxy settings persist after closing the window. Existing app connections may
+need the app to reopen. Settings and certificate trust apply to that VM;
+the Mac's proxy and trust store are unchanged. Importing a CA does not bypass
+an app's certificate pinning. See [proxy and CA details](Research/Guest/proxy_menu.md).
+
+### Build and install this fork
+
+Building requires Xcode and an Apple Silicon Mac. Use Launchpad matching the
+Core Bundle's version series (currently 2.15).
+
+```sh
+git clone https://github.com/NonBytes/vphone-cli.git
+cd vphone-cli
+xcodebuild -workspace VPhone.xcworkspace -scheme VPhone \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath .build/XcodeBundle build
+
+/Applications/vphone-launchpad.app/Contents/MacOS/vphone-launchpad-cli \
+  bundle install-local .build/XcodeBundle/Build/Products/Debug/VPhone.bundle --keep-default
+```
+
+Note the local version returned by installation. Stop the target VM, bind it
+to that version, and start it again (replace both placeholders):
+
+```sh
+vphone-launchpad-cli vm stop <vm-name>
+vphone-launchpad-cli vm set-bundle <vm-name> <local-version>
+vphone-launchpad-cli vm start <vm-name> --wait
+```
+
+The short commands assume `vphone-launchpad-cli` is on PATH; otherwise use the
+full app path shown above. These host features do not require restoring an
+existing VM or updating its guest environment. Bind each new VM to this fork's
+Core Bundle to use them too.
 
 ## Requirements
 
@@ -106,7 +175,8 @@ vphone-cli vm config myphone --rom apple --seprom apple       # Apple's ROMs
 | [Launchpad Command Line](Documents/Guides/launchpad-cli.md) | Install and test a local build with `vphone-launchpad-cli` |
 | [Contributing](Documents/README.md#for-contributors) | Project structure, building from source, research notes |
 
-If these do not solve your problem, [open an issue](https://github.com/Lakr233/vphone-cli/issues).
+For this fork's camera, proxy, or CA features, [open an issue in this fork](https://github.com/NonBytes/vphone-cli/issues).
+For the original project, see [upstream issues](https://github.com/Lakr233/vphone-cli/issues).
 
 ## Acknowledgements
 
