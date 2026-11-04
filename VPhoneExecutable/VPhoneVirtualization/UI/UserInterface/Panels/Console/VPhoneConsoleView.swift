@@ -63,7 +63,8 @@ struct VPhoneConsoleView: View {
         }
 
         ToolbarItemGroup(placement: .primaryAction) {
-            TextField("Process", text: $model.processFilter, prompt: Text("Process"))
+            TextField("Process", text: $model.processFilter, prompt: Text(model.appScope?.process ?? "Process"))
+                .disabled(model.appScope != nil)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 11, design: .monospaced))
                 .frame(width: 104)

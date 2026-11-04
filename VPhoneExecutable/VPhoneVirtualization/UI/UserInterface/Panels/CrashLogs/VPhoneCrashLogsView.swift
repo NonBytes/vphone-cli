@@ -192,6 +192,18 @@ struct VPhoneCrashLogsView: View {
                 summary(header)
             }
 
+            if let content, let expected = model.bundleID {
+                if let reported = content.reportedBundleID {
+                    Text("Report bundle ID: \(reported) — \(reported == expected ? "matches selected app" : "DIFFERS from selected app")")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(reported == expected ? .green : .red)
+                        .textSelection(.enabled)
+                } else {
+                    Text("Report bundle identity is unavailable; this is a filename candidate only.")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
+
             if content?.truncated == true {
                 Label("The guest sent only part of this report.", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)

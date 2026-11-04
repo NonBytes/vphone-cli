@@ -18,6 +18,7 @@ final class VPhoneCrashLogsModel {
     }
 
     let control: VPhoneGuestControl
+    let bundleID: String?
     private(set) var activity: Activity?
     private(set) var status: VPhoneGuestToolStatus?
     private(set) var reports: [VPhoneCrashReport] = []
@@ -34,8 +35,9 @@ final class VPhoneCrashLogsModel {
     private(set) var loadingPaths: Set<String> = []
     private(set) var loadErrors: [String: String] = [:]
 
-    init(control: VPhoneGuestControl) {
+    init(control: VPhoneGuestControl, bundleID: String? = nil) {
         self.control = control
+        self.bundleID = bundleID
     }
 
     // MARK: - Derived State
@@ -85,7 +87,7 @@ final class VPhoneCrashLogsModel {
         activity = .listing
         defer { activity = nil }
         do {
-            let result = try await control.call("logs.crashes")
+            let result = try await control.call("logs.crashes", params: bundleID.map { ["bundle_id": $0] } ?? [:])
             apply(crashesResult: result)
             succeed(String(localized: "Crash reports: \(reports.count)", bundle: VPhoneLocalization.bundle))
         } catch {
@@ -195,7 +197,7 @@ final class VPhoneCrashLogsModel {
         defer { activity = nil }
         do {
             let content = try await content(of: report)
-            try Data(content.rawText.utf8).write(to: url, options: .atomic)
+            try VPhoneSandboxSnapshot.writeReport(Data(content.rawText.utf8), to: url)
             VPhoneHostDownloadDirectory.markQuarantined(url)
             succeed(String(localized: "Exported \(url.lastPathComponent).", bundle: VPhoneLocalization.bundle))
         } catch {

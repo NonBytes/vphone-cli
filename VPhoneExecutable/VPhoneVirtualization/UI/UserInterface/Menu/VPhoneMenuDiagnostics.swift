@@ -16,6 +16,7 @@ extension VPhoneMenuController {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(makePanelItem(.console, "Console", keyEquivalent: "l", symbol: "terminal"))
         menu.addItem(makePanelItem(.crashLogs, "Crash Logs", keyEquivalent: "c", symbol: "exclamationmark.triangle"))
+        menu.addItem(makeItem("App Logs & Crash Viewer…", action: #selector(showAppLogs)))
         menu.addItem(NSMenuItem.separator())
 
         // A guest has no shell of its own, and the tvos preset has no
@@ -101,6 +102,8 @@ extension VPhoneMenuController {
         guard let panel = sender.representedObject as? VPhoneGuestPanel else { return }
         guestPanelsWindowController.show(panel)
     }
+
+    @objc func showAppLogs() { appLogsWindowController.show() }
 
     @objc func devModeStatus() {
         Task {

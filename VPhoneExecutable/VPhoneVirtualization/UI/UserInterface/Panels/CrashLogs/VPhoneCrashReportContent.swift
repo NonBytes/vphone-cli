@@ -40,6 +40,7 @@ struct VPhoneCrashReportContent: Sendable {
     }
 
     let path: String
+    let reportedBundleID: String?
     /// The report exactly as the guest stored it. Copy and Export use this.
     let rawText: String
     let header: Header?
@@ -52,6 +53,7 @@ struct VPhoneCrashReportContent: Sendable {
 
     init(_ fields: Fields) {
         path = fields.path
+        reportedBundleID = VPhoneCrashIdentity.bundleID(in: fields.text)
         rawText = fields.text
         size = fields.size
         truncated = fields.truncated
