@@ -25,7 +25,7 @@ struct VPhoneGuestStream: @unchecked Sendable {
 /// exactly once. The reader owns the connection: it is the only thing that
 /// closes it, so a late write can never reach a descriptor the guest has
 /// handed to something else.
-final class VPhoneGuestShellChannel: @unchecked Sendable {
+final class VPhoneGuestShellChannel: VPhoneFridaPortChannel, @unchecked Sendable {
     /// What a session runs, and how large its terminal starts out.
     struct Options: Sendable {
         /// Nil for vphoned's own JavaScript session; a bare name resolved
@@ -71,6 +71,7 @@ final class VPhoneGuestShellChannel: @unchecked Sendable {
     private let lock = NSLock()
     private var closing = false
     private var finished = false
+    private var isPortStream = false
 
     private init(
         connection: VZVirtioSocketConnection,
@@ -93,13 +94,49 @@ final class VPhoneGuestShellChannel: @unchecked Sendable {
         onOutput: @escaping @Sendable (Data) -> Void,
         onEnd: @escaping @Sendable (Ending) -> Void,
     ) async throws -> VPhoneGuestShellChannel {
+        var query = ["cols=\(max(1, min(options.columns, 9999)))", "rows=\(max(1, min(options.rows, 9999)))"]
+        if let program = options.program, !program.isEmpty {
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~/"))
+            query.insert("program=\(program.addingPercentEncoding(withAllowedCharacters: allowed) ?? program)", at: 0)
+        }
+        return try await open(control: control, path: "/v1/shell?" + query.joined(separator: "&"),
+                              portStream: false, onOutput: onOutput, onEnd: onEnd)
+    }
+
+    /// The existing guest loopback TCP tunnel, carried over VSOCK. It exposes
+    /// only this port, never the guest's general HTTP API on a host listener.
+    static func openPort(
+        control: VPhoneGuestControl, port: UInt16,
+        onOutput: @escaping @Sendable (Data) -> Void,
+        onEnd: @escaping @Sendable (Ending) -> Void,
+    ) async throws -> VPhoneGuestShellChannel {
+        guard port != 0 else { throw ChannelError.refused("A nonzero guest port is required.") }
+        return try await open(control: control, path: "/v1/ports/\(port)", portStream: true,
+                              onOutput: onOutput, onEnd: onEnd)
+    }
+
+    private static func open(
+        control: VPhoneGuestControl, path: String, portStream: Bool,
+        onOutput: @escaping @Sendable (Data) -> Void,
+        onEnd: @escaping @Sendable (Ending) -> Void,
+    ) async throws -> VPhoneGuestShellChannel {
         let connection = try await control.openGuestStream().connection
         let channel = VPhoneGuestShellChannel(connection: connection, onOutput: onOutput, onEnd: onEnd)
+        channel.isPortStream = portStream
         do {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
                 DispatchQueue.global(qos: .userInitiated).async {
                     do {
-                        try channel.handshake(options: options)
+                        if portStream {
+                            var timeout = timeval(tv_sec: 10, tv_usec: 0)
+                            setsockopt(channel.descriptor, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+                            setsockopt(channel.descriptor, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+                        }
+                        try channel.handshake(path: path)
+                        if portStream {
+                            var timeout = timeval(tv_sec: 0, tv_usec: 0)
+                            setsockopt(channel.descriptor, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+                        }
                         continuation.resume()
                     } catch {
                         continuation.resume(throwing: error)
@@ -117,7 +154,7 @@ final class VPhoneGuestShellChannel: @unchecked Sendable {
         return channel
     }
 
-    private func handshake(options: Options) throws {
+    private func handshake(path: String) throws {
         // The guest never sends this side a signal it cannot handle, but a
         // write to a session that just ended would otherwise end the VM.
         guard fcntl(descriptor, F_SETNOSIGPIPE, 1) != -1 else {
@@ -134,16 +171,11 @@ final class VPhoneGuestShellChannel: @unchecked Sendable {
         }
         let nonce = key.base64EncodedString()
 
-        var query = ["cols=\(max(1, min(options.columns, 9999)))", "rows=\(max(1, min(options.rows, 9999)))"]
-        if let program = options.program, !program.isEmpty {
-            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~/"))
-            query.insert("program=\(program.addingPercentEncoding(withAllowedCharacters: allowed) ?? program)", at: 0)
-        }
         // `Host` has to be a name vphoned reads as local, and no `Origin`:
         // together they are what tells it this is not a web page. Over VSOCK
         // there is no token, which is the host proxy's concern alone.
         let request = """
-        GET /v1/shell?\(query.joined(separator: "&")) HTTP/1.1\r
+        GET \(path) HTTP/1.1\r
         Host: vphoned\r
         Upgrade: websocket\r
         Connection: Upgrade\r
@@ -370,6 +402,12 @@ final class VPhoneGuestShellChannel: @unchecked Sendable {
         closing = true
         lock.unlock()
         guard !alreadyClosing else { return }
+        if isPortStream {
+            // A TCP relay has no terminal output left to drain after its local
+            // client leaves. Wake the sole reader even if the peer is silent.
+            shutdown(descriptor, SHUT_RDWR)
+            return
+        }
         // A close frame is the polite half; the shutdown is what ends a guest
         // that would otherwise keep the terminal open.
         try? writeAll(Self.frame(opcode: 0x8, payload: Data([0x03, 0xE8])))
