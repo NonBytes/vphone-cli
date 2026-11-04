@@ -6,7 +6,7 @@ Run a virtual iPhone on an Apple Silicon Mac.
 
 This is [NonBytes' fork](https://github.com/NonBytes/vphone-cli) of
 [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), with host camera
-selection, a per-VM proxy editor, and guest root CA management. These additions
+selection, a per-VM proxy editor, guest root CA management, and a Frida server manager. These additions
 are included in this fork's `VPhone.bundle`; build and install it using the
 instructions below. Downloading an upstream Core Bundle does not include them.
 
@@ -55,6 +55,19 @@ Proxy settings persist after closing the window. Existing app connections may
 need the app to reopen. Settings and certificate trust apply to that VM;
 the Mac's proxy and trust store are unchanged. Importing a CA does not bypass
 an app's certificate pinning. See [proxy and CA details](Research/Guest/proxy_menu.md).
+
+### Frida Server
+
+Open **Features → Frida Server…**, enter `latest` or a release version, and click
+**Download & Install**. The manager downloads the official iOS package from
+[frida/frida releases](https://github.com/frida/frida/releases), checks its SHA-256
+digest and binary signatures, and installs the server and agent in the selected VM.
+Stop an existing server before installing another version.
+
+Click **Start**, then **Copy command** to get a `frida-ps` command with the VM's
+address and authentication token. Use a matching Frida client on the Mac.
+**Stop** ends the managed server; closing the window leaves it running. It does
+not automatically start after reboot. See [Frida setup and verification](Research/Guest/frida_server.md).
 
 ### Build and install this fork
 
