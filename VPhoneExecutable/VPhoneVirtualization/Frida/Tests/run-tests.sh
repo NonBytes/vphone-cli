@@ -7,5 +7,6 @@ trap '/bin/rm -rf "$work"' EXIT
 xcrun --sdk macosx swiftc -module-cache-path "$work/modules" -swift-version 6 -parse-as-library \
     "$root/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
     "$root/UI/GuestCommunication/VPhoneFridaRelease.swift" \
+    "$root/UI/GuestCommunication/VPhoneFridaCustom.swift" \
     "${0:a:h}/FridaReleaseTests.swift" -o "$work/tests" -framework CryptoKit
 "$work/tests" "$@"

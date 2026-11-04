@@ -40,17 +40,22 @@ func ownedPID() -> pid_t? {
 func run() throws {
     let fm = FileManager.default
     let args = Array(CommandLine.arguments.dropFirst())
-    guard args.count == 1, ["prepare", "status", "start", "stop"].contains(args[0]) else { throw Failure("Expected prepare, status, start or stop") }
+    guard args.count == 1, ["prepare", "prepare-custom", "prepare-custom-agent", "status", "start", "stop"].contains(args[0]) else { throw Failure("Expected prepare, status, start or stop") }
     for path in [directory, directory + "/usr", directory + "/usr/sbin", directory + "/usr/lib", directory + "/usr/lib/frida-1.0"] {
         try fm.createDirectory(atPath: path, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         var st = stat()
         guard lstat(path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR, st.st_uid == geteuid() else { throw Failure("Unsafe Frida installation directory") }
         chmod(path, 0o700)
     }
-    if args[0] == "prepare" {
+    if args[0].hasPrefix("prepare") {
         guard ownedPID() == nil else { throw Failure("Stop Frida before installing another version.") }
         // A partial upload must never be reported as an installed release.
         try? fm.removeItem(atPath: directory + "/version")
+        try? fm.removeItem(atPath: directory + "/cache")
+        try write(args[0] == "prepare-custom" ? "embedded" : "external", "agent-mode")
+        if args[0] == "prepare-custom" {
+            try? fm.removeItem(atPath: directory + "/usr/lib/frida-1.0/frida-agent.dylib")
+        }
     }
     if args[0] == "stop", let pid = ownedPID() {
         guard kill(pid, SIGTERM) == 0 else { throw Failure("Could not stop Frida") }
@@ -62,9 +67,10 @@ func run() throws {
         guard ownedPID() == nil else { throw Failure("Frida has not stopped yet. Try again.") }
         try? fm.removeItem(atPath: directory + "/pid")
     }
+    let agentReady = text("agent-mode") == "embedded" || access(directory + "/usr/lib/frida-1.0/frida-agent.dylib", R_OK) == 0
     if args[0] == "start", ownedPID() == nil {
         guard access(server, X_OK) == 0, !text("version").isEmpty,
-              access(directory + "/usr/lib/frida-1.0/frida-agent.dylib", R_OK) == 0 else { throw Failure("Install Frida first.") }
+              agentReady else { throw Failure("Install Frida first.") }
         let token = UUID().uuidString.replacingOccurrences(of: "-", with: "") + UUID().uuidString.replacingOccurrences(of: "-", with: "")
         try write(token, "token")
         let arguments = [server, "--listen=0.0.0.0:27042", "--token=" + token, "--directory=" + directory + "/cache"]
@@ -87,7 +93,7 @@ func run() throws {
         usleep(750_000)
         guard ownedPID() != nil else { throw Failure("Frida exited. " + text("server.log").suffix(2000)) }
     }
-    let installed = access(server, X_OK) == 0 && !text("version").isEmpty && access(directory + "/usr/lib/frida-1.0/frida-agent.dylib", R_OK) == 0
+    let installed = access(server, X_OK) == 0 && !text("version").isEmpty && agentReady
     let pid = ownedPID()
     let status = VPhoneFridaStatus(installed: installed, running: pid != nil, version: text("version").trimmingCharacters(in: .whitespacesAndNewlines), pid: pid, token: pid != nil ? text("token") : "", log: String(text("server.log").suffix(8000)))
     print(String(decoding: try JSONEncoder().encode(status), as: UTF8.self))

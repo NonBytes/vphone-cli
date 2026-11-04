@@ -27,7 +27,7 @@ There is no Homebrew runtime dependency and no Python added to the project.
 
 The host uploads the server and agent into `/private/var/vphone-frida/usr/`.
 The guest-only `vphone-guest-frida` helper uses the existing `script.eval` /
-`proc.run` transport. It accepts only prepare/status/start/stop and has no new
+`proc.run` transport. It accepts only preparation commands, status, start and stop and has no new
 private entitlements. It checks directory ownership and rejects live upgrades.
 A version marker is written after uploads complete; a partial installation is
 not ready to start. Server and agent retain upstream code signatures.
@@ -90,3 +90,34 @@ frida-ps -ai -H 127.0.0.1:27043 --token '<token>'
 `iproxy` is an optional external Mac tool, not a dependency of the shipped
 bundle. This route was tested against doctor-ipad and enumerated processes;
 it carries traffic through usbmux rather than the guest's LAN address.
+
+## Release picker and custom binaries
+
+The Release dropdown offers Latest release, recent supported releases from
+`GET /repos/frida/frida/releases?per_page=20`, Other version, and Custom.
+Refresh reloads the list. A list-fetch error leaves Latest, Other version and
+Custom usable. Other version retains access to older numeric release tags.
+
+Custom accepts an uncompressed signed iOS arm64 Mach-O executable and an
+optional matching iOS arm64 agent dylib. Files are inspected as data on the Mac;
+only codesign verification is run there. The validator checks arm64 slices,
+executable/dylib file type, iOS platform load commands, sizes and bounds before
+upload. macOS, simulator, Android and malformed files are rejected. Local files
+are never uploaded to GitHub and their signatures/entitlements are preserved.
+
+When no external agent is selected, the server must embed its own agent.
+Preparing that mode removes the previously managed external agent so it cannot
+silently reuse a different version. With an agent selected, both files must
+finish uploading before the installation becomes ready. The managed runtime
+cache is cleared on preparation. Custom servers must support standard Frida
+listen/token/directory command-line options; arbitrary custom builds are not
+guaranteed compatible. The installed version label identifies the custom file.
+
+Custom verification: selected signed server/agent files passed inspection; unit
+fixtures rejected wrong platform, wrong file type and malformed load commands.
+In doctor-ipad the custom upload path started the server and served `frida-ps -ai`.
+Embedded/external agent readiness was checked without reusing the old agent,
+then the original 17.25.2 files and stopped state were restored. The full build
+and bundle admission passed. Installed Core 2.15.0-local.3d9d5bb2 displayed the
+20-version dropdown and Custom's Choose Server / Choose Agent controls. The
+existing live server session observed afterward was preserved.

@@ -33671,6 +33671,28 @@
     "frida-ps -H %@ --token <token>" : {
     },
     "frida-ps -ai -H %@ --token <token>" : {
+    },
+    "Choose Agent…" : {
+    },
+    "Choose Server…" : {
+    },
+    "Custom files are checked locally and uploaded only to this VM." : {
+    },
+    "Custom…" : {
+    },
+    "Install Custom" : {
+    },
+    "Latest release" : {
+    },
+    "Loading releases…" : {
+    },
+    "Other version…" : {
+    },
+    "Release" : {
+    },
+    "Select a signed, uncompressed iOS arm64 executable. If the server does not embed its agent, select the matching frida-agent.dylib too. Standard Frida server command-line options are required." : {
+    },
+    "Version, e.g. 17.25.2" : {
     }
   },
   "version" : "1.3"
