@@ -9,14 +9,14 @@ extension VPhoneGuestControl {
         } else {
             arguments = ["read"]
         }
-        return try await guestProxyTool("vphone-guest-proxy", arguments: arguments, as: VPhoneProxyStatus.self)
+        return try await guestTool("vphone-guest-proxy", arguments: arguments, as: VPhoneProxyStatus.self)
     }
 
     func guestCACertificates(_ arguments: [String] = ["list"]) async throws -> VPhoneCAList {
-        try await guestProxyTool("vphone-guest-ca", arguments: arguments, as: VPhoneCAList.self)
+        try await guestTool("vphone-guest-ca", arguments: arguments, as: VPhoneCAList.self)
     }
 
-    private func guestProxyTool<T: Decodable>(_ name: String, arguments: [String], as type: T.Type) async throws -> T {
+    func guestTool<T: Decodable>(_ name: String, arguments: [String], as type: T.Type) async throws -> T {
         let root = URL(fileURLWithPath: CommandLine.arguments[0])
             .deletingLastPathComponent().deletingLastPathComponent()
         let helper = root.appendingPathComponent("Resources/guest-resources/\(name)")

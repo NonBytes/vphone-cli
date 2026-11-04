@@ -33649,6 +33649,26 @@
           }
         }
       }
+    },
+    "Connection token" : {
+    },
+    "Copy command" : {
+    },
+    "Download & Install" : {
+    },
+    "Endpoint: %@" : {
+    },
+    "Installed version: %@" : {
+    },
+    "Official frida/frida iOS package. Downloads are checked against GitHub's SHA-256 digest." : {
+    },
+    "Release (latest or version)" : {
+    },
+    "Running — PID %d" : {
+    },
+    "Start opens port 27042 on this VM with a new authentication token. Closing this window leaves the server running; Stop ends it. It does not start automatically after a reboot." : {
+    },
+    "frida-ps -H %@ --token <token>" : {
     }
   },
   "version" : "1.3"

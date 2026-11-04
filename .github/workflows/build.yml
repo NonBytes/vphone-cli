@@ -76,6 +76,9 @@ jobs:
           zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-tests.sh
           zsh VPhoneExecutable/VPhoneVirtualization/Proxy/Tests/run-ca-tests.sh
 
+      - name: Frida release tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Frida/Tests/run-tests.sh
+
       - name: Guest component tests
         run: |
           make -C VPhoneGuestComponents test-loader-links
