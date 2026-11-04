@@ -130,7 +130,7 @@ frida-ps -ai -H 127.0.0.1:27043 --token '<token>'
 The tested Frida client sends `--token` through `-H`; plain `-U` reports
 authentication required with this token-protected server.
 
-### App Inspector and Frida sessions
+### App Inspector
 
 Open **Apps → App Browser**, select an app, and click **App Inspector** (⌘I).
 The inspector shows the installed app's version/build, PID, bundle and data
@@ -156,6 +156,14 @@ save the visible log. **Crash Reports** lists filename candidates for that
 app, with report text, explicit bundle identity when available, and local
 export. A mismatched report bundle ID is highlighted. No app is launched or
 crashed and no guest report is deleted. See [scope and limits](Research/Guest/app_logs.md).
+
+### Frida Session
+
+> [!NOTE]
+> Spawn and Attach need the VM's firmware patched with `--preset frida`
+> (see the note under [Frida Server](#frida-server) above) — without it,
+> Spawn on Files/Safari can `EXC_CRASH` and Attach to Settings can time out.
+> The Session window shows the same orange warning when it's missing.
 
 Start the managed server in **Features → Frida Server…**, then open
 **Features → Frida Session…**. Select an app and choose **Spawn** to load a
