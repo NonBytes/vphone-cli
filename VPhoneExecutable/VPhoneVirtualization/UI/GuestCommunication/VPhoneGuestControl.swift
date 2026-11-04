@@ -1093,7 +1093,7 @@ final class VPhoneGuestControl {
     /// it is open, rather than answering once. The caller owns it from here:
     /// every other request sets a read timeout and closes when its reply is
     /// complete, neither of which suits a terminal that is idle most of the
-    /// time. `VPhoneGuestShellChannel` is the only caller.
+    /// time. Shell and private guest-port channels own these streams.
     func openGuestStream() async throws -> VPhoneGuestStream {
         guard let device else { throw ControlError.notConnected }
         let socket = await withCheckedContinuation {

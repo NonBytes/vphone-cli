@@ -1,0 +1,183 @@
+import Foundation
+import Darwin
+
+/// The private helper protocol. Source and token travel over stdin, never argv.
+struct VPhoneFridaClientEvent: Decodable, Sendable {
+    let event: String
+    let message: String?
+    let pid: Int?
+}
+
+struct VPhoneFridaClientFrames {
+    private var pending = Data()
+
+    mutating func append(_ data: Data) throws -> [VPhoneFridaClientEvent] {
+        pending.append(data)
+        var events: [VPhoneFridaClientEvent] = []
+        while let end = pending.firstIndex(of: 10) {
+            guard pending.distance(from: pending.startIndex, to: end) <= 8 * 1024 * 1024 else {
+                throw VPhoneProxyError("Frida client output exceeded the frame limit.")
+            }
+            events.append(try JSONDecoder().decode(VPhoneFridaClientEvent.self, from: pending[..<end]))
+            pending.removeSubrange(...end)
+        }
+        guard pending.count <= 8 * 1024 * 1024 else {
+            throw VPhoneProxyError("Frida client output exceeded the frame limit.")
+        }
+        return events
+    }
+
+    var isComplete: Bool { pending.isEmpty }
+}
+
+@MainActor
+final class VPhoneFridaClient {
+    private let process = Process()
+    private var input: FileHandle?
+    private let executable: URL
+    private var reader: Task<Void, Never>?
+    private var timeout: Task<Void, Never>?
+    private var inputClosed = false
+    var onEvent: ((VPhoneFridaClientEvent) -> Void)?
+    var onExit: ((String?) -> Void)?
+
+    init(executable: URL? = nil) {
+        self.executable = executable ?? (Bundle.main.executableURL ?? URL(fileURLWithPath: CommandLine.arguments[0]))
+            .resolvingSymlinksInPath().deletingLastPathComponent().appendingPathComponent("vphone-frida-client")
+    }
+
+    func launch() throws {
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+            throw VPhoneProxyError("The bundled Frida client is missing. Build and install the complete VPhone bundle.")
+        }
+        // A socket-backed stdin can suppress SIGPIPE per descriptor, so an
+        // early child exit cannot terminate the VM while a command is writing.
+        var descriptors: [Int32] = [-1, -1]
+        guard socketpair(AF_UNIX, SOCK_STREAM, 0, &descriptors) == 0 else {
+            throw VPhoneProxyError("Could not create the Frida client command channel.")
+        }
+        var enabled: Int32 = 1
+        guard fcntl(descriptors[0], F_SETFD, FD_CLOEXEC) == 0,
+              fcntl(descriptors[1], F_SETFD, FD_CLOEXEC) == 0,
+              setsockopt(descriptors[0], SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout<Int32>.size)) == 0 else {
+            Darwin.close(descriptors[0]); Darwin.close(descriptors[1])
+            throw VPhoneProxyError("Could not configure the Frida client command channel.")
+        }
+        let input = FileHandle(fileDescriptor: descriptors[0], closeOnDealloc: true)
+        let childInput = FileHandle(fileDescriptor: descriptors[1], closeOnDealloc: true)
+        defer { try? childInput.close() }
+        self.input = input
+        let output = Pipe()
+        process.executableURL = executable
+        process.standardInput = childInput
+        process.standardOutput = output
+        // Frida's backend discovery may log framework diagnostics to stderr.
+        // Keep those outside the framed stdout protocol; actionable Frida
+        // operation errors are already emitted as structured events.
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() }
+        catch { closeInput(); throw error }
+        // A single stream preserves output/EOF order, including final errors.
+        enum Output: Sendable { case data(Data), failure(String), exited(Int32) }
+        let stream = AsyncStream<Output>(bufferingPolicy: .bufferingOldest(128)) { continuation in
+            let process = self.process
+            DispatchQueue.global(qos: .utility).async {
+                var bytes = [UInt8](repeating: 0, count: 65536)
+                while true {
+                    // POSIX read returns the available pipe bytes immediately;
+                    // a buffered Foundation read may wait for the entire count
+                    // and withhold short lifecycle events until EOF.
+                    let count = bytes.withUnsafeMutableBytes {
+                        Darwin.read(output.fileHandleForReading.fileDescriptor, $0.baseAddress, $0.count)
+                    }
+                    if count == 0 { break }
+                    if count < 0 {
+                        if errno == EINTR { continue }
+                        continuation.yield(.failure(String(cString: strerror(errno))))
+                        process.terminate()
+                        break
+                    }
+                    if case .dropped = continuation.yield(.data(Data(bytes.prefix(count)))) {
+                        // Bound memory if a script floods the console. A
+                        // stalled UI must not accumulate unbounded output.
+                        process.terminate()
+                        break
+                    }
+                }
+                process.waitUntilExit()
+                continuation.yield(.exited(process.terminationStatus))
+                continuation.finish()
+                try? output.fileHandleForReading.close()
+            }
+        }
+        reader = Task { [weak self] in
+            var frames = VPhoneFridaClientFrames()
+            var failure: String?
+            var exitStatus: Int32?
+            for await output in stream {
+                guard let self else { return }
+                switch output {
+                case let .data(data):
+                    do {
+                        for event in try frames.append(data) { onEvent?(event) }
+                    } catch {
+                        failure = "Invalid Frida client output: \(error.localizedDescription)"
+                        detach()
+                    }
+                case let .failure(message): failure = message
+                case let .exited(status):
+                    exitStatus = status
+                }
+            }
+            guard let self else { return }
+            timeout?.cancel()
+            closeInput()
+            if failure == nil, exitStatus != 0 {
+                failure = "Frida client stopped unexpectedly or its output queue overflowed."
+            }
+            if failure == nil, !frames.isComplete { failure = "Frida client output ended mid-frame." }
+            onExit?(failure)
+        }
+    }
+
+    func send(_ command: [String: String]) {
+        guard !inputClosed, process.isRunning, let handle = input else { return }
+        do {
+            var data = try JSONSerialization.data(withJSONObject: command)
+            data.append(10)
+            let frame = data
+            Task { [weak self] in
+                do { try await Task.detached(priority: .userInitiated) { try handle.write(contentsOf: frame) }.value }
+                catch { self?.detach() }
+            }
+        } catch { detach() }
+    }
+
+    func detach() {
+        // EOF requests cleanup even if the client is still connecting. Avoid
+        // writing another large command while a previous operation is pending.
+        closeInput()
+        armTimeout(seconds: 40)
+    }
+
+    func armTimeout(seconds: Int = 35) {
+        timeout?.cancel()
+        timeout = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+            guard let self, process.isRunning else { return }
+            process.terminate()
+        }
+    }
+
+    func cancelTimeout() { timeout?.cancel(); timeout = nil }
+
+    private func closeInput() {
+        guard !inputClosed else { return }
+        inputClosed = true
+        if let input {
+            shutdown(input.fileDescriptor, SHUT_WR)
+            try? input.close()
+            self.input = nil
+        }
+    }
+}

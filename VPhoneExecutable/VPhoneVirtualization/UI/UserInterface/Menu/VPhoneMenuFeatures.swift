@@ -5,6 +5,7 @@ import AppKit
 /// Host sensor controls, with the motion panels grouped in their own submenu.
 extension VPhoneMenuController {
     @objc func showFridaServer() { fridaWindowController.show() }
+    @objc func showFridaSession() { fridaSessionWindowController.show() }
     func buildFeaturesMenu() -> NSMenuItem {
         let item = NSMenuItem(title: "Features", action: nil, keyEquivalent: "")
         let menu = NSMenu(title: "Features")
@@ -24,6 +25,7 @@ extension VPhoneMenuController {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(buildMotionSensorsMenu())
         menu.addItem(makeItem("Frida Server…", action: #selector(showFridaServer)))
+        menu.addItem(makeItem("Frida Session…", action: #selector(showFridaSession)))
         item.submenu = menu
         return item
     }
