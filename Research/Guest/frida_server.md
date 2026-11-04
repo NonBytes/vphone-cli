@@ -73,3 +73,20 @@ server and rejected an intentionally invalid token. The server was left running
 in the state observed in the UI. The UI download button itself was not confirmed
 end to end because the user changed the UI during that action; the identical
 Swift download/install preparation path was verified by the live test above.
+
+## USB / usbmux transport
+
+The VM also appears as a USB device in `frida-ls-devices`. The tested Mac client
+(17.23.3) forwards `--token` only to remote (`-H`) connections; plain `frida-ps -U`
+therefore reports authentication required with this token-protected server.
+Keep authentication and forward the guest port through usbmux instead:
+
+```sh
+iproxy -u <vm-udid> 27043:27042
+# In another terminal, use the token from the panel's Copy command:
+frida-ps -H 127.0.0.1:27043 --token '<token>'
+```
+
+`iproxy` is an optional external Mac tool, not a dependency of the shipped
+bundle. This route was tested against test-vm and enumerated processes;
+it carries traffic through usbmux rather than the guest's LAN address.
