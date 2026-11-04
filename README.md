@@ -64,7 +64,7 @@ Open **Features → Frida Server…**, enter `latest` or a release version, and 
 digest and binary signatures, and installs the server and agent in the selected VM.
 Stop an existing server before installing another version.
 
-Click **Start**, then **Copy command** to get a `frida-ps` command with the VM's
+Click **Start**, then **Copy command** to get a `frida-ps -ai` command with the VM's
 address and authentication token. Use a matching Frida client on the Mac.
 **Stop** ends the managed server; closing the window leaves it running. It does
 not automatically start after reboot. See [Frida setup and verification](Research/Guest/frida_server.md).

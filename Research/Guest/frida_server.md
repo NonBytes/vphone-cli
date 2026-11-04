@@ -84,7 +84,7 @@ Keep authentication and forward the guest port through usbmux instead:
 ```sh
 iproxy -u <vm-udid> 27043:27042
 # In another terminal, use the token from the panel's Copy command:
-frida-ps -H 127.0.0.1:27043 --token '<token>'
+frida-ps -ai -H 127.0.0.1:27043 --token '<token>'
 ```
 
 `iproxy` is an optional external Mac tool, not a dependency of the shipped

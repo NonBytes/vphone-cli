@@ -33669,6 +33669,8 @@
     "Start opens port 27042 on this VM with a new authentication token. Closing this window leaves the server running; Stop ends it. It does not start automatically after a reboot." : {
     },
     "frida-ps -H %@ --token <token>" : {
+    },
+    "frida-ps -ai -H %@ --token <token>" : {
     }
   },
   "version" : "1.3"
