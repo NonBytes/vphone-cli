@@ -1,7 +1,7 @@
 # Guest Frida server manager
 
-Open **Features > Frida Server…** in an iOS/iPadOS VM. Enter `latest` or an exact
-numeric release version, then Download & Install. Installation does not start
+Open **Features > Frida Server…** in an iOS/iPadOS VM. Choose a release from the
+dropdown or use Other version, then Download & Install. Installation does not start
 the server. Start creates a new random token and listens on the guest's port
 27042. Copy command includes the token for a Mac Frida client. Use matching
 client/server versions when possible. Stop terminates only the managed PID
