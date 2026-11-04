@@ -19,6 +19,7 @@ final class VPhoneConsoleModel {
     static let retryDelay: Duration = .seconds(3)
 
     let control: VPhoneGuestControl
+    let appScope: VPhoneAppLogScope?
 
     /// Whether captures run. The window opens streaming.
     var isRunning = true
@@ -54,8 +55,10 @@ final class VPhoneConsoleModel {
 
     private var nextID = 0
 
-    init(control: VPhoneGuestControl) {
+    init(control: VPhoneGuestControl, appScope: VPhoneAppLogScope? = nil) {
         self.control = control
+        self.appScope = appScope
+        if appScope != nil { isRunning = false }
     }
 
     // MARK: - Streaming
@@ -92,7 +95,7 @@ final class VPhoneConsoleModel {
         defer { isCapturing = false }
         do {
             let result = try await control.call("logs.syslog", params: captureParameters)
-            if isRunning || force {
+            if !Task.isCancelled && (isRunning || force) {
                 apply(syslogResult: result)
             }
             if status?.isError == true {
@@ -114,7 +117,7 @@ final class VPhoneConsoleModel {
             "level": levelFilter.rawValue,
             "max_lines": Self.captureMaxLines,
         ]
-        let process = processFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        let process = appScope?.process ?? processFilter.trimmingCharacters(in: .whitespacesAndNewlines)
         if !process.isEmpty {
             params["process"] = process
         }
@@ -132,6 +135,7 @@ final class VPhoneConsoleModel {
         var added: [VPhoneConsoleEntry] = []
         added.reserveCapacity(raw.count)
         for object in raw {
+            if let appScope, !appScope.includes(process: object.string("process") ?? "") { continue }
             guard let message = object.string("message") else { continue }
             let date = object.string("date").flatMap(Self.parseDate)
             added.append(VPhoneConsoleEntry(
@@ -295,7 +299,7 @@ final class VPhoneConsoleModel {
 
     private func write(_ text: String, to url: URL, count: Int) {
         do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try VPhoneSandboxSnapshot.writeReport(Data(text.utf8), to: url)
             status = VPhoneGuestToolStatus(
                 message: String(localized: "Saved \(count) entries to \(url.lastPathComponent).", bundle: VPhoneLocalization.bundle),
                 isError: false,

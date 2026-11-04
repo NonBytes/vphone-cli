@@ -28,6 +28,7 @@ class VPhoneMenuController {
     lazy var tvRemoteWindowController = VPhoneTVRemoteWindowController(control: control)
     lazy var proxyWindowController = VPhoneProxyWindowController(control: control)
     lazy var networkDiagnosticsWindowController = VPhoneNetworkDiagnosticsWindowController(control: control)
+    lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
     lazy var fridaWindowController = VPhoneFridaWindowController(control: control)
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
