@@ -821,17 +821,19 @@ final class VPhoneGuestControl {
     /// Streams the guest file at `path` to `localURL` on the host. The bytes
     /// go to a hidden file beside `localURL`, which replaces it only once the
     /// whole file has arrived. Returns the size written.
-    func pullFile(_ path: String, to localURL: URL) async throws -> Int64 {
+    func pullFile(_ path: String, to localURL: URL, maximumBytes: Int? = nil, permissions: Int? = nil) async throws -> Int64 {
         let temporary = localURL.deletingLastPathComponent()
             .appendingPathComponent(".\(localURL.lastPathComponent).vphone-\(UUID().uuidString).part")
-        guard FileManager.default.createFile(atPath: temporary.path, contents: nil) else {
+        let attributes: [FileAttributeKey: Any]? = permissions.map { [.posixPermissions: $0] }
+        guard FileManager.default.createFile(atPath: temporary.path, contents: nil, attributes: attributes) else {
             throw ControlError.guestError("Could not create \(temporary.path)")
         }
         do {
             let handle = try FileHandle(forWritingTo: temporary)
             let response: VPhoneHTTPResponse
             do {
-                response = try await http(method: "GET", path: filePath(path), limits: .fileTransfer, download: handle)
+                let limits = maximumBytes.map { VPhoneHTTPLimits(maxBodyLength: $0, deadline: .seconds(180)) } ?? .fileTransfer
+                response = try await http(method: "GET", path: filePath(path), limits: limits, download: handle)
                 try handle.close()
             } catch {
                 try? handle.close()
