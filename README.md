@@ -1,4 +1,4 @@
-<div align="right"><a href="Documents/README.md">Docs</a> · <strong>English</strong> · <a href="Documents/README_zh.md">中文</a> · <a href="Documents/README_ja.md">日本語</a> · <a href="Documents/README_ko.md">한국어</a></div>
+<div align="right"><a href="Documents/README.md">Docs</a> · <strong>English</strong> · <a href="Documents/zh/README.md">中文</a> · <a href="Documents/ja/README.md">日本語</a> · <a href="Documents/ko/README.md">한국어</a></div>
 
 # vphone-cli
 
@@ -27,16 +27,25 @@ vphone-cli runs iOS with Apple's Virtualization.framework and PCC research virtu
 
 ### Mac and iPhone cameras
 
-In the VM window, open **Features → Camera → Source: Mac Camera…**, select a
-camera, and click **Start Streaming**. Allow camera access when macOS prompts.
-The picker supports the Mac's built-in camera, external cameras, available
-virtual cameras, and iPhone cameras exposed by macOS Continuity Camera.
-Use the rotation selector to correct the image orientation.
+Open **Features → Camera** in the VM window; two independent sources are
+available:
+
+- **Source: Mac Camera…** (this fork) opens a separately launched companion
+  app that owns macOS Camera consent on its own, shares frames over a private
+  mapped file, and offers a rotation selector to correct the image
+  orientation. See [camera setup and limitations](Research/Guest/mac_camera_local.md).
+- **Source: System Camera…** (upstream) opens an in-process picker and
+  captures directly with AVFoundation, no companion app involved.
+
+Either way, pick the source, select a camera, and click **Start Streaming**;
+allow camera access when macOS prompts. Both support the Mac's built-in
+camera, external cameras, available virtual cameras, and iPhone cameras
+exposed by macOS Continuity Camera.
 
 An iPhone must first be available to macOS as a Continuity Camera; connecting
 a USB cable alone does not guarantee it appears. Continuity Camera provides
-the physical iPhone's rear camera, without front-camera switching here.
-See [camera setup and limitations](Research/Guest/mac_camera_local.md).
+the physical iPhone's rear camera, without front-camera switching from
+either source.
 
 ### Proxy and CA certificates
 
@@ -70,6 +79,17 @@ and may include other apps' traffic. Save or discard before another capture.
 See [capture scope, limits and recovery](Research/Guest/network_diagnostics.md).
 
 ### Frida Server
+
+> [!NOTE]
+> The default `standard` patch preset blocks four kernel relaxations Frida's
+> Stalker and spawn handshake need. Without them, **Spawn** on a sandboxed
+> app like Files or Safari can `EXC_CRASH`, and **Attach** to a sandboxed
+> system app like Settings can time out. Create the VM (or run
+> `fw set-patches <vm>`) with `--preset frida` — `standard` plus exactly
+> those four patches, without `experimental`'s unrelated hv_vmm_present and
+> identity rewrites — to fix both. The Frida Server and Session windows show
+> an orange warning naming the fix when a VM's firmware is missing them. See
+> [investigation and fix](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations).
 
 Open **Features → Frida Server…**, choose **Latest release** or a recent version
 from the dropdown, and click **Download & Install**. **Refresh** reloads the list;
@@ -194,18 +214,18 @@ Core Bundle to use them too.
   csrutil allow-research-guests enable
   ```
 
-  SIP stays enabled, with only the debugging restrictions relaxed. For details, see [Host Setup](Documents/Guides/host-setup.md).
+  SIP stays enabled, with only the debugging restrictions relaxed. For details, see [Host Setup](Documents/en/get-started/host-setup.md).
 
 ## Get Started
 
-1. Download `vphone-launchpad-<version>-notarized.zip` from the [latest release](https://github.com/Lakr233/vphone-cli/releases/latest), unzip it, and open it. Not every release is notarized. If the latest one has no `-notarized` file, pick a notarized version from [Downloads](Documents/Downloads/README.md).
+1. Download `vphone-launchpad-<version>-notarized.zip` from the [latest release](https://github.com/Lakr233/vphone-cli/releases/latest), unzip it, and open it. Not every release is notarized. If the latest one has no `-notarized` file, pick a notarized version from [Downloads](Documents/en/get-started/downloads.md).
 2. In **Host Setup**, grant Developer Tools access and install the helper.
 3. In **Core Bundle**, click **Download and Install**.
 4. In **Machines**, click **New Machine**, choose a firmware pairing, and click **Create**.
 
-Launchpad downloads the firmware, patches it, restores the system, and boots the VM. To use your own iPhone and cloudOS IPSWs, see [Compatibility](Documents/Guides/compatibility.md).
+Launchpad downloads the firmware, patches it, restores the system, and boots the VM. To use your own iPhone and cloudOS IPSWs, see [Compatibility](Documents/en/firmware/compatibility.md).
 
-To install a package manager in the VM, see [Package Environment](Documents/Guides/package-environment.md).
+To install a package manager in the VM, see [Package Environment](Documents/en/machines/package-environment.md).
 
 ### Let an agent do it
 
@@ -233,7 +253,7 @@ vphone-cli vm launch myphone
 vphone-cli vm export myphone --out myphone.tzst
 ```
 
-VMs are stored in `~/.vphone/`. Run `vphone-cli <group> --help` to see all commands. To create a VM without Launchpad, see [Create and Run](Documents/Guides/create-and-run.md).
+VMs are stored in `~/.vphone/`. Run `vphone-cli <group> --help` to see all commands. To create a VM without Launchpad, see [Create and Run](Documents/en/machines/create-and-run.md).
 
 To turn on the automation API, add `--api-listen 127.0.0.1:8765` at launch and use the token it prints. See the [API documentation](Research/vphoned_http_api.md).
 
@@ -259,17 +279,17 @@ vphone-cli vm config myphone --rom apple --seprom apple       # Apple's ROMs
 
 | Document | Contents |
 | --- | --- |
-| [Downloads](Documents/Downloads/README.md) | Notarized Launchpad versions and matching `VPhone.bundle` versions |
-| [Host Setup](Documents/Guides/host-setup.md) | SIP and AMFI settings, building from source, environment checks |
-| [Create and Run](Documents/Guides/create-and-run.md) | Firmware sources, the creation process, storage and backups |
-| [Snapshots](Documents/Guides/snapshots.md) | Save a stopped VM's disk state and revert to it |
-| [Compatibility](Documents/Guides/compatibility.md) | Verified firmware pairings |
-| [iPadOS Guests](Documents/Guides/ipados.md) | Run iPadOS (iPad mini A17 Pro) instead of iOS |
-| [Package Environment](Documents/Guides/package-environment.md) | Installing and removing a package manager in the VM |
-| [Troubleshooting](Documents/Guides/troubleshooting.md) | Common errors and how to fix them |
-| [Networking](Documents/Guides/networking.md) | Network modes, and `tunnel` for a Mac behind a VPN or proxy |
-| [Launchpad Command Line](Documents/Guides/launchpad-cli.md) | Install and test a local build with `vphone-launchpad-cli` |
-| [Contributing](Documents/README.md#for-contributors) | Project structure, building from source, research notes |
+| [Downloads](Documents/en/get-started/downloads.md) | Notarized Launchpad versions and matching `VPhone.bundle` versions |
+| [Host Setup](Documents/en/get-started/host-setup.md) | SIP and AMFI settings, building from source, environment checks |
+| [Create and Run](Documents/en/machines/create-and-run.md) | Firmware sources, the creation process, storage and backups |
+| [Snapshots](Documents/en/storage/snapshots.md) | Save a stopped VM's disk state and revert to it |
+| [Compatibility](Documents/en/firmware/compatibility.md) | Verified firmware pairings |
+| [iPadOS Guests](Documents/en/firmware/ipados.md) | Run iPadOS (iPad mini A17 Pro) instead of iOS |
+| [Package Environment](Documents/en/machines/package-environment.md) | Installing and removing a package manager in the VM |
+| [Troubleshooting](Documents/en/help/troubleshooting.md) | Common errors and how to fix them |
+| [Networking](Documents/en/networking/overview.md) | Network modes, and `tunnel` for a Mac behind a VPN or proxy |
+| [Launchpad Command Line](Documents/en/launchpad/launchpad-cli.md) | Install and test a local build with `vphone-launchpad-cli` |
+| [Manual Index](Documents/en/README.md) | Full manual: machines, firmware, storage, networking, Launchpad and bundles |
 
 For this fork's camera, proxy, or CA features, [open an issue in this fork](https://github.com/NonBytes/vphone-cli/issues).
 For the original project, see [upstream issues](https://github.com/Lakr233/vphone-cli/issues).
