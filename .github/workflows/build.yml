@@ -79,6 +79,18 @@ jobs:
       - name: Frida release tests
         run: zsh VPhoneExecutable/VPhoneVirtualization/Frida/Tests/run-tests.sh
 
+      - name: Pentest tools regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-pentest-tools-tests.sh
+
+      - name: Sandbox Diff regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-sandbox-diff-tests.sh
+
+      - name: Network diagnostics regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-network-diagnostics-tests.sh
+
+      - name: App logs regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-app-logs-tests.sh
+
       - name: Guest component tests
         run: |
           make -C VPhoneGuestComponents test-loader-links
