@@ -352,10 +352,34 @@ warning rather than assuming either state. Both `VPhoneFridaWindowController`
 take an optional `machineDirectory` (threaded from
 `VPhoneVirtualMachineAppDelegate` through `VPhoneMenuController`, the same
 `options.configURL`-derived path already used for `sceneIdentifier`) and show
-an orange caption banner naming the missing patches and the exact `--allow`
-flags to re-create or re-patch the VM with, when any are absent. Verified: the
-full `VPhone` Debug build and bundle admission passed, and the detection logic
-was exercised standalone against both real receipts — `test-vm` reports
-all 4 patches missing (banner would show), `frida-jb-test` reports none
-missing (no banner). The running apps were not reopened to visually confirm
-the rendered banner text.
+an orange caption banner naming the missing patches and how to fix it, when
+any are absent. Verified: the full `VPhone` Debug build and bundle admission
+passed, and the detection logic was exercised standalone against both real
+receipts — `test-vm` reports all 4 patches missing (banner would show),
+`frida-jb-test` reports none missing (no banner). The running apps were not
+reopened to visually confirm the rendered banner text.
+
+### New preset: `frida` (standard plus exactly the 4 kernel.frida patches)
+
+Added a fifth shipped preset, `frida`, rather than pointing users at
+`--preset experimental` or a hand-written `--allow` list: `experimental` also
+unblocks hv_vmm_present concealment, iPhone17,3 identity rewrites and
+HomeView/HomePod/TV patches unrelated to Frida — one of which is suspected
+(not root-caused) to be what hung `frida-ext-test` at the boot logo earlier
+in this investigation. `frida` is `FirmwarePatchSetCatalog.standardPreset`'s
+block list minus `FirmwareKernelFridaPatchSet.manifest.patches`' identifiers
+(computed from the patch set, not a hardcoded list of 4 strings, so it tracks
+the set if it ever changes), mirrored as both
+`VPhoneExecutable/VPhoneCommand/FirmwarePatcher/PatchSets/FirmwarePatchSetCatalog.swift`'s
+`fridaPreset` and `VPhoneExecutable/VPhoneVirtualization/Resources/patches_presets/frida.plist`,
+per the `authoring-patch-sets` skill's "mirror it in FirmwarePatchSetCatalog"
+rule. `vphone-cli fw patches --preset frida` confirmed it turns on exactly the
+4 Frida patches relative to `standard` (171 vs. 167 of 219) and nothing else;
+`FirmwarePatcherTests`' catalogue/selection/plan/gate suites (61 tests) passed,
+including "The shipped preset plists match the built-in copies" and "Every
+shipped preset resolves on each supported base". `VPhoneFridaKernelPatchCheck.setupHint`
+now points at `--preset frida` instead of a raw `--allow` list. Launchpad's
+patch editor picks it up automatically (it reads `fw patches --json`, no
+Launchpad code change needed); a plain New Machine still defaults to
+`standard` and needs `frida` chosen explicitly in that editor, or named with
+`--preset frida` on `vm create`/`fw set-patches`.

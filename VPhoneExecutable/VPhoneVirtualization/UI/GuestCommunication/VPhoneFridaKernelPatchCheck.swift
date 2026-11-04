@@ -13,7 +13,10 @@ enum VPhoneFridaKernelPatchCheck {
         "kernel-exp-frida_syscall_filter_off",
     ]
 
-    static let setupHint = requiredPatches.map { "--allow \($0)" }.joined(separator: " ")
+    /// `--preset frida` is `standard` plus exactly these four; it exists
+    /// because `--preset experimental` also unblocks unrelated hv_vmm_present/
+    /// identity patches that hung a disposable VM at the boot logo in testing.
+    static let setupHint = "--preset frida"
 
     /// `nil` when the receipt is missing or unreadable (unknown state — no
     /// warning). Otherwise the subset of `requiredPatches` absent from the
