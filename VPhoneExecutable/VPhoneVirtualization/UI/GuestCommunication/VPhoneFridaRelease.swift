@@ -15,16 +15,29 @@ struct VPhoneFridaRelease: Decodable, Sendable {
         value.range(of: #"^[0-9]+\.[0-9]+\.[0-9]+\z"#, options: .regularExpression) != nil
     }
     var asset: Asset? { assets.first { $0.name == "frida_\(tag_name)_iphoneos-arm.deb" } }
-    static func fetch(_ version: String) async throws -> Self {
-        guard version == "latest" || validVersion(version) else { throw VPhoneProxyError("Enter latest or a version such as 17.25.2.") }
-        let path = version == "latest" ? "latest" : "tags/" + version
-        var request = URLRequest(url: URL(string: "https://api.github.com/repos/frida/frida/releases/" + path)!)
+    static func versions() async throws -> [String] {
+        let data = try await metadata("?per_page=20")
+        let releases = try JSONDecoder().decode([Self].self, from: data)
+        return Array(Set(releases.filter { validVersion($0.tag_name) && $0.asset != nil }.map(\.tag_name)))
+            .sorted { $0.compare($1, options: .numeric) == .orderedDescending }
+    }
+
+    private static func metadata(_ path: String) async throws -> Data {
+        var request = URLRequest(url: URL(string: "https://api.github.com/repos/frida/frida/releases" + path)!)
         request.timeoutInterval = 30
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
         request.setValue("VPhone-Frida-Manager", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw VPhoneProxyError("GitHub release lookup failed (not found, rate limited, or unavailable). Try again later.") }
+        return data
+    }
+
+    static func fetch(_ version: String) async throws -> Self {
+
+        guard version == "latest" || validVersion(version) else { throw VPhoneProxyError("Enter latest or a version such as 17.25.2.") }
+        let path = version == "latest" ? "latest" : "tags/" + version
+        let data = try await metadata("/" + path)
         let release = try JSONDecoder().decode(Self.self, from: data)
         guard validVersion(release.tag_name), release.asset != nil else { throw VPhoneProxyError("This release has no supported iOS server package.") }
         return release

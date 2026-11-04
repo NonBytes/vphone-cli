@@ -58,16 +58,44 @@ an app's certificate pinning. See [proxy and CA details](Research/Guest/proxy_me
 
 ### Frida Server
 
-Open **Features → Frida Server…**, enter `latest` or a release version, and click
-**Download & Install**. The manager downloads the official iOS package from
+Open **Features → Frida Server…**, choose **Latest release** or a recent version
+from the dropdown, and click **Download & Install**. **Refresh** reloads the list;
+**Other version…** lets you enter an older version. The manager downloads the
+official iOS package from
 [frida/frida releases](https://github.com/frida/frida/releases), checks its SHA-256
 digest and binary signatures, and installs the server and agent in the selected VM.
 Stop an existing server before installing another version.
+
+For a locally built or modified server, choose **Custom… → Choose Server…** and
+select a signed, uncompressed iOS arm64 `frida-server`. If it uses an external
+agent, select the matching `frida-agent.dylib` with **Choose Agent…**; otherwise
+the server must embed its agent. Click **Install Custom**, then **Start**.
+Custom files stay local to the Mac and selected VM. They must support the
+standard Frida server command-line options.
 
 Click **Start**, then **Copy command** to get a `frida-ps -ai` command with the VM's
 address and authentication token. Use a matching Frida client on the Mac.
 **Stop** ends the managed server; closing the window leaves it running. It does
 not automatically start after reboot. See [Frida setup and verification](Research/Guest/frida_server.md).
+
+The suggested command lists installed apps and their identifiers:
+
+```sh
+frida-ps -ai -H <guest-ip>:27042 --token '<token>'
+```
+
+For USB/usbmux transport, use the VM's ID from `frida-ls-devices` and forward
+the port with `iproxy` (an optional Mac tool):
+
+```sh
+# First terminal:
+iproxy -u <vm-udid> 27043:27042
+# Second terminal; use the token from Copy command:
+frida-ps -ai -H 127.0.0.1:27043 --token '<token>'
+```
+
+The tested Frida client sends `--token` through `-H`; plain `-U` reports
+authentication required with this token-protected server.
 
 ### Build and install this fork
 
