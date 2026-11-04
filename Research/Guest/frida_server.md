@@ -383,3 +383,29 @@ patch editor picks it up automatically (it reads `fw patches --json`, no
 Launchpad code change needed); a plain New Machine still defaults to
 `standard` and needs `frida` chosen explicitly in that editor, or named with
 `--preset frida` on `vm create`/`fw set-patches`.
+
+### Merge drift caught: frida.plist went stale against a sync
+
+Syncing this fork's `main` with upstream (72 commits, including a new
+iOS 16 bring-up patch set) and then merging that `main` into this branch
+silently broke the `frida` preset: `standard.plist`'s hand-maintained Block
+list grew from 43 to 53 entries (upstream added the 10 new iOS 16 patches to
+it), but `frida.plist` — a fork-only file upstream has never seen — still had
+the old 39-entry list computed before the sync. A `Block`-kind selection
+means "everything not listed is on", so the 10 new patches nobody had told
+`frida.plist` about were silently **enabled** by it (173 → 187 patches, not
+the expected 177). The Swift fallback (`FirmwarePatchSetCatalog.fridaPreset`)
+stayed correct throughout, because it computes `manualOnlyPatches.subtracting(...)`
+dynamically — only the hand-written plist drifted. Caught by diffing
+`fw patches --preset standard --json` against `--preset frida --json`'s
+`enabled` patch sets (not the human-readable text report, which happened to
+format fine) during a Mac Camera/Proxy smoke test after the sync, not by the
+"shipped preset plists match the built-in copies" test — that test was not
+re-run after the sync until this was found by hand. Fixed by adding the 10
+new identifiers to `frida.plist`'s Block list; `fw patches` then shows 177 of
+237 for `frida` against 173 of 237 for `standard`, a clean 4-patch difference,
+and `FirmwarePatcherTests`' catalogue suite (34 tests, including that
+round-trip test) passes. **Standing risk:** any future sync that adds patches
+to `manualOnlyPatches` will re-break `frida.plist` the same way unless it is
+updated in the same change; the Swift fallback alone does not protect the
+shipped plist actually used from a staged bundle.
