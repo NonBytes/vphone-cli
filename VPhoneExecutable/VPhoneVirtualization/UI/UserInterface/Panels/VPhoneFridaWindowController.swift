@@ -12,7 +12,7 @@ final class VPhoneFridaModel {
     var error: String?
     init(control: VPhoneGuestControl) { self.control = control }
     var endpoint: String { (control.guestIPAddress ?? "<guest-ip>") + ":27042" }
-    var command: String { "frida-ps -H \(endpoint) --token \(status?.token ?? "<token>")" }
+    var command: String { "frida-ps -ai -H \(endpoint) --token \(status?.token ?? "<token>")" }
 
     func operation(_ name: String) async {
         guard !busy else { return }
@@ -80,7 +80,7 @@ private struct VPhoneFridaView: View {
                     Text("Endpoint: \(model.endpoint)").textSelection(.enabled)
                     SecureField("Connection token", text: .constant(status.token))
                     HStack {
-                        Text("frida-ps -H \(model.endpoint) --token <token>").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        Text("frida-ps -ai -H \(model.endpoint) --token <token>").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                         Button("Copy command") {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(model.command, forType: .string)
