@@ -64,6 +64,7 @@ final class VPhoneGuestControl {
     private(set) var guestCapabilities: [String] = []
     private(set) var guestIPAddress: String?
     private(set) var guestIOSVersion: String?
+    @ObservationIgnored var sandboxMachineScope = ""
     @ObservationIgnored var guestBinaryURL: URL?
     /// The bundled vphoned's hash, kept between probes (VPhoneFileDigestCache).
     @ObservationIgnored private var guestBinaryDigest = VPhoneFileDigestCache()
