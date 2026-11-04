@@ -189,6 +189,50 @@ operation's cancellation, a syntax error during script replacement, and the
 Swift client's streaming/EOF handling and early-child-exit path. These are local/fixture tests,
 not evidence of live guest injection.
 
+### Investigation lead: missing opt-in Frida kernel relaxations
+
+A read-through of the native client (`VPhoneExecutable/VPhoneVirtualization/Frida/Client/main.c`)
+and the session controller's spawn/attach flow found no bug there: `start()`
+follows the standard Frida sequence (spawn or validate PID, attach, load
+script, resume only a spawned PID) and `target` is the app's bundle
+identifier, as `frida_device_spawn_sync` expects.
+
+A more likely cause sits in the guest kernel patch set, a separate system from
+this panel's code. Four kernel-jb patches exist specifically to relax stock
+protections that otherwise block Frida, and all four are **opt-in**:
+
+- `patch_tpro_off.md` (JB-33, "Frida spawn support"): without it, libdyld
+  aborts on TPRO re-entry during Frida's spawn handshake — this matches the
+  reported EXC_CRASH while "initializing a suspended process" for Files/Safari
+  more closely than any other known gate.
+- `patch_syscall_filter_off.md` (JB-34): without it, syscall-filtered
+  processes deny the Frida agent's own calls (named examples: trustd, apsd,
+  cfprefsd, backboardd, runningboardd; `thread_get_state` returns
+  `KERN_DENIED` in locationd). A plausible, unconfirmed fit for the Settings
+  `attach_sync` timeout, since Settings talks to several of these daemons.
+- `patch_thread_set_state.md` (JB-23b) and `patch_vm_map_delete_immutable_code.md`
+  (JB-25c): needed only once a loaded script actually drives Frida's Stalker
+  (register rewrite / repeated code-page overwrite), so plain Attach without
+  Stalker use would not trip them — a possible fit for why attaching to an
+  already-running app was reported to work.
+
+All four ship under the `kernel.frida` patch set and are blocked by the
+`standard` preset, which is the default for a VM created without
+`--preset extended` or an explicit `--frida` (see `Research/0_binary_patch_comparison.md`,
+"Patch sets and presets").
+
+**Confirmed for test-vm:** `~/.vphone/machines/test-vm/PatchSelection.plist`
+reads `Preset = standard` with empty `AllowedPatches`/`BlockedPatches` (no
+override), and `PatchReceipt.plist` has no `kernel-exp-frida_*`,
+`thread_set_state_entitlement_flag`, or `vm_map_delete_immutable_code` record
+(the only `tpro`-adjacent entry present, `system-dyld-exp-tv_tpro`, is
+unrelated — a tvOS-specific patch, not JB-33's Frida TPRO relaxation). So none
+of JB-23b/25c/33/34 were applied to the firmware test-vm is bound to. This
+is read-only confirmation from the VM's own on-disk state, not yet a live
+retest: the next step, if wanted, is re-patching/creating a VM with `--frida`
+(or `--preset extended`) and re-running the Files/Safari Spawn and Settings
+Attach checks against it.
+
 The relay regression uses real ephemeral loopback sockets with an injected
 guest byte channel. It verifies byte transparency across receive boundaries,
 multiple connections and guest-open failure. The production port stream reuses
@@ -242,3 +286,76 @@ message on both Spawn and Attach, replace the script, close the Session window,
 and confirm the app and server remain running. Also exercise an invalid script,
 target exit, server stop and closing during connection. Do not use a customer
 app for these smoke tests.
+
+### User-reported observation: Attach to an already-launched app
+
+Separately from the diagnostic probes above, the user reports trying Attach
+against several apps that were already running (launched normally by the
+user, not spawned by this panel) and did not hit a failure there. This differs
+from the Settings attach_sync probe above, which did time out. The difference
+in outcome is not yet explained — candidates include which specific apps were
+tried, process state at attach time (foreground vs. backgrounded/suspended by
+the system), or something particular to the probe's 45-second diagnostic
+client versus the panel's native session manager. This is an informal,
+unverified report, not a reproduced/instrumented test; it is recorded here as
+a lead, not a conclusion. Spawn (which requires suspended-process
+initialization before script creation) remains the confirmed EXC_CRASH path
+for Files/Safari, and is unaffected by this observation.
+
+### Retest confirmed: JB-33/34/23b/25c fix the Spawn crash
+
+A disposable VM (`frida-jb-test`) was created on the same cached firmware
+pairing as test-vm (iPhone17,3 iOS 27.0.1/24A446, cloudOS 26.4/23E5207q)
+with `--preset standard --allow kernel-exp-frida_thread_set_state_entitlement_flag
+--allow kernel-exp-frida_vm_map_delete_immutable_code --allow kernel-exp-frida_tpro_off
+--allow kernel-exp-frida_syscall_filter_off` — the 4 Frida kernel patches only,
+leaving every other `standard`-blocked patch (hv_vmm_present concealment,
+iPhone17,3 identity rewrites) off. `fw patch` logged all four `[FRIDA]` records
+being written (264 total patches applied). The VM restored, booted to the Lock
+Screen normally, and **Spawn against Files/Safari succeeded with no crash**,
+through Features → Frida Server… → Download & Install → Start, then
+Features → Frida Session… → Spawn. This confirms the investigation lead above:
+the missing opt-in `kernel.frida` patch set (unapplied on test-vm, which
+uses the unmodified `standard` preset) was the cause of the EXC_CRASH on Spawn.
+
+A first attempt used `--preset experimental` (which also unblocks the
+unrelated hv_vmm_present/identity/devicetree patches) on a separate disposable
+VM (`frida-ext-test`, since stopped). That VM's guest process sat at ~0% CPU
+for several minutes at the Apple logo without reaching the Lock Screen —
+apparently stuck, though its log showed `vphoned` had answered the HTTP API
+earlier in boot, so this was not a clean kernel panic. Whether that hang was
+caused by one of the non-Frida `experimental` patches, or was incidental, was
+not root-caused; the narrower `--allow`-only approach above avoided it and is
+the one to use going forward.
+
+**Settings Attach retested and fixed too.** On the same `frida-jb-test` VM,
+with Settings opened to the foreground first, Features → Frida Session… →
+Attach to running PID against Settings succeeded with no timeout — unlike the
+`attach_sync` timeout recorded above against test-vm (`standard`, no
+Frida patches). This confirms JB-34 (`kernel-exp-frida_syscall_filter_off`)
+as the fix for that failure mode as well. Both Spawn (Files/Safari) and
+Attach (Settings) now work once the 4-patch `kernel.frida` set is allowed;
+test-vm itself was never modified during this investigation — it remains
+on `standard` with no Frida relaxations, consistent with its original
+EXC_CRASH/timeout reports.
+
+### UI fix: warn when the kernel.frida patches are missing
+
+Since `kernel.frida` stays opt-in by design (a safety/security-surface
+tradeoff, not a project oversight), the fix implemented is a non-blocking
+warning rather than enabling the set by default. `VPhoneFridaKernelPatchCheck`
+(`VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneFridaKernelPatchCheck.swift`)
+reads the VM's own `PatchReceipt.plist` (`Parts.kernelcache.Patches`) for the
+four required identifiers; `nil` (receipt missing/unreadable) suppresses the
+warning rather than assuming either state. Both `VPhoneFridaWindowController`
+(Frida Server) and `VPhoneFridaSessionWindowController` (Frida Session) now
+take an optional `machineDirectory` (threaded from
+`VPhoneVirtualMachineAppDelegate` through `VPhoneMenuController`, the same
+`options.configURL`-derived path already used for `sceneIdentifier`) and show
+an orange caption banner naming the missing patches and the exact `--allow`
+flags to re-create or re-patch the VM with, when any are absent. Verified: the
+full `VPhone` Debug build and bundle admission passed, and the detection logic
+was exercised standalone against both real receipts — `test-vm` reports
+all 4 patches missing (banner would show), `frida-jb-test` reports none
+missing (no banner). The running apps were not reopened to visually confirm
+the rendered banner text.

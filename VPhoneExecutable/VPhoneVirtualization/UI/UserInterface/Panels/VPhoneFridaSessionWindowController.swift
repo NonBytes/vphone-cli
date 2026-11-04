@@ -22,8 +22,12 @@ final class VPhoneFridaSessionModel {
     private(set) var client: VPhoneFridaClient?
     private var generation = 0
     private var relay: VPhoneFridaPortRelay?
+    let missingKernelPatches: [String]?
 
-    init(control: VPhoneGuestControl) { self.control = control }
+    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
+        self.control = control
+        missingKernelPatches = VPhoneFridaKernelPatchCheck.missingPatches(machineDirectory: machineDirectory)
+    }
     var selectedApp: VPhoneAppRecord? { apps.first { $0.id == selectedID } }
     var active: Bool { client != nil }
     var canStart: Bool {
@@ -203,7 +207,9 @@ final class VPhoneFridaSessionModel {
 final class VPhoneFridaSessionWindowController: NSObject, NSWindowDelegate {
     private let model: VPhoneFridaSessionModel
     private var window: NSWindow?
-    init(control: VPhoneGuestControl) { model = VPhoneFridaSessionModel(control: control) }
+    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
+        model = VPhoneFridaSessionModel(control: control, machineDirectory: machineDirectory)
+    }
 
     func show() {
         if window == nil {
@@ -233,6 +239,10 @@ private struct VPhoneFridaSessionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let missing = model.missingKernelPatches, !missing.isEmpty {
+                Text("This VM's firmware is missing the opt-in Frida kernel relaxations (\(missing.count) of \(VPhoneFridaKernelPatchCheck.requiredPatches.count)). Spawn can crash and Attach to sandboxed system apps can time out. Re-create or re-patch this VM with: \(VPhoneFridaKernelPatchCheck.setupHint)")
+                    .font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+            }
             HStack {
                 Picker("App", selection: $model.selectedID) {
                     Text("Select an app…").tag("")
