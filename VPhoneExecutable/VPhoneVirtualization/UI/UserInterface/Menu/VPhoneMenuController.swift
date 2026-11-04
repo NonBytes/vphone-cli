@@ -8,6 +8,7 @@ import Foundation
 class VPhoneMenuController {
     let keySender: VPhoneVirtualMachineKeySender
     let control: VPhoneGuestControl
+    let machineDirectory: URL?
     let guestToolsWindowController: VPhoneGuestToolsWindowController
     let guestPanelsWindowController: VPhoneGuestPanelsWindowController
     weak var vm: VPhoneVirtualMachine? {
@@ -29,8 +30,8 @@ class VPhoneMenuController {
     lazy var proxyWindowController = VPhoneProxyWindowController(control: control)
     lazy var networkDiagnosticsWindowController = VPhoneNetworkDiagnosticsWindowController(control: control)
     lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
-    lazy var fridaWindowController = VPhoneFridaWindowController(control: control)
-    lazy var fridaSessionWindowController = VPhoneFridaSessionWindowController(control: control)
+    lazy var fridaWindowController = VPhoneFridaWindowController(control: control, machineDirectory: machineDirectory)
+    lazy var fridaSessionWindowController = VPhoneFridaSessionWindowController(control: control, machineDirectory: machineDirectory)
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
     var showsTVControls = false {
@@ -116,9 +117,10 @@ class VPhoneMenuController {
     var powerSourceRetainedPtr: UnsafeMutableRawPointer?
     var lowPowerObserver: (any NSObjectProtocol)?
 
-    init(keySender: VPhoneVirtualMachineKeySender, control: VPhoneGuestControl) {
+    init(keySender: VPhoneVirtualMachineKeySender, control: VPhoneGuestControl, machineDirectory: URL? = nil) {
         self.keySender = keySender
         self.control = control
+        self.machineDirectory = machineDirectory
         guestToolsWindowController = VPhoneGuestToolsWindowController(control: control)
         guestPanelsWindowController = VPhoneGuestPanelsWindowController(control: control)
         setupMenuBar()

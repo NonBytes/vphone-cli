@@ -16,7 +16,11 @@ final class VPhoneFridaModel {
     var busy = false
     var message = ""
     var error: String?
-    init(control: VPhoneGuestControl) { self.control = control }
+    let missingKernelPatches: [String]?
+    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
+        self.control = control
+        missingKernelPatches = VPhoneFridaKernelPatchCheck.missingPatches(machineDirectory: machineDirectory)
+    }
     var endpoint: String { (control.guestIPAddress ?? "<guest-ip>") + ":27042" }
     var command: String { "frida-ps -ai -H \(endpoint) --token \(status?.token ?? "<token>")" }
 
@@ -97,8 +101,8 @@ final class VPhoneFridaModel {
 final class VPhoneFridaWindowController {
     private let model: VPhoneFridaModel
     private let window: VPhoneGuestToolWindow
-    init(control: VPhoneGuestControl) {
-        let model = VPhoneFridaModel(control: control)
+    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
+        let model = VPhoneFridaModel(control: control, machineDirectory: machineDirectory)
         self.model = model
         window = VPhoneGuestToolWindow(title: "Frida Server", autosaveName: "vphone-frida-server",
                                       size: NSSize(width: 690, height: 610), minSize: NSSize(width: 600, height: 560)) {
@@ -112,6 +116,10 @@ private struct VPhoneFridaView: View {
     @Bindable var model: VPhoneFridaModel
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let missing = model.missingKernelPatches, !missing.isEmpty {
+                Text("This VM's firmware is missing the opt-in Frida kernel relaxations (\(missing.count) of \(VPhoneFridaKernelPatchCheck.requiredPatches.count)). Spawn can crash and Attach to sandboxed system apps can time out. Re-create or re-patch this VM with: \(VPhoneFridaKernelPatchCheck.setupHint)")
+                    .font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+            }
             HStack {
                 Picker("Release", selection: $model.version) {
                     Text("Latest release").tag("latest")
