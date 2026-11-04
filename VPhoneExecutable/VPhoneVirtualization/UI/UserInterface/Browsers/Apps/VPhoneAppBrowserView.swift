@@ -270,10 +270,10 @@ struct VPhoneAppBrowserView: View {
             .help("Reload the app list (⌘R)")
             .disabled(model.isBusy)
 
-            Button("App Info", systemImage: "info.circle") {
+            Button("App Inspector", systemImage: "info.circle") {
                 model.isInspectorPresented.toggle()
             }
-            .help("Show or hide app info (⌘I)")
+            .help("Show or hide the app inspector (⌘I)")
         }
     }
 

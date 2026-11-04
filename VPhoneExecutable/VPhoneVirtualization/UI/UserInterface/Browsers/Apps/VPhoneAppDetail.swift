@@ -12,6 +12,9 @@ struct VPhoneAppDetail {
     var name = ""
     var version = ""
     var build = ""
+    var pid = 0
+    var hasProcess = false
+    var processError: String?
     var type = ""
     var signer = ""
     var minimumOS = ""
@@ -39,12 +42,18 @@ struct VPhoneAppDetail {
     var networkPolicy: VPhoneAppNetworkPolicy?
     var networkPolicyError: String?
 
+    // Read from the installed bundle through the existing file transport.
+    var atsPlist = ""
+    var hasATS = false
+    var atsError: String?
+
     init(bundleID: String, record: VPhoneAppRecord? = nil) {
         self.bundleID = bundleID
         guard let record else { return }
         name = record.name
         version = record.version
         build = record.build
+        pid = record.pid
         bundlePath = record.bundlePath
         dataPath = record.dataPath
     }
@@ -82,6 +91,62 @@ struct VPhoneAppDetail {
         }
         hasInfo = true
         infoError = nil
+    }
+
+    mutating func apply(appList result: [String: Any]) {
+        // apps.info describes the installed bundle; only apps.list merges
+        // RunningBoard's current PID into its app registrations.
+        guard let record = result.objects("apps").compactMap(VPhoneAppRecord.init(json:))
+            .first(where: { $0.bundleID == bundleID }) else {
+            hasProcess = false
+            processError = "The app is no longer in the guest's app inventory."
+            return
+        }
+        pid = record.pid
+        hasProcess = true
+        processError = nil
+    }
+
+    mutating func apply(infoPlist data: Data) throws {
+        guard data.count <= 4 * 1024 * 1024,
+              let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
+            throw VPhoneProxyError("The app Info.plist is invalid or exceeds 4 MiB.")
+        }
+        if let value = plist["NSAppTransportSecurity"] {
+            guard let ats = value as? [String: Any] else {
+                throw VPhoneProxyError("NSAppTransportSecurity is not a dictionary.")
+            }
+            atsPlist = VPhoneAppEntitlement.plistText(ats)
+            // Preserve an explicitly empty dictionary separately from absence.
+            if atsPlist.isEmpty { atsPlist = "<dict/>" }
+        } else {
+            atsPlist = ""
+        }
+        hasATS = true
+        atsError = nil
+    }
+
+    func reportData() throws -> Data {
+        let policy: [String: Any]? = networkPolicy.map {
+            ["allowed": $0.allowed, "changed": $0.changed.map { $0 as Any } ?? NSNull(),
+             "entries": Dictionary(uniqueKeysWithValues: $0.entries.map { ($0.title, $0.value) })]
+        }
+        let report: [String: Any] = [
+            "captured_at": Date().formatted(.iso8601),
+            "bundle_id": bundleID, "name": name, "version": version, "build": build,
+            "pid": hasProcess ? pid as Any : NSNull(), "bundle_path": bundlePath, "data_path": dataPath,
+            "group_containers": Dictionary(uniqueKeysWithValues: groupContainers.map { ($0.identifier, $0.path) }),
+            "executable": executable, "signer": signer, "type": type,
+            "minimum_os": minimumOS, "sdk": sdk, "url_schemes": urlSchemes,
+            "encrypted": encrypted.map { $0 as Any } ?? NSNull(),
+            "entitlements_plist": entitlementsPlist, "ats_plist": atsPlist,
+            "network_policy": policy.map { $0 as Any } ?? NSNull(),
+            "core_version": VPhoneLocalization.bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
+            "sections_loaded": ["info": hasInfo, "binary": hasBinary, "ats": hasATS, "process": hasProcess],
+            "errors": [infoError, processError, binaryError, signingError, atsError, networkPolicyError].compactMap { $0 },
+            "limitations": "Installed guest binary; signing and entitlements may differ from the original IPA after re-signing. VM behavior does not establish physical-device, Secure Enclave or attestation behavior. ATS configuration alone does not verify runtime TLS or certificate pinning.",
+        ]
+        return try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
     }
 
     mutating func apply(binary: [String: Any]) {

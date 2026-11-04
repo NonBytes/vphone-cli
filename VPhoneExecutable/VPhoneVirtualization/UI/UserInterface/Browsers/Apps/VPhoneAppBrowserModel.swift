@@ -72,6 +72,8 @@ final class VPhoneAppBrowserModel {
     let control: VPhoneGuestControl
     /// Opens the File Browser at a guest path. The window controller wires it.
     var onRevealPath: ((String) -> Void)?
+    var onSandboxDiff: ((VPhoneAppRecord) -> Void)?
+    var onAppLogs: ((VPhoneAppRecord) -> Void)?
 
     private(set) var apps: [VPhoneAppRecord] = []
     private(set) var hasLoaded = false
@@ -100,6 +102,7 @@ final class VPhoneAppBrowserModel {
     var isImportingPackage = false
 
     private var listGeneration = 0
+    private var detailGeneration = 0
 
     init(control: VPhoneGuestControl) {
         self.control = control
@@ -377,37 +380,78 @@ final class VPhoneAppBrowserModel {
 
     /// Loads the inspector for one app; each section fills in as it returns.
     func loadDetail(for bundleID: VPhoneAppRecord.ID?) async {
+        detailGeneration += 1
+        let generation = detailGeneration
+        isLoadingDetail = false
         guard let bundleID else {
             detail = nil
             return
         }
+        detail = nil
         beginDetail(for: bundleID)
         guard control.isConnected else { return }
         isLoadingDetail = true
         defer {
-            if detail?.bundleID == bundleID {
+            if generation == detailGeneration {
                 isLoadingDetail = false
             }
         }
         do {
-            try await apply(infoResult: control.appInfo(bundleID: bundleID))
+            let result = try await control.appInfo(bundleID: bundleID)
+            guard generation == detailGeneration, !Task.isCancelled else { return }
+            apply(infoResult: result)
         } catch {
+            guard generation == detailGeneration, !Task.isCancelled else { return }
             updateDetail(bundleID) { $0.infoError = Self.message(error) }
         }
-        guard detail?.bundleID == bundleID, !Task.isCancelled else { return }
+        guard generation == detailGeneration, !Task.isCancelled else { return }
         do {
-            try await apply(binaryResult: control.appBinary(bundleID: bundleID))
+            let result = try await control.appList()
+            guard generation == detailGeneration, !Task.isCancelled else { return }
+            updateDetail(bundleID) { $0.apply(appList: result) }
         } catch {
+            guard generation == detailGeneration, !Task.isCancelled else { return }
+            updateDetail(bundleID) { $0.processError = Self.message(error) }
+        }
+        guard generation == detailGeneration, !Task.isCancelled else { return }
+        do {
+            let result = try await control.appBinary(bundleID: bundleID)
+            guard generation == detailGeneration, !Task.isCancelled else { return }
+            apply(binaryResult: result)
+        } catch {
+            guard generation == detailGeneration, !Task.isCancelled else { return }
             updateDetail(bundleID) { $0.binaryError = Self.message(error) }
         }
-        guard detail?.bundleID == bundleID, !Task.isCancelled else { return }
+        guard generation == detailGeneration, !Task.isCancelled else { return }
+        if let path = detail?.bundlePath, !path.isEmpty {
+            do {
+                let data = try await control.downloadFile(path: path + "/Info.plist")
+                guard generation == detailGeneration, !Task.isCancelled else { return }
+                // Parse into a value before publishing, so errors cannot leave
+                // a partially updated ATS section.
+                if var value = detail {
+                    try value.apply(infoPlist: data)
+                    detail = value
+                }
+            } catch {
+                guard generation == detailGeneration, !Task.isCancelled else { return }
+                updateDetail(bundleID) { $0.atsError = Self.message(error) }
+            }
+        } else {
+            updateDetail(bundleID) { $0.atsError = "The installed bundle path is unavailable." }
+        }
+        guard generation == detailGeneration, !Task.isCancelled else { return }
         if urlSchemes == nil, let result = try? await control.appURLSchemes() {
+            guard generation == detailGeneration, !Task.isCancelled else { return }
             apply(urlSchemesResult: result)
         }
-        guard detail?.bundleID == bundleID, !Task.isCancelled else { return }
+        guard generation == detailGeneration, !Task.isCancelled else { return }
         do {
-            try await apply(networkPolicyResult: control.appNetworkPolicy(bundleID: bundleID))
+            let result = try await control.appNetworkPolicy(bundleID: bundleID)
+            guard generation == detailGeneration, !Task.isCancelled else { return }
+            apply(networkPolicyResult: result)
         } catch {
+            guard generation == detailGeneration, !Task.isCancelled else { return }
             updateDetail(bundleID) { $0.networkPolicyError = Self.message(error) }
         }
     }
@@ -462,6 +506,23 @@ final class VPhoneAppBrowserModel {
         guard var detail, detail.bundleID == bundleID else { return }
         change(&detail)
         self.detail = detail
+    }
+
+    func saveInspectorReport() {
+        guard let detail, !isLoadingDetail else { return }
+        do {
+            let data = try detail.reportData()
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = "app-inspector.json"
+            panel.begin { [weak self] response in
+                Task { @MainActor [weak self] in
+                    guard let self, response == .OK, let url = panel.url else { return }
+                    do { try data.write(to: url, options: .atomic) }
+                    catch { status = failure("Unable to save the inspector report.", error) }
+                }
+            }
+        } catch { status = failure("Unable to prepare the inspector report.", error) }
     }
 
     private static func message(_ error: Error) -> String {
