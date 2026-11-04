@@ -12,12 +12,18 @@ struct VPhoneAppInfoView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header(detail)
+                    Button("App Logs & Crash Viewer…") {
+                        if let app = model.selectedApp { model.onAppLogs?(app) }
+                    }.disabled(model.isBusy || !model.control.isConnected)
                     bundleSection(detail)
                     containerSection(detail)
                     schemeSection(detail)
                     binarySection(detail)
                     entitlementSection(detail)
+                    atsSection(detail)
                     networkSection(detail)
+                    Text("This inspector describes the installed guest app. Re-signing can change entitlements; VM results do not establish physical-device or attestation behavior.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -51,6 +57,12 @@ struct VPhoneAppInfoView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .textSelection(.enabled)
+                HStack {
+                    Button("Reload") { Task { await model.loadDetail(for: detail.bundleID) } }
+                        .disabled(model.isLoadingDetail || !model.control.isConnected)
+                    Button("Save Report…") { model.saveInspectorReport() }
+                        .disabled(model.isLoadingDetail)
+                }.controlSize(.small)
             }
             Spacer(minLength: 0)
             if model.isLoadingDetail {
@@ -67,6 +79,7 @@ struct VPhoneAppInfoView: View {
             VPhoneAppInfoGrid(rows: [
                 ("Version", detail.version),
                 ("Build", detail.build),
+                ("PID", detail.hasProcess ? (detail.pid > 0 ? String(detail.pid) : "Not running") : "Unavailable"),
                 ("Type", detail.type),
                 ("Signer", detail.signer),
                 ("Minimum OS", detail.minimumOS),
@@ -74,6 +87,13 @@ struct VPhoneAppInfoView: View {
                 ("Path", detail.bundlePath),
                 ("Executable", detail.executable),
             ])
+            if let error = detail.processError {
+                Text(error).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+            }
+            if !detail.bundlePath.isEmpty {
+                Button("Show Bundle in Files") { model.reveal(path: detail.bundlePath) }
+                    .controlSize(.small)
+            }
         }
     }
 
@@ -89,6 +109,9 @@ struct VPhoneAppInfoView: View {
                     Button("Copy Path") { model.copy([detail.dataPath]) }
                 }
                 .controlSize(.small)
+                Button("Sandbox Diff…") {
+                    if let app = model.selectedApp { model.onSandboxDiff?(app) }
+                }.controlSize(.small).disabled(model.isBusy || !model.control.isConnected)
             }
             if !detail.groupContainers.isEmpty {
                 Text("App Groups")
@@ -178,6 +201,23 @@ struct VPhoneAppInfoView: View {
                     .disabled(policy.allowed || model.isBusy || !model.control.isConnected)
                     .help("Allow Wi-Fi and cellular data for this app")
             } else if detail.networkPolicyError == nil {
+                placeholder("Loading…")
+            }
+        }
+    }
+
+    private func atsSection(_ detail: VPhoneAppDetail) -> some View {
+        VPhoneAppInfoSection(title: "App Transport Security", error: detail.atsError) {
+            if detail.hasATS {
+                if detail.atsPlist.isEmpty {
+                    placeholder("NSAppTransportSecurity is not declared; platform defaults apply.")
+                } else {
+                    VPhoneAppInfoValue(value: detail.atsPlist)
+                    Button("Copy ATS as Property List") { model.copy([detail.atsPlist]) }
+                        .controlSize(.small)
+                }
+                placeholder("Configuration only. Verify TLS and certificate pinning with runtime tests.")
+            } else if detail.atsError == nil {
                 placeholder("Loading…")
             }
         }

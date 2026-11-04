@@ -13,6 +13,8 @@ final class VPhoneAppWindowController: NSObject, NSWindowDelegate {
 
     private var window: NSWindow?
     private var model: VPhoneAppBrowserModel?
+    private var sandboxWindows: [String: VPhoneSandboxDiffWindowController] = [:]
+    private var appLogsWindow: VPhoneAppLogsWindowController?
 
     var isKeyWindow: Bool {
         window?.isKeyWindow == true
@@ -31,6 +33,19 @@ final class VPhoneAppWindowController: NSObject, NSWindowDelegate {
     private func makeWindow(control: VPhoneGuestControl) -> NSWindow {
         let model = VPhoneAppBrowserModel(control: control)
         model.onRevealPath = { [weak self] path in self?.onRevealPath?(path) }
+        model.onAppLogs = { [weak self] app in
+            guard let self else { return }
+            let controller = appLogsWindow ?? VPhoneAppLogsWindowController(control: control)
+            appLogsWindow = controller
+            controller.show(app: app)
+        }
+        model.onSandboxDiff = { [weak self] app in
+            guard let self else { return }
+            let controller = sandboxWindows[app.bundleID] ?? VPhoneSandboxDiffWindowController(control: control, app: app)
+            controller.model.onRevealPath = { [weak self] path in self?.onRevealPath?(path) }
+            sandboxWindows[app.bundleID] = controller
+            controller.show()
+        }
         self.model = model
 
         let hostingController = NSHostingController(rootView: VPhoneAppBrowserView(model: model))
