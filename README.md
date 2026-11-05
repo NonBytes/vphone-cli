@@ -1,4 +1,4 @@
-<div align="right"><a href="Documents/README.md">Docs</a> · <strong>English</strong> · <a href="Documents/zh/README.md">中文</a> · <a href="Documents/ja/README.md">日本語</a> · <a href="Documents/ko/README.md">한국어</a></div>
+<div align="right"><a href="Documents/en/README.md">Docs</a> · <strong>English</strong> · <a href="Documents/zh/README.md">中文</a> · <a href="Documents/ja/README.md">日本語</a> · <a href="Documents/ko/README.md">한국어</a></div>
 
 # vphone-cli
 
@@ -6,7 +6,9 @@ Run a virtual iPhone on an Apple Silicon Mac.
 
 This is [NonBytes' fork](https://github.com/NonBytes/vphone-cli) of
 [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), with host camera
-selection, a per-VM proxy editor, guest root CA management, and a Frida server manager. These additions
+selection, per-VM proxy and CA management, Frida Server and Session managers,
+App Inspector and Sandbox Diff, network diagnostics and PCAP, and an App Logs
+and Crash Viewer. These additions
 are included in this fork's `VPhone.bundle`; build and install it using the
 instructions below. Downloading an upstream Core Bundle does not include them.
 
@@ -209,6 +211,11 @@ The short commands assume `vphone-launchpad-cli` is on PATH; otherwise use the
 full app path shown above. These host features do not require restoring an
 existing VM or updating its guest environment. Bind each new VM to this fork's
 Core Bundle to use them too.
+
+If **Developer Tools** is enabled in Settings but Host Setup still fails after
+relaunch, check that the grant belongs to the installed Launchpad copy,
+especially after rebuilding or changing its signing identity. See
+[Developer Tools grant troubleshooting](Research/Host/developer_tools_grant.md).
 
 ## Requirements
 
