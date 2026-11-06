@@ -68,3 +68,30 @@ synthetic IPS fixture, verifies scoped list/read/identity, then removes only
 that fixture. It does not launch or crash an installed app, read customer log
 events, or inspect existing crash contents. This is API-contract evidence;
 it does not prove live event generation or GUI interaction.
+
+### GUI verification — 2026-11-05
+
+Tested the installed `2.15.0-local.0c450588` Core Bundle on test-vm
+(iPadOS 27.0.1), launched through Launchpad with Developer Tools authorized.
+
+- Opened Diagnostics → App Logs & Crash Viewer and selected Settings. Its
+  executable scope resolved to Preferences and initially showed Paused.
+- Started capture, launched only Settings through `apps.launch`, and received
+  1,196 Preferences entries. Pause stopped updates; searching filtered the
+  displayed rows. No customer app was launched or inspected.
+- Saved two filtered Settings lines from the UI. The local file contained
+  exactly those two lines and had permissions 0600.
+- Created one uniquely named synthetic Preferences IPS report, selected it
+  in Crash Reports, and verified the displayed body and matching bundle ID.
+  Export through the UI preserved the complete fixture text byte-for-byte;
+  the local export had permissions 0600. This exercises report display and
+  export, not an actual app crash or symbolication.
+- Switched to Calculator: the previous logs were cleared and its scope showed
+  zero entries, Paused. Reload App Scope remained Paused with zero entries.
+  Closed the viewer after the test.
+
+The synthetic guest report was removed through the test transport afterward;
+no existing report was deleted. Local test exports remain at
+`/private/tmp/vphone-app-logs-ui-test.log` and
+`/private/tmp/vphone-app-crash-ui-test.ips`. The VM was left running, with log
+capture paused and the viewer closed. No code or installed bundle changed.

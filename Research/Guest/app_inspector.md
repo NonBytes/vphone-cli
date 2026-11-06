@@ -42,3 +42,26 @@ verify its running PID against the refreshed app list, inspect ATS exceptions,
 open bundle/data containers, save a report and compare its fields with the UI.
 Switch selections during loading and confirm old responses do not populate
 the new selection. Guest/UI checks remain separate from fixture verification.
+
+## App Browser icons
+
+App Browser shows a 24-point icon beside each app name. Visible rows request
+icons in batches of at most 12 through the existing guest-tool transport.
+The signed `vphone-guest-icons` helper asks UIKit's installed-icon service for
+the bundle identifier, then renders a 64×64 PNG. This includes icons stored
+in asset catalogs; it does not need to launch the app or scan its data.
+The UIKit selector is private and best-effort, so unavailable icons use the
+standard app symbol and do not block browsing or app actions.
+
+The window-local cache retains up to 128 images. Keys include bundle ID,
+version, build and bundle path; Refresh invalidates cached results, and closing
+the browser cancels pending work. Host decoding validates PNG magic, byte
+size, frame count and dimensions before creating an image. Guest thumbnails
+are capped at 256 KiB each. No new daemon API or guest environment update is
+required; the helper is part of the Core Bundle.
+
+On 2026-11-05 the renderer returned actual Settings and Calculator icons on
+test-vm. A host check decoded both and rejected malformed, oversized
+payloads and out-of-range dimensions, and verified changed app builds use a
+different cache key. This checks rendering/decoding independently of UI
+validation after loading the new Core Bundle.

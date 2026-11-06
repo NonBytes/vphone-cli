@@ -37,18 +37,27 @@ jobs:
             | tee .build/xcodebuild.log \
             | xcbeautify --quiet --disable-logging --renderer github-actions
 
+      - name: Build Launchpad and independent Pentest Tools
+        run: |
+          set -o pipefail
+          xcodebuild -project VPhoneLaunchpad/VPhoneLaunchpad.xcodeproj -scheme VPhoneLaunchpad \
+            -configuration Debug -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath .build/XcodeLaunchpad -jobs 4 build 2>&1 \
+            | tee .build/launchpad-xcodebuild.log \
+            | xcbeautify --quiet --disable-logging --renderer github-actions
+
       # Quiet mode hides unannotated build-phase output, including the reason
       # a script phase failed. Keep the full log for that case.
       - name: Show raw build log
         if: failure()
-        run: tail -n 300 .build/xcodebuild.log
+        run: tail -n 300 .build/*xcodebuild.log
 
       - name: Upload raw build log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log
-          path: .build/xcodebuild.log
+          path: .build/*xcodebuild.log
 
       - name: Verify bundle
         run: |
@@ -90,6 +99,20 @@ jobs:
 
       - name: App logs regression tests
         run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-app-logs-tests.sh
+
+      - name: Keychain Inspector regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-keychain-inspector-tests.sh
+
+      - name: Deep Link Tester regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-deep-link-tester-tests.sh
+
+      - name: Evidence Export regression tests
+        run: zsh VPhoneExecutable/VPhoneVirtualization/Tests/run-evidence-export-tests.sh
+
+      - name: Launchpad Pentest transport and feature regression tests
+        run: |
+          zsh VPhoneLaunchpad/Tests/PentestTransportTests.sh
+          zsh VPhoneLaunchpad/Tests/PentestFeatureTests.sh
 
       - name: Guest component tests
         run: |

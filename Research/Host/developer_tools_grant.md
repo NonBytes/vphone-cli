@@ -54,3 +54,16 @@ still fails, record the installed app path, signing identity, reported status
 and whether another copy shares the identifier before investigating further.
 Avoid editing the TCC database or resetting unrelated privacy grants. No SIP,
 AMFI, helper policy or guest firmware change is part of this procedure.
+
+## Follow-up verification — 2026-11-05
+
+Launchpad subsequently reported `developerTools: true` and `hostReady: true`
+on fresh launches, including after quitting and reopening it during this
+session. The helper remained ready at version 21. The final status after
+starting test-vm and completing the Logs/Crash UI tests also passed both
+checks. No TCC reset, permission change, signing change or host-policy change
+was performed during this verification.
+
+The earlier refusal was not reproduced in this session. This confirms current
+authorization across the tested launches, but does not establish what changed
+before this session or prove the proposed re-registration procedure fixed it.

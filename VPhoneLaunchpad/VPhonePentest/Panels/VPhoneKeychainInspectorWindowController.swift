@@ -1,0 +1,104 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+final class VPhoneKeychainInspectorWindowController: NSObject, NSWindowDelegate {
+    private let model: VPhoneKeychainInspectorModel
+    private var window: NSWindow?
+    init(control: VPhoneGuestControl) { model = .init(control:control) }
+    func show(app: VPhoneAppRecord? = nil) {
+        if let app {
+            if !model.apps.contains(where: { $0.bundleID == app.bundleID }) { model.apps.append(app) }
+            model.scope = "app"; model.selectedID = app.bundleID
+        }
+        if window == nil {
+            let window = NSWindow(contentRect:NSRect(x:0,y:0,width:1220,height:780),styleMask:[.titled,.closable,.resizable,.miniaturizable],backing:.buffered,defer:false)
+            window.title = "Keychain Inspector"
+            window.contentViewController = NSHostingController(rootView:VPhoneKeychainInspectorView(model:model))
+            window.contentMinSize = NSSize(width:1000,height:600)
+            window.isReleasedWhenClosed = false; window.delegate = self
+            window.setFrameAutosaveName("vphone-keychain-inspector"); window.center(); self.window = window
+        }
+        NSApp.activate(ignoringOtherApps:true); window?.makeKeyAndOrderFront(nil)
+        Task { await model.refreshApps() }
+    }
+    nonisolated func windowWillClose(_: Notification) { MainActor.assumeIsolated { model.close(); window = nil } }
+}
+
+private struct VPhoneKeychainInspectorView: View {
+    @Bindable var model: VPhoneKeychainInspectorModel
+    var body: some View {
+        VStack(alignment:.leading,spacing:10) {
+            HStack {
+                Picker("Scope",selection:$model.scope) {
+                    Text("App declared groups").tag("app")
+                    Text("Exact access group").tag("manual")
+                    Text("All guest-visible groups").tag("guest")
+                }.frame(width:290)
+                if model.scope == "app" {
+                    Picker("App",selection:$model.selectedID) {
+                        Text("Choose an app…").tag("")
+                        ForEach(model.apps) { Text("\($0.displayName) — \($0.bundleID)").tag($0.bundleID) }
+                    }
+                    Button("Refresh Apps") { Task { await model.refreshApps() } }.disabled(model.loadingApps)
+                } else if model.scope == "manual" {
+                    TextField("Exact keychain access group",text:$model.manualGroup)
+                }
+            }.disabled(model.busy)
+            Text("Read through vphoned's existing access, not inside the selected app like objection. Group membership is not proof of app ownership or app-process access. Shared groups can contain other apps' items.")
+                .font(.caption).foregroundStyle(.secondary)
+            if model.scope == "app" { Text("Declared exact groups: " + (model.groups.isEmpty ? "none available" : model.groups.joined(separator:", "))).font(.system(.caption,design:.monospaced)).textSelection(.enabled) }
+            HStack {
+                Button("Scan Metadata") { Task { await model.inspect(values:false) } }.disabled(model.busy)
+                Button("Dump Readable Values") { Task { await model.inspect(values:true) } }.disabled(model.busy)
+                Button(model.busy ? "Cancel / Clear" : "Clear") { model.clear() }.disabled(model.rows.isEmpty && !model.busy)
+                if model.busy || model.resolving { ProgressView().controlSize(.small) }
+                Spacer()
+                Toggle("Reveal values",isOn:$model.reveal)
+                Toggle("Include values in export",isOn:$model.exportValues)
+                Button("Export JSON…") { model.save() }.disabled(model.capturedAt == nil || model.busy)
+            }
+            .disabled(!model.control.isConnected || model.resolving)
+            Text("Dump reads generic/internet passwords whose query is unique in the metadata scan. This is not an atomic snapshot. Protected database rows remain encrypted; certificate/key rows remain metadata. Legacy APIs may omit Accessibility/dates and return UTF-8 or base64 without an encoding flag.")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                TextField("Search metadata (and values when revealed)",text:$model.search)
+                Picker("Class",selection:$model.classFilter) {
+                    Text("All").tag("all"); Text("Generic Password").tag("genp"); Text("Internet Password").tag("inet"); Text("Certificate").tag("cert"); Text("Key").tag("keys")
+                }.frame(width:220)
+            }
+            Table(model.filtered,selection:$model.selection) {
+                TableColumn("Class",value:\.itemClass).width(45)
+                TableColumn("Account",value:\.account)
+                TableColumn("Service / Server") { row in Text(row.service.isEmpty ? row.server : row.service).lineLimit(1) }
+                TableColumn("Access Group",value:\.accessGroup)
+                TableColumn("Accessibility",value:\.accessibility)
+                TableColumn("Source",value:\.source).width(min:65,ideal:80)
+                TableColumn("Data") { row in
+                    Text(model.reveal ? row.revealedValue : (row.value != nil ? "•••••• (hidden)" : row.valueState)).lineLimit(1)
+                }
+            }.frame(minHeight:180)
+            if let row = model.focused {
+                ScrollView {
+                    Text(detail(row)).font(.system(.caption,design:.monospaced)).textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading)
+                }.frame(height:110)
+            }
+            DisclosureGroup("Diagnostics / query coverage") {
+                ScrollView { Text(model.diagnostics.joined(separator:"\n")).font(.system(.caption,design:.monospaced)).textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading) }.frame(maxHeight:80)
+            }
+            HStack {
+                Text("\(model.filtered.count) / \(model.rows.count) rows — \(model.progress)")
+                if let date = model.capturedAt { Text(date,style:.time) }
+                if model.truncated { Text("LIMIT REACHED / partial result").foregroundStyle(.orange) }
+            }.font(.caption)
+            if let error = model.error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
+            Text("Values stay in memory until Clear, scope change or window close. JSON exports omit values by default and use private local files. Limits: 500 rows, 64 KiB per value, 512 KiB retained text, 30-second read loop plus any in-flight request. No edit or delete action is provided.").font(.caption).foregroundStyle(.secondary)
+        }.padding(16)
+        .task { await model.resolveScope() }
+    }
+    private func detail(_ row: VPhoneKeychainInspectionRow) -> String {
+        let created = row.created.map { Date(timeIntervalSince1970:$0).description } ?? "Unavailable"
+        let modified = row.modified.map { Date(timeIntervalSince1970:$0).description } ?? "Unavailable"
+        return "Class: \(row.itemClass)   Account: \(row.account)\nService: \(row.service)   Server: \(row.server)\nAccess group: \(row.accessGroup)\nAccessibility: \(row.accessibility)   Created: \(created)   Modified: \(modified)\nEncoding: \(row.encoding ?? "Not available")\nData: \(model.reveal ? row.revealedValue : row.value != nil ? "Hidden" : row.valueState)"
+    }
+}
