@@ -118,10 +118,21 @@ struct VPhoneAppBrowserView: View {
     private var appTable: some View {
         Table(of: VPhoneAppRecord.self, selection: $model.selection, sortOrder: $model.sortOrder) {
             TableColumn("Name", value: \.displayName) { app in
-                Text(app.displayName)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .help(app.displayName)
+                HStack(spacing: 8) {
+                    Group {
+                        if let icon = model.icons.image(for: app) {
+                            Image(nsImage: icon).resizable().interpolation(.high)
+                        } else {
+                            Image(systemName: "app.fill").resizable().foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+                    Text(app.displayName).lineLimit(1).truncationMode(.tail)
+                }
+                .padding(.vertical, 2)
+                .help(app.displayName)
+                .task(id: "\(app.iconKey)-\(model.icons.revision)") { model.icons.request(app) }
             }
             .width(min: 100, ideal: 120, max: .infinity)
 

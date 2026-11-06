@@ -124,6 +124,12 @@ existing live server session observed afterward was preserved.
 
 ## Native session manager
 
+The app picker and selected-app indicator show guest app icons using the same
+signed thumbnail helper as App Browser. Icons load asynchronously in batches
+of 12, with a session-window cache of at most 512 images. Refresh Apps clears
+the cache; unavailable icons retain a generic app symbol. Icon loading does
+not require a running Frida server or an attached session.
+
 Features > Frida Session is separate from server installation/lifecycle.
 Start the managed server first, select a registered app, then Spawn or Attach
 to running PID. Refresh Apps reads the existing `apps.list` contract. Attach
