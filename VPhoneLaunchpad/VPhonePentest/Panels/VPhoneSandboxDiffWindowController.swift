@@ -1,0 +1,220 @@
+import AppKit
+import CryptoKit
+import SwiftUI
+import UniformTypeIdentifiers
+
+@MainActor
+@Observable
+final class VPhoneSandboxDiffModel {
+    let control: VPhoneGuestControl
+    let app: VPhoneAppRecord
+    var onRevealPath: ((String) -> Void)?
+    private(set) var baseline: VPhoneSandboxSnapshot?
+    private(set) var current: VPhoneSandboxSnapshot?
+    private(set) var changes: [VPhoneSandboxChange] = []
+    var busy = false
+    var error: String?
+    var message = ""
+    var search = ""
+    var filter = "All changes"
+    private var generation = 0
+
+    init(control: VPhoneGuestControl, app: VPhoneAppRecord) { self.control = control; self.app = app }
+    var visibleChanges: [VPhoneSandboxChange] {
+        changes.filter { (filter == "All changes" || $0.kind.rawValue == filter) &&
+            (search.isEmpty || $0.path.localizedCaseInsensitiveContains(search)) }
+    }
+
+    private var machineID: String {
+        SHA256.hash(data: Data(control.sandboxMachineScope.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func identity() async throws -> VPhoneSandboxIdentity {
+        guard control.isConnected, !control.sandboxMachineScope.isEmpty else {
+            throw VPhoneSandboxError("Connect the guest before capturing a sandbox.")
+        }
+        let info = try await control.appInfo(bundleID: app.bundleID)
+        guard info.string("bundle_id") == app.bundleID, let path = info.string("data_path"), !path.isEmpty else {
+            throw VPhoneSandboxError("The selected app has no registered data container.")
+        }
+        return try VPhoneSandboxIdentity(machineID: machineID, bundleID: app.bundleID,
+            name: info.string("name") ?? app.displayName, version: info.string("version") ?? "",
+            build: info.string("build") ?? "", root: VPhoneSandboxIdentity.canonicalRoot(path))
+    }
+
+    func capture(asBaseline: Bool) async {
+        guard !busy else { return }
+        generation += 1; let request = generation
+        busy = true; error = nil; message = "Scanning file metadata and SHA-256…"
+        defer { if generation == request { busy = false } }
+        do {
+            let identity = try await self.identity()
+            guard generation == request, !Task.isCancelled else { return }
+            let argument = String(decoding: try JSONEncoder().encode(identity), as: UTF8.self)
+            let snapshot = try await control.guestTool("vphone-guest-sandbox", arguments: [argument], as: VPhoneSandboxSnapshot.self)
+            guard generation == request, !Task.isCancelled else { return }
+            try snapshot.validate()
+            let after = try await self.identity()
+            guard generation == request, !Task.isCancelled else { return }
+            guard snapshot.identity == identity, after.root == identity.root,
+                  after.version == identity.version, after.build == identity.build else {
+                throw VPhoneSandboxError("The app or data container changed during capture. Capture again.")
+            }
+            if asBaseline {
+                baseline = snapshot; current = nil; changes = []
+                message = "Baseline captured: \(snapshot.entries.count) paths."
+            } else {
+                guard let baseline else { throw VPhoneSandboxError("Capture or open a baseline first.") }
+                let compared = try VPhoneSandboxChange.compare(baseline, snapshot)
+                current = snapshot; changes = compared
+                message = "\(compared.count) changed or uncertain paths."
+            }
+            if !snapshot.enumerationComplete { message += " Tree enumeration was incomplete; review scan notes." }
+            if snapshot.entries.contains(where: { !$0.isVerified }) { message += " Some paths could not be verified." }
+        } catch {
+            guard generation == request else { return }
+            self.error = error.localizedDescription; message = ""
+        }
+    }
+
+    func cancel() {
+        generation += 1; busy = false
+        message = "Capture cancelled locally. The bounded guest scan may finish in the background."
+    }
+
+    func openBaseline() {
+        guard !busy else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]; panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+        panel.begin { [weak self] response in
+            Task { @MainActor [weak self] in
+                guard let self, response == .OK, let url = panel.url, !busy else { return }
+                generation += 1; let request = generation
+                busy = true; error = nil
+                defer { if request == generation { busy = false } }
+                do {
+                    let snapshot = try VPhoneSandboxSnapshot.read(url)
+                    let selected = try await identity()
+                    guard request == generation else { return }
+                    guard snapshot.identity.machineID == selected.machineID, snapshot.identity.bundleID == selected.bundleID,
+                          snapshot.identity.root == selected.root else {
+                        throw VPhoneSandboxError("This baseline belongs to another machine, app or data container.")
+                    }
+                    baseline = snapshot; current = nil; changes = []
+                    message = "Baseline opened. Imported JSON is user-supplied evidence, not a signed capture."
+                } catch { if request == generation { self.error = error.localizedDescription } }
+            }
+        }
+    }
+
+    func save(baselineOnly: Bool) {
+        guard !busy, let baseline else { return }
+        do {
+            let data: Data
+            if baselineOnly { data = try baseline.encoded() }
+            else {
+                guard let current else { return }
+                struct Report: Encodable { let formatVersion = 1; let baseline: VPhoneSandboxSnapshot; let current: VPhoneSandboxSnapshot; let changes: [VPhoneSandboxChange] }
+                let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                data = try encoder.encode(Report(baseline: baseline, current: current, changes: changes))
+            }
+            let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = baselineOnly ? "sandbox-baseline.json" : "sandbox-diff.json"
+            panel.begin { [weak self] response in
+                Task { @MainActor [weak self] in
+                    guard let self, response == .OK, let url = panel.url else { return }
+                    do {
+                        try VPhoneSandboxSnapshot.writeReport(data, to: url)
+                    } catch { self.error = error.localizedDescription }
+                }
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func reveal(_ change: VPhoneSandboxChange) {
+        guard let current, let entry = change.after, entry.kind == .file || entry.kind == .directory else { return }
+        onRevealPath?(entry.path == "." ? current.identity.root : current.identity.root + "/" + entry.path)
+    }
+}
+
+@MainActor
+final class VPhoneSandboxDiffWindowController: NSObject, NSWindowDelegate {
+    let model: VPhoneSandboxDiffModel
+    private var window: NSWindow?
+    init(control: VPhoneGuestControl, app: VPhoneAppRecord) { model = VPhoneSandboxDiffModel(control: control, app: app) }
+    func show() {
+        if window == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 650),
+                styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
+            window.title = "Sandbox Diff — " + model.app.displayName
+            window.contentViewController = NSHostingController(rootView: VPhoneSandboxDiffView(model: model))
+            window.contentMinSize = NSSize(width: 800, height: 480)
+            window.isReleasedWhenClosed = false; window.delegate = self
+            window.setFrameAutosaveName("vphone-sandbox-diff"); window.center(); self.window = window
+        }
+        NSApp.activate(ignoringOtherApps: true); window?.makeKeyAndOrderFront(nil)
+    }
+    nonisolated func windowWillClose(_: Notification) {
+        MainActor.assumeIsolated { if model.busy { model.cancel() }; window = nil }
+    }
+}
+
+private struct VPhoneSandboxDiffView: View {
+    @Bindable var model: VPhoneSandboxDiffModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(model.app.displayName).font(.headline)
+            Text(model.app.bundleID).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+            Text("Read-only scan of this app's data container. App Groups and bundle files are excluded. Captures contain paths, metadata, symlink targets and SHA-256 hashes, not file contents.")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Button(model.baseline == nil ? "Capture Baseline" : "Replace Baseline") { Task { await model.capture(asBaseline: true) } }
+                    .disabled(!model.control.isConnected)
+                Button("Open Baseline…") { model.openBaseline() }.disabled(!model.control.isConnected)
+                Button("Save Baseline…") { model.save(baselineOnly: true) }.disabled(model.baseline == nil)
+                Spacer()
+                Button("Scan & Compare") { Task { await model.capture(asBaseline: false) } }.disabled(model.baseline == nil || !model.control.isConnected)
+                Button("Save Diff…") { model.save(baselineOnly: false) }.disabled(model.current == nil)
+            }.disabled(model.busy)
+            if let baseline = model.baseline {
+                Text("Baseline: \(baseline.capturedAt.formatted()) — \(baseline.entries.count) paths — \(baseline.identity.version) (\(baseline.identity.build))")
+                    .font(.caption).textSelection(.enabled)
+                Text(baseline.identity.root).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+            }
+            if let current = model.current {
+                Text("Last comparison: \(current.capturedAt.formatted()) — \(current.entries.count) paths — \(current.identity.version) (\(current.identity.build))")
+                    .font(.caption).textSelection(.enabled)
+            }
+            Text("Live scan, not an atomic snapshot. SQLite/WAL and plist files are compared as files. Limits: 2,001 paths, depth 32, 32 MiB per file, 128 MiB hashed, 8 seconds. Skipped or unstable paths are uncertain.")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Picker("Show", selection: $model.filter) {
+                    Text("All changes").tag("All changes")
+                    ForEach(VPhoneSandboxChange.Kind.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
+                }.frame(width: 280)
+                TextField("Filter paths", text: $model.search)
+                if model.busy { ProgressView().controlSize(.small); Button("Cancel") { model.cancel() } }
+            }
+            if let error = model.error { Text(error).foregroundStyle(.red).font(.caption).textSelection(.enabled) }
+            if !model.message.isEmpty { Text(model.message).font(.caption).textSelection(.enabled) }
+            Table(model.visibleChanges) {
+                TableColumn("Change") { row in Text(row.kind.rawValue).foregroundStyle(row.kind == .uncertain ? .orange : .primary) }.width(155)
+                TableColumn("Path") { row in
+                    Text(row.path).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        .contextMenu { Button("Show in Files") { model.reveal(row) }.disabled(row.after?.kind != .file && row.after?.kind != .directory) }
+                }
+                TableColumn("Before") { row in Text(row.before?.summary ?? "Absent").lineLimit(2).help(row.before?.summary ?? "Absent") }
+                TableColumn("After / Detail") { row in Text(row.reason + " " + (row.after?.summary ?? "Absent")).lineLimit(2).help(row.reason + " " + (row.after?.summary ?? "Absent")) }
+            }
+            if let baseline = model.baseline, !baseline.notes.isEmpty || model.current?.notes.isEmpty == false {
+                DisclosureGroup("Scan Notes") {
+                    ScrollView {
+                        Text((baseline.notes.map { "Baseline: " + $0 } + (model.current?.notes.map { "Current: " + $0 } ?? [])).joined(separator: "\n"))
+                            .font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    }.frame(maxHeight: 100)
+                }
+            }
+        }.padding(16)
+        .onChange(of: model.control.isConnected) { _, connected in if !connected, model.busy { model.cancel() } }
+    }
+}

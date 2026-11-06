@@ -174,6 +174,8 @@ nonisolated struct VPhoneLaunchpadControlCommand: Sendable {
              summary: "Machines in every library, with their run state and Core Bundle."),
         Self(name: "vm.start", arguments: ["name"], options: ["root", "timeout"], flags: ["headless", "wait"],
              summary: "Launch a machine. --wait blocks until vphoned answers on vphone.sock."),
+        Self(name: "vm.pentest", arguments: ["name"], options: ["root"], flags: [],
+             summary: "Open Launchpad-owned Pentest Tools for this machine, independently of its Core Bundle."),
         Self(name: "vm.stop", arguments: ["name"], options: ["root"], flags: [],
              summary: "Stop a machine: the guest shuts down first, and the virtual machine is ended only if it cannot or does not in time."),
         Self(name: "vm.wait", arguments: ["name"], options: ["root", "timeout"], flags: [],

@@ -1,0 +1,174 @@
+import AppKit
+import UniformTypeIdentifiers
+
+@MainActor
+@Observable
+final class VPhoneKeychainInspectorModel {
+    let control: VPhoneGuestControl
+    var apps: [VPhoneAppRecord] = []
+    var selectedID = "" { didSet { if selectedID != oldValue, scope == "app" { scheduleScopeResolution() } } }
+    var scope = "app" { didSet { if scope != oldValue { scheduleScopeResolution() } } }
+    var manualGroup = "" { didSet { if manualGroup != oldValue { clear() } } }
+    var groups: [String] = []
+    var rows: [VPhoneKeychainInspectionRow] = []
+    var diagnostics: [String] = []
+    var error: String?
+    var progress = ""
+    var busy = false
+    var loadingApps = false
+    var resolving = false
+    var reveal = false
+    var exportValues = false
+    var search = ""
+    var classFilter = "all"
+    var selection: Set<String> = []
+    var capturedAt: Date?
+    var truncated = false
+    private var generation = 0
+    private var scopeGeneration = 0
+    private var scopeTask: Task<Void, Never>?
+    private struct CaptureScope: Codable {
+        let kind: String; let groups: [String]?; let bundleID: String?
+        let appVersion: String?; let appBuild: String?
+    }
+    private var captureScope: CaptureScope?
+    var selectedApp: VPhoneAppRecord? { apps.first { $0.bundleID == selectedID } }
+    var filtered: [VPhoneKeychainInspectionRow] {
+        rows.filter { row in
+            (classFilter == "all" || row.itemClass == classFilter) && (search.isEmpty || [row.account,row.service,row.server,row.label,row.accessGroup,row.accessibility, reveal ? row.value ?? "" : ""].contains { $0.localizedCaseInsensitiveContains(search) })
+        }
+    }
+    var focused: VPhoneKeychainInspectionRow? { selection.count == 1 ? rows.first { selection.contains($0.id) } : nil }
+    init(control: VPhoneGuestControl) { self.control = control }
+
+    func clear() {
+        generation += 1; rows = []; selection = []; diagnostics = []; error = nil
+        reveal = false; exportValues = false; capturedAt = nil; truncated = false; progress = ""
+        captureScope = nil
+    }
+    func close() { scopeTask?.cancel(); scopeTask = nil; scopeGeneration += 1; clear(); groups = []; resolving = false }
+    func refreshApps() async {
+        guard !loadingApps, control.isConnected else { return }
+        loadingApps = true; defer { loadingApps = false }
+        do {
+            apps = try await control.appList().objects("apps").compactMap(VPhoneAppRecord.init(json:)).sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+            if scope == "app", !selectedID.isEmpty { await resolveScope() }
+        } catch { self.error = error.localizedDescription }
+    }
+    func resolveScope() async {
+        scopeTask?.cancel(); scopeTask = nil
+        clear(); groups = []; scopeGeneration += 1; let operation = scopeGeneration
+        guard scope == "app", !selectedID.isEmpty else { resolving = false; return }
+        let id = selectedID; resolving = true
+        await loadScope(id:id,operation:operation)
+    }
+    private func scheduleScopeResolution() {
+        scopeTask?.cancel(); scopeTask = nil
+        clear(); groups = []; scopeGeneration += 1
+        resolving = scope == "app" && !selectedID.isEmpty
+        guard resolving else { return }
+        let id = selectedID, operation = scopeGeneration
+        scopeTask = Task { [weak self] in await self?.loadScope(id:id,operation:operation) }
+    }
+    private func loadScope(id: String, operation: Int) async {
+        guard operation == scopeGeneration, !Task.isCancelled else { return }
+        defer { if operation == scopeGeneration { resolving = false } }
+        do {
+            let info = try await control.call("apps.info", params:["bundle_id":id])
+            guard operation == scopeGeneration, !Task.isCancelled else { return }
+            groups = VPhoneKeychainInspectionRow.groups(from: info)
+            if groups.isEmpty { error = "This app has no explicit, exact keychain-access-groups in the returned entitlements. Enter a known group manually; the inspector will not guess one." }
+        } catch { if operation == scopeGeneration { self.error = error.localizedDescription } }
+    }
+    private func checkedGroups() throws -> [String]? {
+        if scope == "guest" { return nil }
+        let result = scope == "manual" ? [manualGroup.trimmingCharacters(in:.whitespacesAndNewlines)] : groups
+        guard !result.isEmpty, result.allSatisfy(VPhoneKeychainInspectionRow.validGroup) else { throw VPhoneProxyError("Choose an app with exact declared access groups, or enter one exact group.") }
+        return result
+    }
+    func inspect(values: Bool) async {
+        guard !busy, !resolving, control.isConnected else { return }
+        do { _ = try checkedGroups() } catch { self.error = error.localizedDescription; return }
+        clear(); let operation = generation
+        busy = true; defer { busy = false; progress = "" }
+        do {
+            let allowed = try checkedGroups()
+            let snapshotScope = CaptureScope(kind:scope,groups:allowed,bundleID:scope == "app" ? selectedID : nil,appVersion:scope == "app" ? selectedApp?.version : nil,appBuild:scope == "app" ? selectedApp?.build : nil)
+            let result = try await control.listKeychainItems()
+            guard operation == generation, !Task.isCancelled else { return }
+            diagnostics = result.diagnostics
+            let parsed = result.items.enumerated().compactMap { VPhoneKeychainItem(index:$0.offset, entry:$0.element) }
+                .filter { allowed == nil || allowed!.contains($0.accessGroup) }
+            truncated = parsed.count > 500
+            rows = parsed.prefix(500).map { item in
+                .init(id:item.id,itemClass:item.itemClass,account:item.account,service:item.service,server:item.server,label:item.label,accessGroup:item.accessGroup,accessibility:item.protectionDescription.isEmpty ? "Unavailable from this guest agent" : item.protectionDescription,source:item.isAccessible ? "security" : "database metadata (protected)",created:item.created?.timeIntervalSince1970,modified:item.modified?.timeIntervalSince1970,value:nil,valueState:item.isAccessible ? "not requested" : "encrypted metadata only",encoding:nil)
+            }
+            capturedAt = Date()
+            captureScope = snapshotScope
+            guard values else { return }
+            // Detect ambiguous matches against the full accessible listing,
+            // including rows beyond the display cap.
+            let candidates = parsed.map { item in
+                VPhoneKeychainInspectionRow(id:item.id,itemClass:item.itemClass,account:item.account,service:item.service,server:item.server,label:item.label,accessGroup:item.accessGroup,accessibility:"",source:item.isAccessible ? "security" : "database",created:nil,modified:nil,value:nil,valueState:"",encoding:nil)
+            }
+            var bytes = 0
+            let deadline = ProcessInfo.processInfo.systemUptime + 30
+            for index in rows.indices {
+                guard operation == generation, !Task.isCancelled else { return }
+                if ProcessInfo.processInfo.systemUptime >= deadline {
+                    truncated = true
+                    for pending in index..<rows.count where rows[pending].readable { rows[pending].valueState = "not queried: time limit" }
+                    break
+                }
+                let row = rows[index]
+                guard row.readable else {
+                    if row.source == "security" { rows[index].valueState = "metadata only: value not addressable through this API" }
+                    continue
+                }
+                guard candidates.filter({ row.queryMatches($0) }).count == 1 else { rows[index].valueState = "ambiguous identity; value not queried"; continue }
+                progress = "Reading \(index + 1) / \(rows.count)"
+                do {
+                    let value = try await control.keychainValue(of:.init(itemClass:row.itemClass,account:row.account,service:row.service,server:row.server,accessGroup:row.accessGroup))
+                    guard operation == generation, !Task.isCancelled else { return }
+                    let count = value.utf8.count
+                    if count > 65536 || bytes + count > 512 * 1024 {
+                        rows[index].valueState = "omitted: value limit"; truncated = true
+                        for pending in (index + 1)..<rows.count where rows[pending].readable { rows[pending].valueState = "not queried: value budget reached" }
+                        break
+                    } else {
+                        rows[index].value = value; rows[index].valueState = value.isEmpty ? "empty returned string (legacy API cannot distinguish missing data)" : "available"
+                        rows[index].encoding = "Guest string: UTF-8 or base64 (legacy API does not distinguish)"; bytes += count
+                    }
+                } catch {
+                    guard operation == generation else { return }
+                    rows[index].valueState = "read failed / protected"
+                    diagnostics.append("Value query failed for row \(index + 1); no value returned.")
+                }
+            }
+        } catch { if operation == generation { self.error = error.localizedDescription } }
+    }
+    func reportData() throws -> Data {
+        guard let capturedAt, let captureScope, !busy else { throw VPhoneProxyError("Finish a metadata scan or dump before exporting.") }
+        struct Report: Encodable {
+            let capturedAt: Date; let source: String; let scope: String; let bundleID: String?
+            let groups: [String]?; let valuesIncluded: Bool; let truncated: Bool
+            let appVersion: String?; let appBuild: String?
+            let items: [VPhoneKeychainInspectionRow]; let diagnostics: [String]
+        }
+        let report = Report(capturedAt:capturedAt,source:"vphoned Security.framework + protected database metadata; not app-process access",scope:captureScope.kind,bundleID:captureScope.bundleID,groups:captureScope.groups,valuesIncluded:exportValues,truncated:truncated,appVersion:captureScope.appVersion,appBuild:captureScope.appBuild,items:filtered.map { exportValues ? $0 : $0.redacted() },diagnostics:diagnostics)
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted,.sortedKeys]; encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(report)
+    }
+    func save() {
+        do {
+            let data = try reportData()
+            let panel = NSSavePanel(); panel.allowedContentTypes = [.json]; panel.nameFieldStringValue = "keychain-inspection.json"
+            panel.begin { [weak self] response in
+                Task { @MainActor [weak self] in
+                    guard response == .OK, let url = panel.url else { return }
+                    do { try VPhoneSandboxSnapshot.writeReport(data,to:url) } catch { self?.error = error.localizedDescription }
+                }
+            }
+        } catch { self.error = error.localizedDescription }
+    }
+}

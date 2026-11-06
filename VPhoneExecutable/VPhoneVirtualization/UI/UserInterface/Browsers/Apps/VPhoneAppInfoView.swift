@@ -12,6 +12,12 @@ struct VPhoneAppInfoView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header(detail)
+                    Button("Deep Link Tester…") {
+                        if let app = model.selectedApp { model.onDeepLinkTester?(app) }
+                    }.disabled(model.isBusy || !model.control.isConnected)
+                    Button("Keychain Inspector…") {
+                        if let app = model.selectedApp { model.onKeychainInspector?(app) }
+                    }.disabled(model.isBusy || !model.control.isConnected)
                     Button("App Logs & Crash Viewer…") {
                         if let app = model.selectedApp { model.onAppLogs?(app) }
                     }.disabled(model.isBusy || !model.control.isConnected)
