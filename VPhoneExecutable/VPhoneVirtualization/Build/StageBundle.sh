@@ -136,6 +136,11 @@ done
     "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneSandboxSnapshot.swift" \
     -o "$guest/vphone-guest-sandbox" -framework Foundation -framework CryptoKit
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-sandbox"
+/usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
+    -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
+    "$root/VPhoneExecutable/VPhoneVirtualization/AppIcons/main.swift" \
+    -o "$guest/vphone-guest-icons" -framework UIKit
+/usr/bin/codesign --force --sign - "$guest/vphone-guest-icons"
 network="$root/VPhoneExecutable/VPhoneVirtualization/Network"
 network_shared="$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication"
 /bin/mkdir -p "$DERIVED_FILE_DIR"

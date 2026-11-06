@@ -15,6 +15,8 @@ final class VPhoneAppWindowController: NSObject, NSWindowDelegate {
     private var model: VPhoneAppBrowserModel?
     private var sandboxWindows: [String: VPhoneSandboxDiffWindowController] = [:]
     private var appLogsWindow: VPhoneAppLogsWindowController?
+    private var keychainInspectorWindow: VPhoneKeychainInspectorWindowController?
+    private var deepLinkTesterWindow: VPhoneDeepLinkTesterWindowController?
 
     var isKeyWindow: Bool {
         window?.isKeyWindow == true
@@ -33,6 +35,16 @@ final class VPhoneAppWindowController: NSObject, NSWindowDelegate {
     private func makeWindow(control: VPhoneGuestControl) -> NSWindow {
         let model = VPhoneAppBrowserModel(control: control)
         model.onRevealPath = { [weak self] path in self?.onRevealPath?(path) }
+        model.onDeepLinkTester = { [weak self] app in
+            guard let self else { return }
+            let controller = deepLinkTesterWindow ?? VPhoneDeepLinkTesterWindowController(control:control)
+            deepLinkTesterWindow = controller; controller.show(app:app)
+        }
+        model.onKeychainInspector = { [weak self] app in
+            guard let self else { return }
+            let controller = keychainInspectorWindow ?? VPhoneKeychainInspectorWindowController(control:control)
+            keychainInspectorWindow = controller; controller.show(app:app)
+        }
         model.onAppLogs = { [weak self] app in
             guard let self else { return }
             let controller = appLogsWindow ?? VPhoneAppLogsWindowController(control: control)
@@ -76,6 +88,7 @@ final class VPhoneAppWindowController: NSObject, NSWindowDelegate {
 
     nonisolated func windowWillClose(_: Notification) {
         MainActor.assumeIsolated {
+            model?.icons.reset()
             window = nil
             model = nil
         }

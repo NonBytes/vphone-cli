@@ -1,6 +1,180 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ — %@ (%@) — %lld ms\n%@\n%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — %2$@ (%3$@) — %4$lld ms\n%5$@\n%6$@"
+          }
+        }
+      }
+    },
+    "%@ — %lld B — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ — %2$lld B — %3$@"
+          }
+        }
+      }
+    },
+    "%lld / %lld rows — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld / %2$lld rows — %3$@"
+          }
+        }
+      }
+    },
+    "%lld / 100 recent runs; oldest runs roll off.": {
+    },
+    "%lld / 100 saved cases": {
+    },
+    "Accessibility": {
+    },
+    "Add Evidence Files…": {
+    },
+    "Add Parameter": {
+    },
+    "Additional exact secrets to replace (one per line)": {
+    },
+    "All guest-visible groups": {
+    },
+    "All guest-visible metadata": {
+    },
+    "App declared groups": {
+    },
+    "Apply Parameters to URL": {
+    },
+    "Cancel / Clear": {
+    },
+    "Capture Guest Screenshot": {
+    },
+    "Case": {
+    },
+    "Case name": {
+    },
+    "Case title": {
+    },
+    "Cases and history stay in memory. Save Workspace retains them across sessions in a private local JSON file. URLs and notes may contain tokens/secrets; review before sharing. Loading replaces the current workspace and opens no links.": {
+    },
+    "Choose Script for Hash…": {
+    },
+    "Choose Workspace File…": {
+    },
+    "Choose scheme…": {
+    },
+    "Declared URL schemes:": {
+    },
+    "Deep Link Tester…": {
+    },
+    "Diagnostics / query coverage": {
+    },
+    "Dump Readable Values": {
+    },
+    "Dump reads generic/internet passwords whose query is unique in the metadata scan. This is not an atomic snapshot. Protected database rows remain encrypted; certificate/key rows remain metadata. Legacy APIs may omit Accessibility/dates and return UTF-8 or base64 without an encoding flag.": {
+    },
+    "Dump reads uniquely addressable generic/internet passwords only. Protected database rows remain encrypted; certificate/key rows remain metadata. Legacy guest APIs may omit Accessibility/dates and return UTF-8 or base64 without an encoding flag. Unknown fields are shown explicitly.": {
+    },
+    "Exact access group": {
+    },
+    "Exact keychain access group": {
+    },
+    "Export JSON…": {
+    },
+    "Export Reviewed Evidence…": {
+    },
+    "Generic Password": {
+    },
+    "Guest only / no target app": {
+    },
+    "Import saved logs, crash reports, sandbox diffs, workspaces or PCAP. Imported files are not automatically linked to the selected app. Script contents are never exported.": {
+    },
+    "Include unchanged binary originals (screenshots / PCAP cannot be redacted here)": {
+    },
+    "Include values in export": {
+    },
+    "Internet Password": {
+    },
+    "Keychain Inspector…": {
+    },
+    "LIMIT REACHED / partial result": {
+    },
+    "Load Selected Case": {
+    },
+    "Load Selected Run into Editor": {
+    },
+    "Names/values are percent-encoded. Raw URL mode preserves entered payloads.": {
+    },
+    "None reported; manual URLs are still allowed.": {
+    },
+    "Notes / expected behavior": {
+    },
+    "Notes / test steps": {
+    },
+    "Open URL in Selected App": {
+    },
+    "Open Workspace…": {
+    },
+    "Open sends one request to the guest and may launch the app or trigger its actions/network traffic. Guest acceptance does not prove routing, frontmost app or Universal Link association. Imported/saved cases never execute automatically.": {
+    },
+    "Outcome": {
+    },
+    "Prepare Preview": {
+    },
+    "Preview": {
+    },
+    "Preview limited to first 256 KiB; export includes the complete reviewed file.": {
+    },
+    "Query parameter builder (applies once; duplicate keys and empty values supported)": {
+    },
+    "Raw URL — scheme://host/path?key=value": {
+    },
+    "Read through vphoned's existing access, not inside the selected app like objection. Group membership is not proof of app ownership or app-process access. Shared groups can contain other apps' items.": {
+    },
+    "Redact common credentials in text": {
+    },
+    "Redaction is best effort and may change JSON syntax. Review text below; inspect binary originals separately before sharing. No files are uploaded.": {
+    },
+    "Refresh Apps / Schemes": {
+    },
+    "Remove Selected Case": {
+    },
+    "Replace the in-memory workspace?": {
+    },
+    "Reveal values": {
+    },
+    "Run History": {
+    },
+    "Save Case": {
+    },
+    "Save Workspace first to keep unsaved cases/history. Your existing files will not be changed.": {
+    },
+    "Save Workspace…": {
+    },
+    "Saved Cases": {
+    },
+    "Scan Metadata": {
+    },
+    "Scope": {
+    },
+    "Search metadata (and values when revealed)": {
+    },
+    "Service / Server": {
+    },
+    "Source": {
+    },
+    "Values stay in memory until Clear, scope change or window close. JSON exports omit values by default and use private local files. Limits: 500 rows, 64 KiB per returned value, 512 KiB retained value text. No edit or delete action is provided.": {
+    },
+    "Values stay in memory until Clear, scope change or window close. JSON exports omit values by default and use private local files. Limits: 500 rows, 64 KiB per value, 512 KiB retained text, 30-second read loop plus any in-flight request. No edit or delete action is provided.": {
+    },
+    "View": {
+    },
     "Changes HomeView’s detail level. Apps can defer lower detail until you switch away. Some screens use a fixed detail level." : {
       "localizations" : {
         "zh-Hans" : {

@@ -37,6 +37,10 @@ codesign --force --options runtime --timestamp --identifier com.vphone.launchpad
   --sign "$identity" "$app/Contents/MacOS/vphone-launchpad-cli"
 codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.launcher \
   --sign "$identity" "$app/Contents/MacOS/vphone-launchpad-launcher"
+pentest="$app/Contents/Helpers/VPhone Pentest.app"
+codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.frida-client \
+  --sign "$identity" "$pentest/Contents/MacOS/vphone-frida-client"
+codesign --force --options runtime --timestamp --sign "$identity" "$pentest"
 codesign --force --options runtime --timestamp --entitlements "$entitlements" \
   --sign "$identity" "$app"
 

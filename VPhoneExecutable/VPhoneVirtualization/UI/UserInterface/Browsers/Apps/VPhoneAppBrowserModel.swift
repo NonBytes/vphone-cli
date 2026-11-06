@@ -74,6 +74,8 @@ final class VPhoneAppBrowserModel {
     var onRevealPath: ((String) -> Void)?
     var onSandboxDiff: ((VPhoneAppRecord) -> Void)?
     var onAppLogs: ((VPhoneAppRecord) -> Void)?
+    var onKeychainInspector: ((VPhoneAppRecord) -> Void)?
+    var onDeepLinkTester: ((VPhoneAppRecord) -> Void)?
 
     private(set) var apps: [VPhoneAppRecord] = []
     private(set) var hasLoaded = false
@@ -103,9 +105,11 @@ final class VPhoneAppBrowserModel {
 
     private var listGeneration = 0
     private var detailGeneration = 0
+    let icons: VPhoneAppIconLoader
 
     init(control: VPhoneGuestControl) {
         self.control = control
+        icons = VPhoneAppIconLoader(control: control)
     }
 
     // MARK: - Derived
@@ -189,6 +193,7 @@ final class VPhoneAppBrowserModel {
     }
 
     func apply(listResult: [String: Any]) {
+        icons.reset()
         apps = listResult.objects("apps").compactMap(VPhoneAppRecord.init(json:))
         hasLoaded = true
         loadFailed = false

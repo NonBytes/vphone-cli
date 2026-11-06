@@ -61,6 +61,10 @@ struct VPhoneLaunchpadControlCommands {
         case "cfw.install": return try await installCustomFirmware(request, emit: emit)
         case "cfw.update-environment": return try await updateGuestEnvironment(request, emit: emit)
         case "cfw.update-kernel": return try await updateKernelControl(request, emit: emit)
+        case "vm.pentest":
+            let machine = try await machine(request)
+            try await VPhoneLaunchpadPentestTools.shared.open(machine)
+            return ["machine": machine.name, "tools": "Launchpad", "opened": true]
         case "guest.send": return try await sendToGuest(request)
         case "guest.rpc": return try await callGuest(request)
         case "guest.push": return try await transferFile(request, push: true)

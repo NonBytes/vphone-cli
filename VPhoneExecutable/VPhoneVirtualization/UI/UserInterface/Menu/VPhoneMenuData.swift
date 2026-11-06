@@ -33,6 +33,7 @@ extension VPhoneMenuController {
         keychainBrowser.isEnabled = false
         connectKeychainBrowserItem = keychainBrowser
         menu.addItem(keychainBrowser)
+        menu.addItem(makeItem("Keychain Inspector…", action: #selector(showKeychainInspector)))
 
         menu.addItem(NSMenuItem.separator())
 
@@ -114,6 +115,7 @@ extension VPhoneMenuController {
     @objc func openKeychain() {
         onKeychainPressed?()
     }
+    @objc func showKeychainInspector() { keychainInspectorWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 

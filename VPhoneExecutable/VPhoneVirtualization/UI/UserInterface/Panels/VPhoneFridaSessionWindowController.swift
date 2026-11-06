@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 @Observable
 final class VPhoneFridaSessionModel {
     let control: VPhoneGuestControl
+    let icons: VPhoneAppIconLoader
     var apps: [VPhoneAppRecord] = []
     var selectedID = ""
     var mode = "spawn"
@@ -26,6 +27,7 @@ final class VPhoneFridaSessionModel {
 
     init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
         self.control = control
+        icons = VPhoneAppIconLoader(control: control, maximumEntries: 512)
         missingKernelPatches = VPhoneFridaKernelPatchCheck.missingPatches(machineDirectory: machineDirectory)
     }
     var selectedApp: VPhoneAppRecord? { apps.first { $0.id == selectedID } }
@@ -43,6 +45,7 @@ final class VPhoneFridaSessionModel {
             let result = try await control.appList()
             apps = result.objects("apps").compactMap(VPhoneAppRecord.init(json:))
                 .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+            icons.reset()
             if selectedApp == nil { selectedID = "" }
             if endpoint.isEmpty, let address = control.guestIPAddress {
                 endpoint = address.contains(":") ? "[\(address)]:27042" : address + ":27042"
@@ -230,7 +233,7 @@ final class VPhoneFridaSessionWindowController: NSObject, NSWindowDelegate {
     }
 
     nonisolated func windowWillClose(_: Notification) {
-        MainActor.assumeIsolated { model.detach(); window = nil }
+        MainActor.assumeIsolated { model.detach(); model.icons.reset(); window = nil }
     }
 }
 
@@ -244,12 +247,21 @@ private struct VPhoneFridaSessionView: View {
                     .font(.caption).foregroundStyle(.orange).textSelection(.enabled)
             }
             HStack {
+                appIcon(model.selectedApp)
+                    .frame(width: 24, height: 24).accessibilityHidden(true)
                 Picker("App", selection: $model.selectedID) {
                     Text("Select an app…").tag("")
                     ForEach(model.apps) { app in
-                        Text("\(app.displayName) — \(app.bundleID)\(app.isRunning ? " (PID \(app.pid))" : "")").tag(app.id)
+                        Label {
+                            Text("\(app.displayName) — \(app.bundleID)\(app.isRunning ? " (PID \(app.pid))" : "")")
+                        } icon: { appIcon(app).frame(width: 16, height: 16) }
+                        .tag(app.id)
                     }
                 }.disabled(model.active || model.busy)
+                .task(id: model.icons.revision) {
+                    if let app = model.selectedApp { model.icons.request(app) }
+                    for app in model.apps.prefix(512) { model.icons.request(app) }
+                }
                 Button("Refresh Apps") { Task { await model.refresh() } }
                     .disabled(model.active || model.busy || model.refreshing || !model.control.isConnected)
             }
@@ -303,8 +315,20 @@ private struct VPhoneFridaSessionView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.padding(16)
+        .onChange(of: model.selectedID) { _, _ in
+            if let app = model.selectedApp { model.icons.request(app) }
+        }
         .onChange(of: model.control.isConnected) { _, connected in
             if !connected { model.detach() }
+        }
+    }
+
+    @ViewBuilder
+    private func appIcon(_ app: VPhoneAppRecord?) -> some View {
+        if let app, let icon = model.icons.image(for: app) {
+            Image(nsImage: icon).resizable().interpolation(.high)
+        } else {
+            Image(systemName: "app.fill").resizable().foregroundStyle(.secondary)
         }
     }
 }
