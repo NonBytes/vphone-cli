@@ -113,6 +113,7 @@ jobs:
         run: |
           zsh VPhoneLaunchpad/Tests/PentestTransportTests.sh
           zsh VPhoneLaunchpad/Tests/PentestFeatureTests.sh
+          zsh VPhoneLaunchpad/Tests/IPAExportTests.sh
 
       - name: Guest component tests
         run: |
