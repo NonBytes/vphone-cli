@@ -133,7 +133,7 @@ static gboolean start(JsonObject *command, GError **error) {
   const gchar *target = text(command, "target");
   const gchar *source = text(command, "source");
   if (!endpoint || !*endpoint || !token || !*token || !mode || !target || !*target || !source ||
-      (strcmp(mode, "spawn") && strcmp(mode, "attach"))) {
+      (strcmp(mode, "spawn") && strcmp(mode, "attach") && strcmp(mode, "gadget") && strcmp(mode, "probe"))) {
     g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Invalid session request");
     return FALSE;
   }
@@ -147,6 +147,26 @@ static gboolean start(JsonObject *command, GError **error) {
     pid = frida_device_spawn_sync(device, target, NULL, operation, error);
     if (*error) return FALSE;
     spawned_pid = pid;
+  } else if (!strcmp(mode, "gadget") || !strcmp(mode, "probe")) {
+    // A Listen Gadget exposes exactly its own process as "Gadget". Never
+    // choose an arbitrary process from a server endpoint supplied by mistake.
+    FridaProcessList *processes = frida_device_enumerate_processes_sync(device, NULL, operation, error);
+    if (!processes) return FALSE;
+    pid = 0;
+    if (frida_process_list_size(processes) == 1) {
+      FridaProcess *process = frida_process_list_get(processes, 0);
+      if (!strcmp(frida_process_get_name(process), "Gadget")) pid = frida_process_get_pid(process);
+      g_object_unref(process);
+    }
+    g_object_unref(processes);
+    if (!pid) {
+      g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Endpoint is not a single Listen Gadget process");
+      return FALSE;
+    }
+    if (!strcmp(mode, "probe")) {
+      emit("connected", "Authenticated Gadget endpoint; no attach or script execution", pid);
+      return TRUE;
+    }
   } else {
     gchar *end;
     guint64 value = g_ascii_strtoull(target, &end, 10);
@@ -193,6 +213,7 @@ static gboolean input(GIOChannel *channel, GIOCondition condition, gpointer unus
   gboolean keep = TRUE;
   if (operation && !strcmp(operation, "start") && !device && !session) {
     if (!start(command, &error)) keep = FALSE;
+    if (text(command, "mode") && !strcmp(text(command, "mode"), "probe")) keep = FALSE;
   } else if (operation && !strcmp(operation, "load") && session && !frida_session_is_detached(session)) {
     const gchar *source = text(command, "source");
     if (!source || !*source) {

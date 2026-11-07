@@ -9,6 +9,14 @@ static gboolean fail(const char *step, GError **error) {
   g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Injected lifecycle failure");
   return TRUE;
 }
+FridaProcessList *vp_test_processes(FridaDevice *d, FridaProcessQueryOptions *o, GCancellable *c, GError **e) {
+  trace("enumerate");
+  return fail("enumerate",e) ? NULL : (FridaProcessList *)g_object_new(G_TYPE_OBJECT,NULL);
+}
+gint vp_test_process_count(FridaProcessList *p) { return !g_strcmp0(g_getenv("VPHONE_FRIDA_FAIL"),"multiple") ? 2 : 1; }
+FridaProcess *vp_test_process(FridaProcessList *p,gint index) { return (FridaProcess *)g_object_new(G_TYPE_OBJECT,NULL); }
+const gchar *vp_test_process_name(FridaProcess *p) { return !g_strcmp0(g_getenv("VPHONE_FRIDA_FAIL"),"wrong-name") ? "Other" : "Gadget"; }
+guint vp_test_process_pid(FridaProcess *p) { return 4242; }
 FridaDevice *vp_test_remote(FridaDeviceManager *m, const gchar *address, FridaRemoteDeviceOptions *o, GCancellable *c, GError **e) {
   trace("connect");
   if (!g_strcmp0(g_getenv("VPHONE_FRIDA_FAIL"), "timeout")) {

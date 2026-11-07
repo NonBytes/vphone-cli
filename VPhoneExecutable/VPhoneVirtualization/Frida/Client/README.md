@@ -40,3 +40,10 @@ connection selected in the Session window. Token and JavaScript arrive over a
 private stdin pipe; stdout contains JSON-line lifecycle and script events.
 EOF detaches and unloads; the target app is left running after a successful
 spawn/resume or attach. A failed spawn before resume is terminated.
+
+Launchpad also sends `start` with mode `gadget` or `probe`, target `Gadget`,
+endpoint/token and source (empty for a probe). Both authenticate and require
+exactly one enumerated process named Gadget. `probe` emits `connected` and exits
+without attaching or running source; `gadget` attaches to that PID and follows
+the existing script/detach lifecycle. These modes never explicitly spawn, resume or kill a
+target; Gadget itself may unblock waiting app startup on Attach. Endpoint naming is a protocol-shape check, not remote identity proof.
