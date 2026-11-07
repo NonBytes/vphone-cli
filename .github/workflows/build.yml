@@ -114,6 +114,7 @@ jobs:
           zsh VPhoneLaunchpad/Tests/PentestTransportTests.sh
           zsh VPhoneLaunchpad/Tests/PentestFeatureTests.sh
           zsh VPhoneLaunchpad/Tests/IPAExportTests.sh
+          zsh VPhoneLaunchpad/Tests/GadgetPatchTests.sh
 
       - name: Guest component tests
         run: |
