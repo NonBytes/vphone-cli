@@ -49,8 +49,10 @@ frida -H 127.0.0.1:27043 --token '<copied-token>' -n Gadget
 ```
 
 Here the host endpoint presumes a separately configured working transport;
-it is not created by the patcher. The existing managed Frida Session window
-continues to use frida-server and does not manage Gadget sessions.
+it is not created by the patcher. Launchpad's Frida Session now also offers a
+Gadget mode with connection testing, Attach, scripts, console and Keychain
+profiles; see Research/Host/gadget_sessions.md. The Frida Server mode retains
+its managed server workflow.
 
 ## Implementation and bounds
 
