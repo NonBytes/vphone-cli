@@ -6869,3 +6869,13 @@ graphic icons it rendered before the transport, so Settings' rows stayed blank.
 removes the store at startup when it was created before the marker, then stops
 iconservicesagent; the Data volume is out of the host's reach. No Apple binary
 change.
+
+## Host IPA Gadget metadata patch (2026-11-06)
+
+Launchpad's Local IPA Tools can add an LC_LOAD_DYLIB for Frida Gadget to an
+explicitly selected, unencrypted iOS app executable. This is an offline app
+metadata edit in existing zero header padding, followed by ad hoc re-signing of
+the copied app. It changes no firmware/kernel instructions, patch-set manifest,
+preset or installed guest environment. Unsupported/encrypted binaries and
+insufficient padding fail without changing the input. See
+`Research/Guest/gadget_patchipa.md` for reveal/validation and VM-only limits.

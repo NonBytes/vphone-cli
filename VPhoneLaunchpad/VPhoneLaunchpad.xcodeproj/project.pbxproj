@@ -11,6 +11,7 @@
 		5A10000000000000000000D2 /* vphone-guest-control in Embed Skill */ = {isa = PBXBuildFile; fileRef = 5A10000000000000000000D1 /* vphone-guest-control */; };
 		5A10000000000000000000EC /* vphone-launchpad-launcher in Embed VM Launcher */ = {isa = PBXBuildFile; fileRef = 5A10000000000000000000E1 /* vphone-launchpad-launcher */; };
 		5A2000000000000000000001 /* VPhone Pentest.app in Embed Pentest Tools */ = {isa = PBXBuildFile; fileRef = 5A2000000000000000000002; };
+		5A3000000000000000000001 /* ArchiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A3000000000000000000002; };
 /* End PBXBuildFile section */
 /* Begin PBXContainerItemProxy section */
 		5A1000000000000000000071 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 5A1000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 5A1000000000000000000012; remoteInfo = VPhoneLaunchpadHelper; };
@@ -68,7 +69,7 @@
 		5A1000000000000000000042 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		5A10000000000000000000C6 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		5A10000000000000000000E6 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-        5A200000000000000000000B = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        5A200000000000000000000B = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (5A3000000000000000000001, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 /* Begin PBXGroup section */
 		5A1000000000000000000002 = {isa = PBXGroup; children = (5A2000000000000000000004 /* VPhonePentest */, 5A1000000000000000000021 /* VPhoneLaunchpad */, 5A1000000000000000000022 /* VPhoneLaunchpadHelper */, 5A10000000000000000000C3 /* VPhoneLaunchpadCLI */, 5A10000000000000000000E3 /* VPhoneLaunchpadLauncher */, 5A1000000000000000000023 /* VPhoneLaunchpadShared */, 5A1000000000000000000004 /* Configuration */, 5A1000000000000000000005 /* Resources */, 5A1000000000000000000003 /* Products */, ); sourceTree = "<group>"; };
@@ -126,7 +127,7 @@
 			productReference = 5A10000000000000000000E1 /* vphone-launchpad-launcher */;
 			productType = "com.apple.product-type.tool";
 		};
-        5A2000000000000000000008 /* VPhonePentest */ = {isa = PBXNativeTarget; buildConfigurationList = 5A2000000000000000000009; buildPhases = (5A200000000000000000000A, 5A200000000000000000000B, 5A200000000000000000000C, 5A200000000000000000000D, ); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (5A2000000000000000000004, ); name = VPhonePentest; productName = VPhonePentest; productReference = 5A2000000000000000000002; productType = "com.apple.product-type.application"; };
+        5A2000000000000000000008 /* VPhonePentest */ = {isa = PBXNativeTarget; buildConfigurationList = 5A2000000000000000000009; buildPhases = (5A200000000000000000000A, 5A200000000000000000000B, 5A200000000000000000000C, 5A200000000000000000000D, ); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (5A2000000000000000000004, ); name = VPhonePentest; packageProductDependencies = (5A3000000000000000000002, ); productName = VPhonePentest; productReference = 5A2000000000000000000002; productType = "com.apple.product-type.application"; };
 
 /* End PBXNativeTarget section */
 /* Begin PBXProject section */
@@ -138,7 +139,7 @@
 			developmentRegion = en;
 			knownRegions = (en, Base, );
 			mainGroup = 5A1000000000000000000002;
-			packageReferences = (5A10000000000000000000A1 /* XCRemoteSwiftPackageReference "libghostty-spm" */, );
+			packageReferences = (5A3000000000000000000003, 5A10000000000000000000A1 /* XCRemoteSwiftPackageReference "libghostty-spm" */, );
 			productRefGroup = 5A1000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -192,9 +193,11 @@
 /* End XCConfigurationList section */
 /* Begin XCRemoteSwiftPackageReference section */
 		5A10000000000000000000A1 /* XCRemoteSwiftPackageReference "libghostty-spm" */ = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/Lakr233/libghostty-spm.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 1.6.20260928; }; };
+		5A3000000000000000000003 /* libarchive.xcframework */ = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/Lakr233/libarchive.xcframework.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 1.0.0; }; };
 /* End XCRemoteSwiftPackageReference section */
 /* Begin XCSwiftPackageProductDependency section */
 		5A10000000000000000000B1 /* GhosttyTerminal */ = {isa = XCSwiftPackageProductDependency; package = 5A10000000000000000000A1 /* XCRemoteSwiftPackageReference "libghostty-spm" */; productName = GhosttyTerminal; };
+		5A3000000000000000000002 /* ArchiveKit */ = {isa = XCSwiftPackageProductDependency; package = 5A3000000000000000000003; productName = ArchiveKit; };
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5A1000000000000000000001 /* Project object */;
