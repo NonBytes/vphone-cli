@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Sign a built vphone-launchpad.app for distribution. The Xcode build never
-# signs; run this afterwards with a Developer ID Application identity from the
+# signs; run this afterwards with a Developer ID Application identity (or
+# Apple Development for local testing) from the
 # team the app was built for (VPHONE_LAUNCHPAD_TEAM in the gitignored
 # Configuration/Developer.xcconfig).
 #
@@ -25,6 +26,7 @@ identity=${2:?usage: SignLaunchpad.sh <vphone-launchpad.app> <identity>}
 entitlements="${0:a:h}/../Resources/VPhoneLaunchpad.entitlements"
 label=com.vphone.launchpad.helper
 helper="$app/Contents/Library/LaunchServices/$label"
+pentest="$app/Contents/Helpers/VPhone Pentest.app"
 
 requirement=$(/usr/libexec/PlistBuddy -c "Print :SMPrivilegedExecutables:$label" "$app/Contents/Info.plist")
 if [[ $requirement == *'subject.OU] = ""'* ]]; then
@@ -32,12 +34,28 @@ if [[ $requirement == *'subject.OU] = ""'* ]]; then
   exit 1
 fi
 
+# Debug's executable stubs load these dylibs under library validation too.
+# Sign them with the same identity before sealing the containing apps.
+for dylib in "$app/Contents/MacOS/"*.debug.dylib(N) "$pentest/Contents/MacOS/"*.debug.dylib(N); do
+  codesign --force --options runtime --timestamp --sign "$identity" "$dylib"
+done
 codesign --force --options runtime --timestamp --sign "$identity" "$helper"
+# A new CMS timestamp changes the file hash even when CodeDirectory is
+# identical. Reuse an already installed, valid helper only for identical code
+# and the app's exact requirement; leave changed helpers to SMJobBless.
+installed_helper="/Library/PrivilegedHelperTools/$label"
+if [[ -r "$installed_helper" ]] && codesign --verify --strict -R="$requirement" "$installed_helper" 2>/dev/null; then
+  bundled_cdhash=$(codesign -d --verbose=4 "$helper" 2>&1 | /usr/bin/awk -F= '/^CDHash=/{print $2}')
+  installed_cdhash=$(codesign -d --verbose=4 "$installed_helper" 2>&1 | /usr/bin/awk -F= '/^CDHash=/{print $2}')
+  if [[ -n "$bundled_cdhash" && "$bundled_cdhash" == "$installed_cdhash" ]]; then
+    /bin/cp "$installed_helper" "$helper"
+    print "reused verified installed helper with identical CodeDirectory"
+  fi
+fi
 codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.cli \
   --sign "$identity" "$app/Contents/MacOS/vphone-launchpad-cli"
 codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.launcher \
   --sign "$identity" "$app/Contents/MacOS/vphone-launchpad-launcher"
-pentest="$app/Contents/Helpers/VPhone Pentest.app"
 for framework in "$pentest/Contents/Frameworks/"*.framework(N); do
   codesign --force --options runtime --timestamp --sign "$identity" "$framework"
 done

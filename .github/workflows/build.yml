@@ -116,6 +116,7 @@ jobs:
           zsh VPhoneLaunchpad/Tests/IPAExportTests.sh
           zsh VPhoneLaunchpad/Tests/GadgetPatchTests.sh
           zsh VPhoneLaunchpad/Tests/GadgetConnectionTests.sh
+          zsh VPhoneLaunchpad/Tests/GadgetDeploymentTests.sh
 
       - name: Guest component tests
         run: |

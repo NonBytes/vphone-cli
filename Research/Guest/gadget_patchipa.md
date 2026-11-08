@@ -100,5 +100,11 @@ The first fixture lacked the scene lifecycle required by this SDK/OS and
 crashed in UIApplication's scene-adoption check; correcting the test app
 resolved that failure. No Frida attach/script execution was claimed by this
 smoke. The disposable app/uploaded IPAs were removed and the VM stopped again.
-The installed signed Launchpad was not replaced: its original signing key is
-not available locally. UI verification used the separately built tool app.
+Initial UI verification used the separately built tool app. On 2026-11-08 the
+original Apple Development signing identity was confirmed present and usable;
+the latest Launchpad was subsequently signed and installed with it.
+
+After a successful patch, Install & Launch now selects a VM, checks the exact
+IPA hash, installs/launches explicitly and hands off to Gadget Session. Its
+default USB transport reaches guest loopback without a guest network listener;
+see Research/Host/gadget_deployment.md.

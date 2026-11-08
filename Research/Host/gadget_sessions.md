@@ -45,8 +45,9 @@ claim general secret detection.
 
 The app's Keychain access remains governed by macOS code identity. A local ad
 hoc test build and a signed distribution can be treated differently by macOS;
-no access control or signature check is bypassed. The installed signed
-Launchpad is unchanged because its original signing key is unavailable here.
+no access control or signature check is bypassed. The original Apple Development identity was subsequently confirmed available
+and successfully used to sign/install Launchpad on this Mac. No new certificate
+or P12 import was needed.
 
 ## Ownership and verification
 
@@ -81,3 +82,7 @@ Reference: [Frida Listen Gadget](https://frida.re/docs/gadget/#listen).
 After the smoke, the loopback fixture process was stopped and its exact saved
 Keychain item and two test preferences removed using supported macOS tools.
 VM bindings/environments and installed bundles were unchanged.
+
+The patch window now provides Install/Launch and a USB guest-loopback handoff
+to this session. Temporary relay connections are not saved as Keychain endpoint
+profiles; see Research/Host/gadget_deployment.md for lifecycle and live checks.
