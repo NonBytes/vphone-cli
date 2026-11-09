@@ -50,6 +50,10 @@ UDID and reaches guest loopback without adding a guest network listener.
 Keep the target app foreground and the VM unlocked during testing. Encrypted
 IPAs and physical-device signing/provisioning are outside this patcher's scope.
 
+For repeatable checks with synthetic data, see the
+[QA fixture and recorded results](Research/Host/pentest_qa_20261109.md), including
+the observed Keychain and log-capture limitations.
+
 Camera and proxy/CA features remain in the VM window and come from its selected
 Core: [Mac camera setup](Research/Guest/mac_camera_local.md) and
 [proxy/CA setup](Research/Guest/proxy_menu.md). Existing Core panels retain the
