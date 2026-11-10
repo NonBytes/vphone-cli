@@ -81,7 +81,7 @@ refusal, malformed input, unsafe ZIP paths/symlinks, cancellation, original inpu
 preservation, signature verification and a token-free report. CI runs this
 after the Launchpad build, which resolves its pinned static archive dependency.
 
-UI smoke on 2026-11-06: Local IPA Tools was available with frida-jb-test stopped;
+UI smoke on 2026-11-06: Local IPA Tools was available with pentest-test-vm stopped;
 official 17.25.2 Gadget download passed SHA-256 verification and the UI saved a
 24,435,127-byte patched fixture with verified ad hoc signatures. No customer app
 was patched, launched or inspected for this test. Live results are recorded
@@ -93,7 +93,7 @@ References: [Frida Gadget configuration](https://frida.re/docs/gadget/),
 This implements the VM patching workflow natively rather than invoking Objection.
 
 Live smoke: the corrected scene-lifecycle fixture opened frontmost (PID 380)
-on frida-jb-test, iOS 27.0.1 (24A446), and wrote its own result
+on pentest-test-vm, iOS 27.0.1 (24A446), and wrote its own result
 `{"fixture":"com.vphone.fixture.gadget","gadgetLoaded":true}`. Its patched IPA
 SHA-256 was `e94cd0777fb75370ecdbbc1131fd39409c38cfa3ad96e19b3f0d0bbf61782030`.
 The first fixture lacked the scene lifecycle required by this SDK/OS and

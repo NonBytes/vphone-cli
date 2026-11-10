@@ -71,7 +71,7 @@ queries, redacted export, frozen export provenance, row/value caps, empty
 legacy responses, access refusal and late-result cancellation. CI runs these
 fixtures. The full VPhone build validates the finished UI bundle.
 
-On 2026-11-05 the running frida-jb-test VM's existing `keychain.list` reported
+On 2026-11-05 the running pentest-test-vm VM's existing `keychain.list` reported
 0 Security-accessible rows and 58 protected database metadata rows. An attempt
 to add a uniquely named synthetic canary through the existing API failed with
 `keychain add did not persist`; a follow-up metadata check found no matching

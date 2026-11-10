@@ -35,9 +35,9 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Frida Session](Research/Host/gadget_sessions.md) | Server Spawn/Attach or Gadget Attach, local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
 | [Sandbox Diff](Research/Guest/sandbox_diff.md) | Bounded before/after file hashes and metadata; unreadable or unstable paths remain uncertain |
 | [Network Diagnostics + PCAP](Research/Guest/network_diagnostics.md) | Reachability checks and interface-wide packet capture with Stop/export for Wireshark |
-| [App Logs & Crash Viewer](Research/Guest/app_logs.md) | Process log filtering, crash report inspection and local export |
+| [App Logs & Crash Viewer](Research/Guest/app_logs.md) | Process logs collected in bounded batches with gaps, crash report inspection and local export |
 | [Deep Link Tester](Research/Guest/deep_link_tester.md) | URL schemes, editable payloads and test history |
-| [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata/item inspection within the guest's actual access scope |
+| [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process |
 | [Evidence Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes and a redaction review |
 | [Export Installed IPA](Research/Guest/ipa_export.md) | Export the installed app bundle; excludes sandbox/Keychain data and performs no decryption |
 | [Patch IPA with Frida Gadget](Research/Guest/gadget_patchipa.md) | Embed Gadget/config in an unencrypted iOS IPA and sign a new IPA ad hoc for vphone VMs |
@@ -53,6 +53,10 @@ IPAs and physical-device signing/provisioning are outside this patcher's scope.
 For repeatable checks with synthetic data, see the
 [QA fixture and recorded results](Research/Host/pentest_qa_20261109.md), including
 the observed Keychain and log-capture limitations.
+
+Keep VM folders, exported evidence, patched IPAs and signing credentials outside
+Git. Evidence may retain identifying metadata; text redaction does not redact
+screenshots or PCAP payloads. Use synthetic apps/data for public examples.
 
 Camera and proxy/CA features remain in the VM window and come from its selected
 Core: [Mac camera setup](Research/Guest/mac_camera_local.md) and

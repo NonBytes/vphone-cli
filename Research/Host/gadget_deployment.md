@@ -77,7 +77,7 @@ not sustained Gadget reachability; Test Connection remains the protocol check.
   run alongside the Launchpad product build. CI adds the deployment suite after
   the Launchpad build resolves the pinned archive dependency.
 - UI smoke used the self-authored com.vphone.fixture.gadget IPA, official iOS
-  Gadget 17.25.2 (release size/SHA-256 verified), frida-jb-test, Core
+  Gadget 17.25.2 (release size/SHA-256 verified), pentest-test-vm, Core
   2.15.2-local.8062000e and its existing guest environment. Patch saved a
   24,436,298-byte IPA, SHA-256
   `aca2725b4d712acb91fc97ce8ac391dedc4f596571799bf5ec8fdbe4cf24618f`.
@@ -88,7 +88,7 @@ not sustained Gadget reachability; Test Connection remains the protocol check.
   the fixture for the foreground/detach check). Explicit Detach succeeded.
   The exported log was 0600 and a check against the actual config token found
   no token in it. No customer app was installed, launched or inspected. The
-  synthetic app was removed and frida-jb-test returned to Stopped. During final
+  synthetic app was removed and pentest-test-vm returned to Stopped. During final
   menu verification test-vm was inadvertently started, then stopped again;
   its bindings and guest environment were unchanged.
 
