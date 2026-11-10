@@ -53,6 +53,8 @@ IPAs and physical-device signing/provisioning are outside this patcher's scope.
 For repeatable checks with synthetic data, see the
 [QA fixture and recorded results](Research/Host/pentest_qa_20261109.md), including
 the observed Keychain and log-capture limitations.
+The fixture also includes [app-context jailbreak checks](Research/Guest/jailbreak_detection_fixture.md)
+with individual observations and an inconclusive result when no selected signal is found.
 
 Keep VM folders, exported evidence, patched IPAs and signing credentials outside
 Git. Evidence may retain identifying metadata; text redaction does not redact
