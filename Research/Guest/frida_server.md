@@ -310,7 +310,7 @@ for Files/Safari, and is unaffected by this observation.
 
 ### Retest confirmed: JB-33/34/23b/25c fix the Spawn crash
 
-A disposable VM (`frida-jb-test`) was created on the same cached firmware
+A disposable VM (`pentest-test-vm`) was created on the same cached firmware
 pairing as test-vm (iPhone17,3 iOS 27.0.1/24A446, cloudOS 26.4/23E5207q)
 with `--preset standard --allow kernel-exp-frida_thread_set_state_entitlement_flag
 --allow kernel-exp-frida_vm_map_delete_immutable_code --allow kernel-exp-frida_tpro_off
@@ -334,7 +334,7 @@ caused by one of the non-Frida `experimental` patches, or was incidental, was
 not root-caused; the narrower `--allow`-only approach above avoided it and is
 the one to use going forward.
 
-**Settings Attach retested and fixed too.** On the same `frida-jb-test` VM,
+**Settings Attach retested and fixed too.** On the same `pentest-test-vm` VM,
 with Settings opened to the foreground first, Features → Frida Session… →
 Attach to running PID against Settings succeeded with no timeout — unlike the
 `attach_sync` timeout recorded above against test-vm (`standard`, no
@@ -362,7 +362,7 @@ an orange caption banner naming the missing patches and how to fix it, when
 any are absent. Verified: the full `VPhone` Debug build and bundle admission
 passed, and the detection logic was exercised standalone against both real
 receipts — `test-vm` reports all 4 patches missing (banner would show),
-`frida-jb-test` reports none missing (no banner). The running apps were not
+`pentest-test-vm` reports none missing (no banner). The running apps were not
 reopened to visually confirm the rendered banner text.
 
 ### New preset: `frida` (standard plus exactly the 4 kernel.frida patches)

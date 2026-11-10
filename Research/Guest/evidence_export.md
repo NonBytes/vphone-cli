@@ -73,7 +73,7 @@ CI runs this test. Full bundle build and real UI smoke outcomes are recorded
 separately below.
 
 The full VPhone build and regression tests passed. Core
-`2.15.2-local.8062000e` was installed and tested on `frida-jb-test` without
+`2.15.2-local.8062000e` was installed and tested on `pentest-test-vm` without
 changing its boot chain or guest environment. The real UI imported a synthetic
 log, captured one guest JPEG, showed the log's Authorization/token values as
 `[REDACTED]`, and excluded the screenshot by default. Enabling binary originals

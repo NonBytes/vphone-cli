@@ -79,7 +79,7 @@ app mutation, preservation of an existing destination, private output mode and
 cleanup. The synthetic encrypted flag remains reported while file bytes remain
 unchanged. CI runs this fixture along with the other Launchpad tool tests.
 
-The full Launchpad build passed. Live UI smoke on frida-jb-test exported
+The full Launchpad build passed. Live UI smoke on pentest-test-vm exported
 Calculator (`com.apple.calculator`) without launching it. The output was
 2,297,775 bytes, mode 0600, SHA-256
 `644e73f17bf6c7571792cc895d854cc59d0b98eb6f2d62bdf7a874d205560017`.

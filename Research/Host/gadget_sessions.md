@@ -69,7 +69,7 @@ On 2026-11-08 (Asia/Bangkok):
   real Keychain writes.
 - Real UI smoke used the official macOS Gadget 17.25.2, downloaded with release
   size/SHA-256 verification, inside a self-authored disposable host process on
-  127.0.0.1:27044. With frida-jb-test stopped/RPC disconnected, Test Connection
+  127.0.0.1:27044. With pentest-test-vm stopped/RPC disconnected, Test Connection
   authenticated without attach, Save/Load Token worked, Attach reported the
   fixture PID, a local console.log script emitted VPHONE_GADGET_SESSION_UI_OK,
   Save Log produced mode 0600 with no fixture token, and Detach succeeded.
