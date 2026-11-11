@@ -219,6 +219,11 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   downloading a large file used to jump its progress bar straight from 0% to
   100%, since the whole file moved in one step with no way to see partway.
   It now reports progress as the file actually moves across the connection.
+- **Frida Session has two built-in scripts: SSL Pinning Bypass and Jailbreak
+  Detection Bypass.** Previously every session needed a local `.js` file
+  chosen by hand, even for the two checks almost every test starts with.
+  Pick one from the new **Built-in Scripts** menu next to Choose Script…;
+  anything more specific to the target still needs its own script.
 
 ## Set up with an AI agent
 

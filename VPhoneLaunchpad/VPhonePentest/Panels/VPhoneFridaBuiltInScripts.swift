@@ -1,0 +1,122 @@
+import Foundation
+
+/// Ready-made Frida scripts for the two checks almost every iOS pentest
+/// starts with, so a session doesn't need a script hunted down or written
+/// from scratch first. Loaded the same way as a file the user chose
+/// (`VPhoneFridaSessionModel.scriptSource`); neither persists past the
+/// session, and neither is a substitute for a target-specific script.
+enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
+    case sslPinningBypass
+    case jailbreakDetectionBypass
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .sslPinningBypass: "SSL Pinning Bypass"
+        case .jailbreakDetectionBypass: "Jailbreak Detection Bypass"
+        }
+    }
+
+    var summary: String {
+        switch self {
+        case .sslPinningBypass:
+            "Hooks Security.framework's trust evaluation so a proxy's certificate is accepted, covering most apps that pin through the system trust store. An app with its own pinning (a bundled public key check, for example) needs a script of its own."
+        case .jailbreakDetectionBypass:
+            "Hides the common jailbreak tells (Cydia-family paths, the cydia:// scheme, su/bash/substrate paths, fork()) from the usual Objective-C and libc checks. A detector with its own anti-Frida or anti-debugger check needs a script of its own."
+        }
+    }
+
+    var source: String {
+        switch self {
+        case .sslPinningBypass: Self.sslPinningBypassSource
+        case .jailbreakDetectionBypass: Self.jailbreakDetectionBypassSource
+        }
+    }
+
+    private static let sslPinningBypassSource = """
+    // SSL Pinning Bypass — hooks Security.framework's trust evaluation so a
+    // MITM proxy's certificate is accepted. Covers apps that pin through the
+    // system trust store (SecTrust*); does not cover a pinning check an app
+    // implements itself (e.g. comparing a bundled public key by hand).
+    (function () {
+        var evaluate = Module.findExportByName('Security', 'SecTrustEvaluate');
+        if (evaluate) {
+            Interceptor.replace(evaluate, new NativeCallback(function (trust, result) {
+                if (!result.isNull()) {
+                    result.writeU32(1); // kSecTrustResultProceed
+                }
+                return 0; // errSecSuccess
+            }, 'int', ['pointer', 'pointer']));
+            console.log('[+] SecTrustEvaluate hooked');
+        }
+        var evaluateWithError = Module.findExportByName('Security', 'SecTrustEvaluateWithError');
+        if (evaluateWithError) {
+            Interceptor.replace(evaluateWithError, new NativeCallback(function () {
+                return 1; // true
+            }, 'bool', ['pointer', 'pointer']));
+            console.log('[+] SecTrustEvaluateWithError hooked');
+        }
+        if (!evaluate && !evaluateWithError) {
+            console.log('[-] Neither SecTrustEvaluate nor SecTrustEvaluateWithError was found');
+        }
+    })();
+    """
+
+    private static let jailbreakDetectionBypassSource = """
+    // Jailbreak Detection Bypass — hides the usual tells (Cydia-family
+    // paths, the cydia:// scheme, su/bash/substrate paths, fork()) from the
+    // common Objective-C and libc checks. Does not cover an app's own
+    // anti-Frida or anti-debugger checks.
+    (function () {
+        var suspectPattern = /Cydia|Sileo|Zebra|substrate|MobileSubstrate|\\/bin\\/su|\\/usr\\/sbin\\/sshd|\\/etc\\/apt|\\/private\\/var\\/lib\\/apt/i;
+
+        if (ObjC.available) {
+            var fileExists = ObjC.classes.NSFileManager['- fileExistsAtPath:'];
+            if (fileExists) {
+                Interceptor.attach(fileExists.implementation, {
+                    onEnter(args) {
+                        this.suspect = suspectPattern.test(new ObjC.Object(args[2]).toString());
+                    },
+                    onLeave(retval) {
+                        if (this.suspect) retval.replace(0);
+                    },
+                });
+                console.log('[+] -[NSFileManager fileExistsAtPath:] hooked');
+            }
+            var canOpenURL = ObjC.classes.UIApplication['- canOpenURL:'];
+            if (canOpenURL) {
+                Interceptor.attach(canOpenURL.implementation, {
+                    onEnter(args) {
+                        this.suspect = /cydia:\\/\\//i.test(new ObjC.Object(args[2]).toString());
+                    },
+                    onLeave(retval) {
+                        if (this.suspect) retval.replace(0);
+                    },
+                });
+                console.log('[+] -[UIApplication canOpenURL:] hooked');
+            }
+        } else {
+            console.log('[-] Objective-C runtime not available');
+        }
+
+        var access = Module.findExportByName(null, 'access');
+        if (access) {
+            Interceptor.attach(access, {
+                onEnter(args) {
+                    this.suspect = suspectPattern.test(args[0].readUtf8String() || '');
+                },
+                onLeave(retval) {
+                    if (this.suspect) retval.replace(-1);
+                },
+            });
+            console.log('[+] access() hooked');
+        }
+        var fork = Module.findExportByName(null, 'fork');
+        if (fork) {
+            Interceptor.replace(fork, new NativeCallback(function () { return -1; }, 'int', []));
+            console.log('[+] fork() hooked');
+        }
+    })();
+    """
+}

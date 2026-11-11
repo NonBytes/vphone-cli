@@ -14,6 +14,8 @@ final class VPhoneFridaSessionModel {
     var usesGuestTransport = true
     var scriptURL: URL?
     var scriptSource = ""
+    /// Set when the loaded script is one of the built-ins, not a chosen file.
+    var builtInScript: VPhoneFridaBuiltInScript?
     var log = ""
     var error: String?
     var state = "Detached"
@@ -76,10 +78,19 @@ final class VPhoneFridaSessionModel {
                     }
                     scriptURL = url
                     scriptSource = source
+                    builtInScript = nil
                     error = nil
                 } catch { self.error = error.localizedDescription }
             }
         }
+    }
+
+    func chooseBuiltIn(_ script: VPhoneFridaBuiltInScript) {
+        guard !busy else { return }
+        scriptURL = nil
+        scriptSource = script.source
+        builtInScript = script
+        error = nil
     }
 
     func start() async {
@@ -282,16 +293,25 @@ private struct VPhoneFridaSessionView: View {
                 .font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button("Choose Script…") { model.chooseScript() }.disabled(model.busy)
-                Text(model.scriptURL?.lastPathComponent ?? "No script selected").lineLimit(1)
-                if model.scriptURL != nil {
-                    Button("Clear Selection") { model.scriptURL = nil; model.scriptSource = "" }.disabled(model.busy)
+                Menu("Built-in Scripts") {
+                    ForEach(VPhoneFridaBuiltInScript.allCases) { script in
+                        Button(script.title) { model.chooseBuiltIn(script) }
+                    }
+                }.disabled(model.busy).fixedSize()
+                Text(model.builtInScript?.title ?? model.scriptURL?.lastPathComponent ?? "No script selected").lineLimit(1)
+                if model.scriptURL != nil || model.builtInScript != nil {
+                    Button("Clear Selection") { model.scriptURL = nil; model.builtInScript = nil; model.scriptSource = "" }.disabled(model.busy)
                 }
                 Spacer()
                 Button("Load / Replace Script") { model.loadScript() }
                     .disabled(model.busy || model.pid == nil || model.scriptSource.isEmpty)
             }
-            Text("Choose a local UTF-8 .js file (up to 512 KiB). Scripts run in the selected guest process. Frida 17 scripts using ObjC/Swift bridges must bundle those bridges themselves.")
-                .font(.caption).foregroundStyle(.secondary)
+            if let builtIn = model.builtInScript {
+                Text(builtIn.summary).font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Choose a local UTF-8 .js file (up to 512 KiB), or a built-in one above. Scripts run in the selected guest process. Frida 17 scripts using ObjC/Swift bridges must bundle those bridges themselves.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             HStack {
                 Text(model.state).font(.system(.body, design: .monospaced))
                 if model.busy || model.refreshing { ProgressView().controlSize(.small) }
