@@ -57,7 +57,7 @@ if iPhoneStartup {
     GuestDeveloperModeSnapshot.shared.startOnStartup()
 }
 
-let group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 let filePool = NIOThreadPool(numberOfThreads: 2)
 filePool.start()
 let fileIO = NonBlockingFileIO(threadPool: filePool)

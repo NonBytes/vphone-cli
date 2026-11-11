@@ -10,6 +10,10 @@ import VPhoneCoreKit
 final class VPhoneGuestControl {
     enum ControlError: Error, CustomStringConvertible, LocalizedError {
         case notConnected
+        /// The VSOCK connection to vphoned broke mid-request. `detail` says
+        /// which step failed, so a flapping link is not reported as the guest
+        /// agent being absent.
+        case connectionLost(String)
         case unsupportedCapability(String)
         case protocolError(String)
         case guestError(String)
@@ -23,6 +27,9 @@ final class VPhoneGuestControl {
             switch self {
             case .notConnected:
                 VPhoneLocalization.text("The guest agent is not connected. Wait for it to connect, then try again.")
+            case let .connectionLost(detail):
+                VPhoneLocalization.text("The guest agent is not connected. Wait for it to connect, then try again.")
+                    + " (\(detail))"
             case let .unsupportedCapability(value): "guest does not support capability: \(value)"
             case let .protocolError(value): "API protocol error: \(value)"
             case let .guestError(value), let .bootstrapAlreadyInstalled(value), let .locationServicesOff(value): value
@@ -1201,7 +1208,38 @@ final class VPhoneGuestControl {
         return .guestError(error?["message"] as? String ?? "HTTP \(response.status)")
     }
 
+    /// Retries a request once on a fresh socket when the guest drops the VSOCK
+    /// connection before sending any response byte (e.g. Darwin returning
+    /// EINVAL on `fcntl` during accept in SwiftNIO before the request is read).
     private func http(
+        method: String,
+        path: String,
+        body: Data = Data(),
+        contentType: String = "application/json",
+        limits: VPhoneHTTPLimits = .rpc,
+        upload: URL? = nil,
+        download: FileHandle? = nil,
+        onProgress: (@Sendable (Int64) -> Void)? = nil,
+    ) async throws -> VPhoneHTTPResponse {
+        var lastError: Error?
+        for attempt in 0 ..< 3 {
+            do {
+                return try await httpOnce(
+                    method: method, path: path, body: body, contentType: contentType,
+                    limits: limits, upload: upload, download: download, onProgress: onProgress,
+                )
+            } catch ControlError.connectionLost(let detail) where download == nil {
+                lastError = ControlError.connectionLost(detail)
+                if attempt < 2 {
+                    print("[control] \(method) \(path) dropped (\(detail)); retrying (\(attempt + 1)/2)")
+                    try? await Task.sleep(for: .milliseconds(50 * (attempt + 1)))
+                }
+            }
+        }
+        throw lastError ?? ControlError.notConnected
+    }
+
+    private func httpOnce(
         method: String,
         path: String,
         body: Data = Data(),
@@ -1326,7 +1364,7 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         defer { connection.close() }
         let fd = connection.fileDescriptor
         guard fcntl(fd, F_SETNOSIGPIPE, 1) != -1 else {
-            throw VPhoneGuestControl.ControlError.notConnected
+            throw VPhoneGuestControl.ControlError.connectionLost("fcntl errno \(errno)")
         }
         var timeout = Self.socketTimeval(Self.socketTimeout)
         guard
@@ -1339,7 +1377,7 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
                 socklen_t(MemoryLayout<timeval>.size),
             ) == 0
         else {
-            throw VPhoneGuestControl.ControlError.notConnected
+            throw VPhoneGuestControl.ControlError.connectionLost("setsockopt errno \(errno)")
         }
         let source = try upload.map { try FileHandle(forReadingFrom: $0) }
         defer { try? source?.close() }
@@ -1449,7 +1487,7 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
                     continue
                 }
                 if sent <= 0 {
-                    throw VPhoneGuestControl.ControlError.notConnected
+                    throw VPhoneGuestControl.ControlError.connectionLost("write failed, errno \(errno)")
                 }
                 offset += sent
             }
@@ -1464,7 +1502,7 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         }
         var timeout = Self.socketTimeval(min(remaining, Self.socketTimeout))
         guard setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0 else {
-            throw VPhoneGuestControl.ControlError.notConnected
+            throw VPhoneGuestControl.ControlError.connectionLost("setsockopt errno \(errno)")
         }
         var bytes = [UInt8](repeating: 0, count: 32 * 1024)
         var count = 0
@@ -1472,7 +1510,9 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
             count = Darwin.read(fd, &bytes, bytes.count)
         } while count < 0 && errno == EINTR
         guard count > 0 else {
-            throw VPhoneGuestControl.ControlError.notConnected
+            throw VPhoneGuestControl.ControlError.connectionLost(
+                count == 0 ? "guest closed the connection" : "read failed, errno \(errno)",
+            )
         }
         data.append(contentsOf: bytes[..<count])
     }

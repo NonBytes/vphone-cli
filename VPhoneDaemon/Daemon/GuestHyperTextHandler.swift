@@ -318,6 +318,7 @@ final class GuestHyperTextHandler: ChannelInboundHandler, RemovableChannelHandle
     func errorCaught(context: ChannelHandlerContext, error: Error) {
         // A refused or malformed WebSocket handshake: the request follows and gets its reply.
         if error is NIOWebSocketUpgradeError { return }
+        NSLog("vphoned: HTTP channel error: %@", String(describing: error))
         context.close(promise: nil)
     }
 }
