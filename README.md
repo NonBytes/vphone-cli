@@ -256,6 +256,27 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   They now use `Process.findModuleByName(...).findExportByName(...)` for
   the named-module lookup and `Module.findGlobalExportByName(...)` for the
   global one.
+- **Fixed: the built-in Jailbreak Detection Bypass Frida script threw
+  `ReferenceError: 'ObjC' is not defined` on Frida 17.** Frida 17 dropped
+  the built-in `ObjC` bridge from the default QuickJS runtime, and the
+  VM-window copy of the script still accessed `ObjC.available` directly.
+  Both copies now check `typeof ObjC !== 'undefined'` first and fall back
+  to resolving `-[NSFileManager fileExistsAtPath:]` and
+  `-[UIApplication canOpenURL:]` straight through `libobjc.A.dylib`
+  (`objc_getClass`, `sel_registerName`, `class_getInstanceMethod`,
+  `method_getImplementation`, `objc_msgSend`), while also guarding against
+  null path pointers in the `access()` hook.
+- **Fixed: intermittent `"The guest agent is not connected"` errors when
+  clicking Reload or Start in Frida Tools (or running back-to-back guest
+  requests).** When Darwin's `fcntl(F_SETNOSIGPIPE / O_NONBLOCK)` briefly
+  returned `EINVAL` on a freshly `accept()`ed VSOCK socket or a child
+  channel hopped across SwiftNIO EventLoop threads during setup, the guest
+  closed the socket before reading the request and the host mistook the
+  0-byte read for a full guest disconnect. `vphoned` now runs its
+  HTTP/VSOCK server on a single-threaded EventLoopGroup so accepted sockets
+  stay on the accepting loop, and `VPhoneGuestControl.http` distinguishes a
+  mid-request socket drop (`connectionLost`) from `notConnected` and
+  automatically retries on a fresh VSOCK connection.
 
 ## Set up with an AI agent
 
