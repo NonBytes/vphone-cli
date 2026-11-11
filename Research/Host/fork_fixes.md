@@ -35,6 +35,14 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   straight through `libobjc.A.dylib` (`objc_getClass`, `sel_registerName`,
   `class_getInstanceMethod`, `method_getImplementation`, `objc_msgSend`), while
   also guarding against null path pointers in the `access()` hook.
+- **Expanded built-in Frida bypass script coverage.** **SSL Pinning Bypass**
+  now also hooks `SecTrustGetTrustResult` and clears `*error` in
+  `SecTrustEvaluateWithError`. **Jailbreak Detection Bypass** now deduplicates
+  and hooks `access`, `stat`, `lstat`, `stat64`, `lstat64`, and `fopen` with
+  `ENOENT` (`__error`), expands `canOpenURL:` scheme checks (`cydia://`,
+  `sileo://`, `zbra://`, `filza://`, `undecimus://`), and adds common rootless
+  and tweak paths (`Filza`, `libhooker`, `libsubstitute`, `ellekit`, `/var/jb`,
+  `/bin/bash`, `/usr/bin/ssh`).
 
 ## Guest Connection & VSOCK Transport
 
@@ -93,6 +101,15 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   whichever one is chosen in **Advanced Options → Firmware** — easy to miss, and
   the usual reason a newer iOS release doesn't show up. The basic page now
   names that Core Bundle directly, with a one-click way to change it.
+- **Standalone App Inspector JSON reports now use private `0600` permissions.**
+  `saveInspectorReport()` in both `VPhonePentest` and the VM window previously
+  wrote `app-inspector.json` with default `0644` permissions; both now route
+  through `VPhoneSandboxSnapshot.writeReport` so exports start private (`0600`)
+  like every other pentest tool.
+- **PCAP capture status no longer keeps `"waiting for the capture file to
+  flush"` after stopping finishes.** Stopping a capture only displays the
+  flush message while `state.active` remains `true`, and `reloadCapture()`
+  clears it as soon as polling sees `!state.active`.
 
 ## Firmware, CFW & Build
 
@@ -118,3 +135,9 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   without updating the workspace's own pin, so a clean build through
   `VPhone.xcworkspace` always failed a licence-staging check. Every pin now
   agrees.
+- **Bundle validation and catalog tests guard against `frida.plist` drifting
+  from `standard.plist`.** `ValidateBundle.sh` now checks on every `VPhone`
+  build that `frida.plist` uses `Block` selection and differs from
+  `standard.plist` only by `kernel-exp-frida_*` patches, backed by an explicit
+  `FirmwarePatchSetCatalogTests` check over both plist selections and resolved
+  patch plans.

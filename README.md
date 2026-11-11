@@ -175,10 +175,10 @@ Launchpad (see [Install the fork](#install-the-fork)) to pick them up. See
 technical details.
 
 - **Frida Tools & Built-in Scripts** — Unified **Frida Tools** window
-  (Server + Session tabs), searchable **Choose App…** picker, built-in **SSL
-  Pinning Bypass** and **Jailbreak Detection Bypass** scripts, and Frida 17
-  compatibility fixes (`Module.findExportByName` removal and `libobjc.A.dylib`
-  fallback when the `ObjC` bridge is absent).
+  (Server + Session tabs), searchable **Choose App…** picker, expanded
+  built-in **SSL Pinning Bypass** and **Jailbreak Detection Bypass** scripts,
+  and Frida 17 compatibility fixes (`Module.findExportByName` removal and
+  `libobjc.A.dylib` fallback when the `ObjC` bridge is absent).
 - **Guest Connection & VSOCK Transport** — Eliminated transient `"The guest
   agent is not connected"` errors on back-to-back requests (single-threaded
   `vphoned` VSOCK EventLoop + `connectionLost` retry), prevented UI disconnect
@@ -186,10 +186,12 @@ technical details.
   for guest shell/port-relay failures.
 - **Launchpad & VM Window** — Direct **Features → Pentest Tools…** menu in
   the VM window, real File Browser transfer progress, large-preset support in
-  the Patches inspector (including `frida`), one-step preset switching, and
-  active Core Bundle visibility in New Machine.
+  the Patches inspector (including `frida`), one-step preset switching,
+  active Core Bundle visibility in New Machine, private `0600` App Inspector
+  JSON exports, and clean PCAP stop-flush status clearing.
 - **Firmware, CFW & Build** — Extended firmware catalog through iOS 27.2.1
-  (plus `scripts/check-firmware-catalog.zsh`), unmount retry for transient
+  (plus `scripts/check-firmware-catalog.zsh`), `frida.plist` vs `standard.plist`
+  drift guard in `ValidateBundle.sh` and tests, unmount retry for transient
   `"Resource busy"` errors during `cfw install` / `cfw update-environment`, and
   aligned workspace package pins for `VPhoneLaunchpad`.
 
