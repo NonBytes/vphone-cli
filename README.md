@@ -19,6 +19,7 @@ no Xcode, Python, or Homebrew at runtime. See the
 [Host Setup](Documents/en/get-started/host-setup.md), and
 [manual](Documents/en/README.md) for the base project's requirements and VM setup.
 The fork-specific workflows below are documented in this repository.
+Already cloned the fork? Use the [AI agent setup prompt](#set-up-with-an-ai-agent).
 
 ## Prepare your Mac
 
@@ -155,21 +156,33 @@ Open **Network → Proxy…** in the VM window, enable the proxy, enter the host
 and port reachable from the guest, and click **Apply**. Use
 **Import CA Certificate…** to add your test CA. [Proxy and CA setup](Research/Guest/proxy_menu.md)
 
-## Let an agent do it
+## Set up with an AI agent
+
+After cloning, open the `vphone-cli` folder as your agent's workspace on the
+Mac that will run the VM. For a terminal-based agent, start it from the
+checkout directory. Paste the prompt below. Replace `<vm-name>` with the name
+of an existing test VM, or omit the sentence starting with “Start the existing
+test VM” to finish after the setup checks.
 
 ```text
-Set up vphone on this Mac. Read the upstream skill at
-https://raw.githubusercontent.com/Lakr233/vphone-cli/main/Skills/vphone-guest-control/SKILL.md
-and its references. Check the existing host setup, machines and free space.
-For NonBytes' pentest tools, also read this fork's build/install guide:
-https://raw.githubusercontent.com/NonBytes/vphone-cli/main/Research/Host/fork_build.md
-and its Launchpad tools guide:
-https://raw.githubusercontent.com/NonBytes/vphone-cli/main/Research/Host/launchpad_pentest_tools.md
-Use the fork's Launchpad for those tools; an upstream Core alone is insufficient.
-Do not change SIP, boot-args or other host security settings, create a VM,
-replace an installed app or change a VM's Core binding until I authorize it.
-When administrator credentials or account sign-in are needed, let me handle them.
-Never ask me to send passwords or private signing keys in chat.
+Build and install this fork's VPhone Launchpad from the current checkout.
+Use the Prepare your Mac and Install the fork sections of README.md.
+Read AGENTS.md, Skills/vphone-guest-control/SKILL.md and its relevant local
+references, plus Research/Host/fork_build.md for fork-specific signing.
+
+Check macOS, Apple Silicon, Xcode's iPhoneOS SDK, available disk space,
+the local signing identity and any existing Launchpad installation.
+Build and sign Launchpad with the matching local identity, then verify
+the signature. Install the signed app in Applications and open Host Setup.
+Ask before replacing an existing app, creating a VM or changing its Core.
+Let me handle Recovery settings, administrator prompts and credential entry.
+Keep passwords and private signing keys in macOS Keychain or the system prompt.
+
+Use vphone-launchpad-cli status and vm list to verify Host Setup and find a
+compatible Core Bundle. Install a compatible Core if one is needed.
+Start the existing test VM <vm-name>, wait for the guest connection, and open
+its Pentest Tools with vphone-launchpad-cli vm pentest <vm-name>.
+Report the installed app path, Core version and where to open the tools.
 ```
 
 For fork-specific features, [open an issue here](https://github.com/NonBytes/vphone-cli/issues).
