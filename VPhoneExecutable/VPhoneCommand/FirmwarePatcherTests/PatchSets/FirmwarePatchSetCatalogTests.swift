@@ -860,6 +860,53 @@ struct FirmwarePatchSetCatalogTests {
     }
 
     @Test
+    func `Frida preset differs from Standard only by the Frida kernel patch set`() throws {
+        let directory = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // PatchSets
+            .deletingLastPathComponent() // FirmwarePatcherTests
+            .deletingLastPathComponent() // VPhoneCommand
+            .deletingLastPathComponent() // VPhoneExecutable/VPhoneCommand
+            .appendingPathComponent("VPhoneVirtualization/Resources/patches_presets", isDirectory: true)
+        let shipped = try VPhonePatchPreset.readAll(fromDirectory: directory)
+        let standard = try #require(shipped.first { $0.isStandard })
+        let frida = try #require(shipped.first { $0.identifier == FirmwarePatchSetCatalog.fridaPreset.identifier })
+        guard case let .block(standardBlocked) = standard.selection,
+              case let .block(fridaBlocked) = frida.selection
+        else {
+            Issue.record("Expected Block selections for standard and frida presets")
+            return
+        }
+        let fridaIDs = Set(FirmwareKernelFridaPatchSet.manifest.patches.map(\.identifier))
+        #expect(fridaBlocked.subtracting(standardBlocked).isEmpty)
+        #expect(standardBlocked.subtracting(fridaBlocked) == fridaIDs)
+
+        for base in ["18.6.2", "26.0", "26.4", "27.0"] {
+            for cloud in ["26.1", "26.4"] {
+                let standardPlan = try VPhonePatchPlan.resolve(
+                    preset: standard,
+                    patchSets: FirmwarePatchSetCatalog.bundled,
+                    iOSBase: VPhoneVersion(base),
+                    cloudOS: VPhoneVersion(cloud),
+                )
+                let fridaPlan = try VPhonePatchPlan.resolve(
+                    preset: frida,
+                    patchSets: FirmwarePatchSetCatalog.bundled,
+                    iOSBase: VPhoneVersion(base),
+                    cloudOS: VPhoneVersion(cloud),
+                )
+                let standardEnabled = Set(standardPlan.enabled)
+                let fridaEnabled = Set(fridaPlan.enabled)
+                #expect(standardEnabled.subtracting(fridaEnabled).isEmpty)
+                let extra = fridaEnabled.subtracting(standardEnabled)
+                #expect(extra.isSubset(of: fridaIDs))
+                if cloud == "26.4" {
+                    #expect(extra == fridaIDs)
+                }
+            }
+        }
+    }
+
+    @Test
     func `Standard comes first in a picker`() {
         #expect(FirmwarePatchSetCatalog.builtInPresets.first?.isStandard == true)
     }

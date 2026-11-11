@@ -398,4 +398,33 @@ print -rn -- 'vphone archive round trip' > "$temporary/source/probe.txt"
     -C "$temporary/destination" >/dev/null
 /usr/bin/cmp "$temporary/source/probe.txt" "$temporary/destination/probe.txt"
 
+standard_preset="$resources/patches_presets/standard.plist"
+frida_preset="$resources/patches_presets/frida.plist"
+for preset in "$standard_preset" "$frida_preset"; do
+    [[ -f "$preset" ]] || { print -u2 "Missing preset plist: ${preset#$bundle/}"; exit 1; }
+    [[ "$(/usr/libexec/PlistBuddy -c 'Print :Selection:Kind' "$preset")" == Block ]] || {
+        print -u2 "Expected Block selection in ${preset#$bundle/}"; exit 1
+    }
+done
+frida_only_extra="$(/usr/bin/comm -13 \
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$standard_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort) \
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$frida_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
+[[ -z "$frida_only_extra" ]] || {
+    print -u2 "frida.plist blocks patches that standard.plist enables: $frida_only_extra"
+    exit 1
+}
+frida_unblocked="$(/usr/bin/comm -23 \
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$standard_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort) \
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$frida_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
+[[ -n "$frida_unblocked" ]] || {
+    print -u2 "frida.plist unblocks no Frida patches relative to standard.plist"
+    exit 1
+}
+while IFS= read -r patch_id; do
+    [[ "$patch_id" == kernel-exp-frida_* ]] || {
+        print -u2 "frida.plist drifted from standard.plist (non-Frida patch unblocked): $patch_id"
+        exit 1
+    }
+done <<< "$frida_unblocked"
+
 print "Bundle admission passed: $bundle"
