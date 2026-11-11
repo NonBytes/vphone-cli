@@ -215,6 +215,10 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   without updating the workspace's own pin, so a clean build through
   `VPhone.xcworkspace` always failed a licence-staging check. Every pin now
   agrees.
+- **The VM window's File Browser shows real transfer progress.** Uploading or
+  downloading a large file used to jump its progress bar straight from 0% to
+  100%, since the whole file moved in one step with no way to see partway.
+  It now reports progress as the file actually moves across the connection.
 
 ## Set up with an AI agent
 
