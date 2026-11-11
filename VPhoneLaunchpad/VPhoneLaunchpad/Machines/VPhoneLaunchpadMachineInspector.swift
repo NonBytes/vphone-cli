@@ -173,8 +173,9 @@ struct VPhoneLaunchpadMachineInspector: View {
                 initial: initial,
                 bundleVersion: library.bundleVersion(for: path),
                 machine: path,
-                isReadOnly: true,
-            ) { _ in }
+            ) { selection in
+                Task { await applyPatchSelection(selection, to: path) }
+            }
             .environment(model)
         }
     }
@@ -423,8 +424,12 @@ struct VPhoneLaunchpadMachineInspector: View {
                                 ? String(localized: "Updates the guest environment, which turns guest patches on or off to match this machine’s choice.")
                                 : String(localized: "Stop the machine to apply its patch choice to the guest."))
                         }
-                        // A created machine's patches are shown, not changed.
-                        Button("View…") { editedPatches = catalog.selection }
+                        // Switching preset here only records the choice
+                        // (fw set-patches); applyPatchSelection chains Update
+                        // Kernel and Apply to Guest right after when the
+                        // machine is stopped, so this is the one-flow switch.
+                        // Boot-chain-only changes still need a restore.
+                        Button("Edit…") { editedPatches = catalog.selection }
                     }
                     .foregroundStyle(.primary)
                     .padding(.top, 4)
@@ -465,6 +470,25 @@ struct VPhoneLaunchpadMachineInspector: View {
             lines.append(String(localized: "On: \(catalog.allowedPatches.joined(separator: ", "))"))
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Saves a new preset or override choice from the editor, then — only
+    /// when the machine is stopped, since both commands refuse otherwise —
+    /// immediately runs Update Kernel and Apply to Guest, so switching
+    /// preset on an existing machine is one flow instead of three manual
+    /// steps. A running machine keeps the saved choice as pending; the
+    /// Patches card's "Not Applied" row and the two buttons still let it be
+    /// applied by hand once stopped.
+    private func applyPatchSelection(_ selection: VPhoneLaunchpadPatchSelection, to path: VPhoneLaunchpadMachinePath) async {
+        guard await library.setPatches(selection, for: path) else {
+            patchRevision += 1
+            return
+        }
+        if library.state(of: path) == .stopped {
+            await library.updateKernel(path)
+            await library.updateGuestEnvironment(path)
+        }
+        patchRevision += 1
     }
 
     private func loadPatches() async {
