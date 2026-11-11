@@ -75,11 +75,19 @@ research guests and choose an APFS volume for the VM library.
    from the build path above to **Applications** in Finder. Open it and
    complete **Host Setup**. [Host setup guide](Documents/en/get-started/host-setup.md)
 
-5. Install a Core Bundle from the same version series in Launchpad, then
-   create or select a test VM and start it. For this fork's camera and
+5. Pair this fork's **Launchpad 2.16.1** with a **2.16.x Core Bundle** in
+   Launchpad, then create or select a test VM and start it. For this fork's camera and
    proxy/CA tools, build and install the fork's Core separately and select it
    using **Actions → Change Core Bundle…** while the VM is stopped.
    [Core version matching](Documents/en/get-started/downloads.md) · [Build and install Core](Research/Host/fork_build.md#optional-core-bundle-build)
+
+### Upgrade an existing VM from 2.15
+
+Install the 2.16 Launchpad and Core together. Stop the VM and select its new
+Core with **Actions → Change Core Bundle…**. To bring its guest agent and
+guest components up to date, run **Actions → Maintenance → Update Guest
+Environment** on the stopped VM before starting it again. Core selection and the guest
+environment update are separate steps. [Upstream upgrade notes](https://github.com/Lakr233/vphone-cli/releases/tag/2.16.1)
 
 ## Pentest tools in this fork
 
@@ -155,6 +163,9 @@ access when prompted. [Mac camera setup](Research/Guest/mac_camera_local.md)
 Open **Network → Proxy…** in the VM window, enable the proxy, enter the host
 and port reachable from the guest, and click **Apply**. Use
 **Import CA Certificate…** to add your test CA. [Proxy and CA setup](Research/Guest/proxy_menu.md)
+
+For Xcode or Instruments, enable **Diagnostics → Keep Developer Tunnel Open**
+in the running VM's window so the guest stays listed as online.
 
 ## Set up with an AI agent
 
