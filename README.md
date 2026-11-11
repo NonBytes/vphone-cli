@@ -20,6 +20,29 @@ no Xcode, Python, or Homebrew at runtime. See the
 [manual](Documents/en/README.md) for the base project's requirements and VM setup.
 The fork-specific workflows below are documented in this repository.
 
+## Prepare your Mac
+
+Before installing the fork, prepare the physical Apple Silicon Mac for
+research guests and choose an APFS volume for the VM library.
+
+1. Shut down the Mac. Hold the power button until startup options appear,
+   then choose **Options → Continue** to enter macOS Recovery.
+2. Open **Utilities → Terminal** in Recovery and run:
+
+   ```sh
+   csrutil enable --without debug
+   csrutil allow-research-guests enable
+   ```
+
+   This keeps SIP enabled with its debugging restrictions relaxed and enables
+   Research Guests. The full guide also documents the SIP-off/AMFI-off option.
+   [Host Setup security configurations](Documents/en/get-started/host-setup.md#choose-a-security-configuration)
+3. Restart into macOS and continue with the installation below. On first
+   launch, use **Host Setup** to grant Launchpad access in **System Settings →
+   Privacy & Security → Developer Tools**, authorize its privileged helper,
+   and verify the APFS library. The helper handles the `vphone-vm` allowlist
+   when needed. [Launchpad host setup](Documents/en/get-started/host-setup.md#with-launchpad)
+
 ## Install the fork
 
 1. Install Xcode with the iPhoneOS SDK and clone the fork.
