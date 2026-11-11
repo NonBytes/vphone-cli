@@ -852,19 +852,24 @@ final class VPhoneGuestControl {
         return entries
     }
 
-    func downloadFile(path: String) async throws -> Data {
-        let response = try await http(method: "GET", path: filePath(path), limits: .download)
+    /// `onProgress` reports cumulative bytes received so far; it runs on a
+    /// background thread, never the main actor.
+    func downloadFile(path: String, onProgress: (@Sendable (Int64) -> Void)? = nil) async throws -> Data {
+        let response = try await http(method: "GET", path: filePath(path), limits: .download, onProgress: onProgress)
         guard response.status == 200 else { throw try httpError(response) }
         return response.body
     }
 
-    func uploadFile(path: String, data: Data, permissions: String = "644") async throws {
+    /// `onProgress` reports cumulative bytes sent so far; it runs on a
+    /// background thread, never the main actor.
+    func uploadFile(path: String, data: Data, permissions: String = "644", onProgress: (@Sendable (Int64) -> Void)? = nil) async throws {
         let response = try await http(
             method: "PUT",
             path: filePath(path, mode: permissions),
             body: data,
             contentType: "application/octet-stream",
             limits: .upload,
+            onProgress: onProgress,
         )
         guard response.status == 200 else { throw try httpError(response) }
     }
@@ -1185,6 +1190,7 @@ final class VPhoneGuestControl {
         limits: VPhoneHTTPLimits = .rpc,
         upload: URL? = nil,
         download: FileHandle? = nil,
+        onProgress: (@Sendable (Int64) -> Void)? = nil,
     ) async throws -> VPhoneHTTPResponse {
         guard let device else { throw ControlError.notConnected }
         let socket = await withCheckedContinuation {
@@ -1201,6 +1207,7 @@ final class VPhoneGuestControl {
             limits: limits,
             upload: upload,
             download: download,
+            onProgress: onProgress,
         )
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -1263,6 +1270,9 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
     let upload: URL?
     /// Where a 200 response body goes in place of memory.
     let download: FileHandle?
+    /// Cumulative bytes of the request or response payload moved so far,
+    /// excluding headers. Called from this transaction's background thread.
+    let onProgress: (@Sendable (Int64) -> Void)?
     private let deadline: ContinuousClock.Instant
 
     /// Per-read and per-write socket timeout.
@@ -1277,10 +1287,12 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         limits: VPhoneHTTPLimits,
         upload: URL? = nil,
         download: FileHandle? = nil,
+        onProgress: (@Sendable (Int64) -> Void)? = nil,
     ) {
         self.connection = connection
         self.upload = upload
         self.download = download
+        self.onProgress = onProgress
         self.method = method
         self.path = path
         self.body = body
@@ -1324,9 +1336,18 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
                 else { throw VPhoneGuestControl.ControlError.protocolError("the file shrank while it was sent") }
                 try write(fd, data: chunk)
                 sent += Int64(chunk.count)
+                onProgress?(sent)
             }
         } else if !body.isEmpty {
-            try write(fd, data: body)
+            // Chunked the same way as the file-backed path above, so a large
+            // in-memory body reports progress too, not just a streamed upload.
+            var sent = 0
+            while sent < body.count {
+                let end = min(sent + (1 << 20), body.count)
+                try write(fd, data: body.subdata(in: sent ..< end))
+                sent = end
+                onProgress?(Int64(sent))
+            }
         }
 
         var received = Data()
@@ -1351,6 +1372,7 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
                 let part = payload.prefix(Int(min(Int64(payload.count), Int64(length) - written)))
                 try download.write(contentsOf: part)
                 written += Int64(part.count)
+                onProgress?(written)
                 guard written < Int64(length) else { break }
                 payload.removeAll(keepingCapacity: true)
                 try readMore(fd, into: &payload)
@@ -1361,8 +1383,10 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
             throw VPhoneGuestControl.ControlError.protocolError("HTTP body of \(length) bytes exceeds the \(limits.maxBodyLength)-byte limit")
         }
         var payload = Data(received[boundary.upperBound...])
+        onProgress?(Int64(payload.count))
         while payload.count < length {
             try readMore(fd, into: &payload)
+            onProgress?(Int64(payload.count))
         }
         guard payload.count == length else {
             throw VPhoneGuestControl.ControlError.protocolError("HTTP body length mismatch")

@@ -2,6 +2,33 @@ import Foundation
 import Observation
 import VPhoneCoreKit
 
+/// Limits how often a transfer's byte-progress callback reaches the main
+/// actor, so a large file's many small chunks don't flood it with updates.
+/// `report` is safe to call from any thread, including the transaction's own
+/// background thread; `update` always runs on the main actor.
+final class VPhoneTransferProgressThrottle: @unchecked Sendable {
+    private let update: @MainActor (Int64) -> Void
+    private let lock = NSLock()
+    private var lastReportTime = ContinuousClock.now
+    private static let minimumInterval: Duration = .milliseconds(50)
+
+    init(update: @escaping @MainActor (Int64) -> Void) {
+        self.update = update
+    }
+
+    func report(_ bytes: Int64) {
+        let now = ContinuousClock.now
+        let shouldReport = lock.withLock {
+            guard now - lastReportTime >= Self.minimumInterval else { return false }
+            lastReportTime = now
+            return true
+        }
+        guard shouldReport else { return }
+        let update = update
+        Task { @MainActor in update(bytes) }
+    }
+}
+
 @Observable
 @MainActor
 class VPhoneFileBrowserModel {
@@ -198,8 +225,11 @@ class VPhoneFileBrowserModel {
         transferName = name
         transferTotal = Int64(clamping: size)
         transferCurrent = 0
+        let throttle = VPhoneTransferProgressThrottle { [weak self] bytes in
+            self?.transferCurrent = bytes
+        }
         do {
-            let data = try await control.downloadFile(path: remotePath)
+            let data = try await control.downloadFile(path: remotePath) { throttle.report($0) }
             transferCurrent = Int64(data.count)
             // A name already taken gets a numbered suffix; nothing is replaced.
             let dest = try directory.writeUniqueFile(named: name, data: data)
@@ -274,8 +304,11 @@ class VPhoneFileBrowserModel {
             transferName = name
             transferTotal = Int64(data.count)
             transferCurrent = 0
+            let throttle = VPhoneTransferProgressThrottle { [weak self] bytes in
+                self?.transferCurrent = bytes
+            }
             do {
-                try await control.uploadFile(path: dest, data: data)
+                try await control.uploadFile(path: dest, data: data) { throttle.report($0) }
                 transferCurrent = Int64(data.count)
                 print("[files] uploaded \(name) (\(data.count) bytes)")
             } catch {
