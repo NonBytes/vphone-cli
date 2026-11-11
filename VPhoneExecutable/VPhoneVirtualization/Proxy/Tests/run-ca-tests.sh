@@ -2,6 +2,7 @@
 # vphone-tier: build
 set -euo pipefail
 root="${0:a:h:h:h}"
+kit="${root:h:h}/VPhoneKit/VPhonePentestKit"
 work="$(mktemp -d "${TMPDIR:-/tmp}/vphone-ca-tests.XXXXXX")"
 trap '/bin/rm -rf "$work"' EXIT
 cat > "$work/openssl.cnf" <<'CONFIG'
@@ -20,7 +21,7 @@ openssl x509 -in "$work/ca.pem" -outform DER -out "$work/ca.der"
 sed 's/CA:true/CA:false/; s/keyCertSign,cRLSign/digitalSignature/' "$work/openssl.cnf" > "$work/leaf.cnf"
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -config "$work/leaf.cnf" -subj /CN=Leaf -keyout "$work/leaf-key.pem" -out "$work/leaf.pem" 2>/dev/null
 xcrun --sdk macosx swiftc -swift-version 6 -parse-as-library \
-    "$root/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
+    "$kit/VPhoneProxyConfiguration.swift" \
     "$root/UI/GuestCommunication/VPhoneCACertificate.swift" \
     "${0:a:h}/CACertificateTests.swift" -o "$work/ca-tests" -framework Security -framework CryptoKit
 "$work/ca-tests" "$work"

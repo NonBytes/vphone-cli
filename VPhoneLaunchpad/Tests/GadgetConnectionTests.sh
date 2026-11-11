@@ -5,6 +5,7 @@ root="$(cd "${0:a:h}/../.." && pwd)"
 out="$root/.build/gadget-connection-tests"
 mkdir -p "$out"
 xcrun swiftc -swift-version 6 -parse-as-library -target arm64-apple-macos15.0 -module-cache-path "$out/modules" \
- "$root/VPhoneLaunchpad/VPhonePentest/Models/"{VPhoneGadgetConnection,VPhoneProxyConfiguration}.swift \
+ "$root/VPhoneLaunchpad/VPhonePentest/Models/VPhoneGadgetConnection.swift" \
+ "$root/VPhoneKit/VPhonePentestKit/VPhoneProxyConfiguration.swift" \
  "${0:a:h}/GadgetConnectionTests.swift" -o "$out/tests"
 "$out/tests" "$@"

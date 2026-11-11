@@ -156,22 +156,6 @@ struct VPhoneLaunchpadNewMachineAdvancedView: View {
     /// Switching preset here re-bases the overrides for the same reason the editor
     /// does: they are read as a difference from whichever preset is active.
     private var presetBinding: Binding<String> {
-        Binding(
-            get: { patches.preset },
-            set: { identifier in
-                if identifier == VPhoneLaunchpadPatchSelection.otherPresetTag {
-                    VPhoneLaunchpadPresetFilePanel.choose { path in
-                        patches = VPhoneLaunchpadPatchSelection(presetFile: path)
-                        reloadPatches()
-                    }
-                    return
-                }
-                guard identifier != patches.preset else {
-                    return
-                }
-                patches = VPhoneLaunchpadPatchSelection(preset: identifier)
-                reloadPatches()
-            },
-        )
+        VPhoneLaunchpadNewMachineView.makePresetBinding(patches: $patches, reload: reloadPatches)
     }
 }

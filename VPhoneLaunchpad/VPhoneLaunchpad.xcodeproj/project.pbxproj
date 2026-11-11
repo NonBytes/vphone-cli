@@ -127,7 +127,7 @@
 			productReference = 5A10000000000000000000E1 /* vphone-launchpad-launcher */;
 			productType = "com.apple.product-type.tool";
 		};
-        5A2000000000000000000008 /* VPhonePentest */ = {isa = PBXNativeTarget; buildConfigurationList = 5A2000000000000000000009; buildPhases = (5A200000000000000000000A, 5A200000000000000000000B, 5A200000000000000000000C, 5A200000000000000000000D, ); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (5A2000000000000000000004, ); name = VPhonePentest; packageProductDependencies = (5A3000000000000000000002, ); productName = VPhonePentest; productReference = 5A2000000000000000000002; productType = "com.apple.product-type.application"; };
+        5A2000000000000000000008 /* VPhonePentest */ = {isa = PBXNativeTarget; buildConfigurationList = 5A2000000000000000000009; buildPhases = (5A2000000000000000000010, 5A200000000000000000000A, 5A200000000000000000000B, 5A200000000000000000000C, 5A200000000000000000000D, ); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (5A2000000000000000000004, ); name = VPhonePentest; packageProductDependencies = (5A3000000000000000000002, ); productName = VPhonePentest; productReference = 5A2000000000000000000002; productType = "com.apple.product-type.application"; };
 
 /* End PBXNativeTarget section */
 /* Begin PBXProject section */
@@ -151,6 +151,7 @@
         5A200000000000000000000C = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 /* Begin PBXShellScriptBuildPhase section */
+        5A2000000000000000000010 = {isa = PBXShellScriptBuildPhase; alwaysOutOfDate = 1; buildActionMask = 2147483647; files = (); inputPaths = (); name = "Build VPhonePentestKit"; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/zsh; shellScript = "set -euo pipefail\n\"$SRCROOT/../scripts/build-pentest-kit.zsh\" \"$CONFIGURATION\" \"$BUILT_PRODUCTS_DIR/PentestKit\"\n"; };
         5A200000000000000000000D = {isa = PBXShellScriptBuildPhase; alwaysOutOfDate = 1; buildActionMask = 2147483647; files = (); inputPaths = (); name = "Stage Pentest Helpers"; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/zsh; shellScript = "\"$SRCROOT/Build/StagePentestTools.sh\""; };
 
 		5A10000000000000000000F2 /* Stage Licences */ = {

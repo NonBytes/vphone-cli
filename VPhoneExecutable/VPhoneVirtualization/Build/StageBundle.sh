@@ -116,28 +116,28 @@ done
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
     -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
     "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/main.swift" \
-    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
+    "$root/VPhoneKit/VPhonePentestKit/VPhoneProxyConfiguration.swift" \
     -o "$guest/vphone-guest-proxy" -framework Foundation
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-proxy"
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
     -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
     "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/Certificates/main.swift" \
     "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneCACertificate.swift" \
-    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneProxyConfiguration.swift" \
+    "$root/VPhoneKit/VPhonePentestKit/VPhoneProxyConfiguration.swift" \
     -o "$guest/vphone-guest-ca" -framework Foundation -framework Security -framework CryptoKit
 /usr/bin/codesign --force --sign - \
     --entitlements "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/Certificates/GuestCA.entitlements" "$guest/vphone-guest-ca"
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
     -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
     "$root/VPhoneExecutable/VPhoneVirtualization/Frida/main.swift" \
-    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneFridaStatus.swift" \
+    "$root/VPhoneKit/VPhonePentestKit/VPhoneFridaStatus.swift" \
     -o "$guest/vphone-guest-frida" -framework Foundation
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-frida"
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
     -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
     "$root/VPhoneExecutable/VPhoneVirtualization/Sandbox/main.swift" \
     "$root/VPhoneExecutable/VPhoneVirtualization/Sandbox/VPhoneSandboxScanner.swift" \
-    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneSandboxSnapshot.swift" \
+    "$root/VPhoneKit/VPhonePentestKit/VPhoneSandboxSnapshot.swift" \
     -o "$guest/vphone-guest-sandbox" -framework Foundation -framework CryptoKit
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-sandbox"
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
@@ -146,7 +146,7 @@ done
     -o "$guest/vphone-guest-icons" -framework UIKit
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-icons"
 network="$root/VPhoneExecutable/VPhoneVirtualization/Network"
-network_shared="$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication"
+network_shared="$root/VPhoneKit/VPhonePentestKit"
 /bin/mkdir -p "$DERIVED_FILE_DIR"
 /usr/bin/xcrun --sdk iphoneos clang -arch arm64 -target arm64-apple-ios17.0 -O2 \
     -c "$network/VPhoneCaptureNative.c" -o "$DERIVED_FILE_DIR/vphone-capture.o"
@@ -156,7 +156,7 @@ network_shared="$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunicatio
     "$network/main.swift" "$network/VPhoneGuestCapture.swift" \
     "$network_shared/VPhoneNetworkCapture.swift" "$network_shared/VPhoneNetworkProbe.swift" \
     "$network_shared/VPhoneProxyConfiguration.swift" "$DERIVED_FILE_DIR/vphone-capture.o" \
-    -o "$guest/vphone-guest-network" -framework Foundation
+    -o "$guest/vphone-guest-network" -framework Foundation -framework Security
 /usr/bin/codesign --force --sign - "$guest/vphone-guest-network"
 /bin/cp "$tvos_daemon_products/vphoned" "$guest/vphoned-tvos"
 # Watch guests still run the iOS daemon marked watchOS: watchOS 8 is iOS 15's

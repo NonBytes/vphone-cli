@@ -382,11 +382,19 @@ struct VPhoneLaunchpadNewMachineView: View {
         Section {
             TextField("Name", text: $name)
             firmwareChoice
+            presetChoice
         } footer: {
             if let nameProblem {
                 Text(nameProblem).foregroundStyle(.red)
             } else {
-                firmwareNote
+                VStack(alignment: .leading, spacing: 4) {
+                    firmwareNote
+                    if let summary = patchCatalog?.preset(patches.preset)?.displaySummary,
+                       !summary.isEmpty,
+                       patches.preset != VPhoneLaunchpadPatchSelection.defaultPreset(forDevice: guestProductType) {
+                        Text(verbatim: summary).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
 
@@ -448,6 +456,49 @@ struct VPhoneLaunchpadNewMachineView: View {
             placeholderPicker("Device")
             placeholderPicker("iOS")
         }
+    }
+
+    @ViewBuilder
+    private var presetChoice: some View {
+        if let patchCatalog {
+            Picker("Preset", selection: Self.makePresetBinding(patches: $patches) {
+                Task { await loadPatchCatalog() }
+            }) {
+                ForEach(patchCatalog.presets) { preset in
+                    Text(verbatim: preset.displayTitle).tag(preset.identifier)
+                }
+                Divider()
+                Text("Other…").tag(VPhoneLaunchpadPatchSelection.otherPresetTag)
+            } currentValueLabel: {
+                let title = patchCatalog.preset(patches.preset)?.displayTitle ?? patches.preset
+                Text(verbatim: patches.hasOverrides ? "\(title) *" : title)
+            }
+        } else {
+            placeholderPicker("Preset")
+        }
+    }
+
+    /// Re-bases overrides on preset switch, or opens a custom preset plist panel.
+    @MainActor
+    static func makePresetBinding(
+        patches: Binding<VPhoneLaunchpadPatchSelection>,
+        reload: @escaping () -> Void,
+    ) -> Binding<String> {
+        Binding(
+            get: { patches.wrappedValue.preset },
+            set: { identifier in
+                if identifier == VPhoneLaunchpadPatchSelection.otherPresetTag {
+                    VPhoneLaunchpadPresetFilePanel.choose { path in
+                        patches.wrappedValue = VPhoneLaunchpadPatchSelection(presetFile: path)
+                        reload()
+                    }
+                    return
+                }
+                guard identifier != patches.wrappedValue.preset else { return }
+                patches.wrappedValue = VPhoneLaunchpadPatchSelection(preset: identifier)
+                reload()
+            },
+        )
     }
 
     /// Whether the pairing's iOS or iPadOS IPSW is downloaded, under the name

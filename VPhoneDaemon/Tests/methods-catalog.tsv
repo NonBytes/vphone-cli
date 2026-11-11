@@ -117,7 +117,7 @@ location.services	never	enabled:boolean	-	enabled:boolean	read
 location.set	never	latitude:number!,longitude:number!,altitude:number,horizontal_accuracy:number,vertical_accuracy:number,speed:number,course:number	-	location:object,simulating:boolean	mutating
 logs.crash	never	path:string!	-	bytes:integer,content:string,encoding:string,path:string,size:integer,truncated:boolean	excluded:needs params
 logs.crashes	never	bundle_id:string	-	count:integer,crashes:any	read
-logs.syslog	never	seconds:number,process:string,level:string,max_lines:integer,subsystem:string,category:string,message_contains:string	-	count:any?,entries:array?,error:string?,seconds:number?,source:string?,truncated:boolean?	excluded:streams for a time window
+logs.syslog	never	seconds:number,process:string,level:string,max_lines:integer,subsystem:string,category:string,message_contains:string,session:string	-	count:integer,entries:any,seconds:number,source:string,truncated:boolean	excluded:streams for a time window
 memory.jetsam	never	-	-	memory:object,priorities:array?,priorities_error:string?,properties:object*	read
 memory.pressure	never	-	-	memory:object	read
 methods.list	never	-	-	methods:array	read

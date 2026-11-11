@@ -17,7 +17,8 @@ enum LogMethod: String, GuestMethod {
                                 .optional("subsystem", .string, "Keep only lines from this log subsystem"),
                                 .optional("category", .string, "Keep only lines from this log category"),
                                 .optional("message_contains", .string, "Keep only lines whose message contains this text"),
-                                summary: "Capture a bounded window of the guest unified log, filtered by process, level, subsystem or text.", result: [.optional("count", .any), .optional("entries", .array), .optional("error", .string), .optional("seconds", .number), .optional("source", .string), .optional("truncated", .boolean)])
+                                .optional("session", .string, "Keep a continuous live stream open across consecutive polls"),
+                                summary: "Capture a bounded window of the guest unified log, filtered by process, level, subsystem or text.", result: [.required("count", .integer), .required("entries", .any), .required("seconds", .number), .required("source", .string), .required("truncated", .boolean)])
         case .logsCrashes: MethodSpec(.optional("bundle_id", .string, "Keep only reports whose file name contains this bundle id or the app executable name, ignoring case"), summary: "List crash reports newest first with path, name, process name, size and modification time.", result: [.required("count", .integer), .required("crashes", .any)])
         case .logsCrash: MethodSpec(.required("path", .string, "Crash report path as returned by logs.crashes"), summary: "Read one crash report as UTF-8 text with its size; fails for non-text files.", result: [.required("bytes", .integer), .required("content", .string), .required("encoding", .string), .required("path", .string), .required("size", .integer), .required("truncated", .boolean)])
         }
@@ -28,15 +29,24 @@ extension GuestAPI {
     static func executeLog(_ m: LogMethod, _ params: [String: Any]) throws -> [String: Any] {
         switch m {
         case .logsSyslog:
-            return try captureSyslog(
-                seconds: number(params, "seconds", default: 2),
+            let seconds = number(params, "seconds", default: 2)
+            let batch = try GuestSyslog.capture(
+                seconds: seconds,
                 process: optionalString(params, "process"),
                 level: optionalString(params, "level") ?? "all",
                 maxLines: (params["max_lines"] as? NSNumber)?.intValue ?? 500,
                 subsystem: optionalString(params, "subsystem"),
                 category: optionalString(params, "category"),
                 messageContains: optionalString(params, "message_contains"),
+                session: optionalString(params, "session"),
             )
+            return [
+                "entries": batch.entries.map(\.jsonObject),
+                "count": batch.entries.count,
+                "truncated": batch.truncated,
+                "source": "unified_log",
+                "seconds": seconds,
+            ]
         case .logsCrashes:
             let paths = try crashLogs(bundleID: optionalString(params, "bundle_id"))["crashes"] as? [String] ?? []
             let reports = paths.map { path -> [String: Any] in

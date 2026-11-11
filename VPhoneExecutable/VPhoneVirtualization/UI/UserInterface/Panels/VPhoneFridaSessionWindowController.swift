@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -16,6 +19,7 @@ final class VPhoneFridaSessionModel {
     var scriptSource = ""
     /// Set when the loaded script is one of the built-ins, not a chosen file.
     var builtInScript: VPhoneFridaBuiltInScript?
+    var scriptWarning: String?
     var log = ""
     var error: String?
     var state = "Detached"
@@ -80,6 +84,7 @@ final class VPhoneFridaSessionModel {
                     scriptURL = url
                     scriptSource = source
                     builtInScript = nil
+                    scriptWarning = VPhoneFridaBuiltInScript.externalObjCWarning(for: source)
                     error = nil
                 } catch { self.error = error.localizedDescription }
             }
@@ -91,7 +96,15 @@ final class VPhoneFridaSessionModel {
         scriptURL = nil
         scriptSource = script.source
         builtInScript = script
+        scriptWarning = nil
         error = nil
+    }
+
+    func clearScript() {
+        scriptURL = nil
+        builtInScript = nil
+        scriptSource = ""
+        scriptWarning = nil
     }
 
     func chooseApp() {
@@ -138,7 +151,9 @@ final class VPhoneFridaSessionModel {
                 guard request == generation, control.isConnected else { relay.stop(); return }
                 address = "127.0.0.1:\(port)"
             }
-            let client = VPhoneFridaClient()
+            let client = VPhoneFridaClient(
+                missingExecutableMessage: "The bundled Frida client is missing. Build and install the complete VPhone bundle."
+            )
             client.onEvent = { [weak self] event in self?.receive(event) }
             client.onExit = { [weak self] failure in
                 guard let self else { return }
@@ -157,6 +172,10 @@ final class VPhoneFridaSessionModel {
             ])
             append("[session] \(mode == "spawn" ? "Spawn" : "Attach") \(app.bundleID)")
             if let scriptURL { append("[script] " + scriptURL.lastPathComponent) }
+            if builtInScript == nil, let warning = VPhoneFridaBuiltInScript.externalObjCWarning(for: scriptSource) {
+                scriptWarning = warning
+                append("[warning] " + warning)
+            }
         } catch {
             guard request == generation else { return }
             relay?.stop(); relay = nil
@@ -169,7 +188,11 @@ final class VPhoneFridaSessionModel {
         busy = true; error = nil
         client.armTimeout()
         client.send(["command": "load", "source": scriptSource])
-        append("[script] Loading " + (scriptURL?.lastPathComponent ?? "script"))
+        append("[script] Loading " + (builtInScript?.title ?? scriptURL?.lastPathComponent ?? "script"))
+        if builtInScript == nil, let warning = VPhoneFridaBuiltInScript.externalObjCWarning(for: scriptSource) {
+            scriptWarning = warning
+            append("[warning] " + warning)
+        }
     }
 
     func detach() {
@@ -192,8 +215,11 @@ final class VPhoneFridaSessionModel {
             client?.cancelTimeout(); busy = false
             error = event.message ?? "Frida operation failed"
             append("[error] " + (error ?? ""))
+            maybeAppendObjCHint(for: error ?? "")
         case "message":
-            append(event.message ?? "")
+            let text = event.message ?? ""
+            append(text)
+            maybeAppendObjCHint(for: text)
         case "data":
             append("[data: base64] " + (event.message ?? ""))
         case "detached":
@@ -201,6 +227,13 @@ final class VPhoneFridaSessionModel {
             append("[session] " + (event.message ?? "Target detached"))
         default: break
         }
+    }
+
+    private func maybeAppendObjCHint(for text: String) {
+        guard VPhoneFridaBuiltInScript.isMissingObjCRuntimeMessage(text) else { return }
+        let hint = "Frida 17 omits the built-in ObjC bridge by default. Rewrite Objective-C hooks with libobjc.A.dylib C exports or choose a built-in script."
+        scriptWarning = hint
+        append("[hint] " + hint)
     }
 
     private func append(_ text: String) {
@@ -279,7 +312,7 @@ struct VPhoneFridaSessionView: View {
                 }.disabled(model.busy).fixedSize()
                 Text(model.builtInScript?.title ?? model.scriptURL?.lastPathComponent ?? "No script selected").lineLimit(1)
                 if model.scriptURL != nil || model.builtInScript != nil {
-                    Button("Clear Selection") { model.scriptURL = nil; model.builtInScript = nil; model.scriptSource = "" }.disabled(model.busy)
+                    Button("Clear Selection") { model.clearScript() }.disabled(model.busy)
                 }
                 Spacer()
                 Button("Load / Replace Script") { model.loadScript() }
@@ -290,6 +323,12 @@ struct VPhoneFridaSessionView: View {
             } else {
                 Text("Choose a local UTF-8 .js file (up to 512 KiB), or a built-in one above. Scripts run in the selected guest process. Frida 17 scripts using ObjC/Swift bridges must bundle those bridges themselves.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            if let warning = model.scriptWarning {
+                Text(warning)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .textSelection(.enabled)
             }
             HStack {
                 Text(model.state).font(.system(.body, design: .monospaced))

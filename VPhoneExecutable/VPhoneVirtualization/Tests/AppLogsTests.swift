@@ -42,6 +42,16 @@ struct VPhoneGuestToolStatus { let message: String; let isError: Bool }
         precondition(!model.isRunning, "Scoped logs must require explicit Start")
         model.processFilter = "Other"
         precondition(model.captureParameters["process"] as? String == "Probe", "Editable filters cannot widen app scope")
+        precondition(model.captureParameters(includeSession: false)["session"] == nil, "One-shot refresh must omit session")
+        let firstSession = model.captureParameters(includeSession: true)["session"] as? String
+        precondition(firstSession != nil && model.captureParameters(includeSession: true)["session"] as? String == firstSession, "Continuous polls reuse the active session")
+        model.isRunning = true; model.isRunning = false
+        let rotatedAfterPause = model.captureParameters(includeSession: true)["session"] as? String
+        precondition(rotatedAfterPause != nil && rotatedAfterPause != firstSession, "Pausing must rotate the log session")
+        model.levelFilter = .error
+        let rotatedAfterFilter = model.captureParameters(includeSession: true)["session"] as? String
+        precondition(rotatedAfterFilter != nil && rotatedAfterFilter != rotatedAfterPause, "Changing level filter must rotate the log session")
+        model.levelFilter = .all
         control.response = ["entries": [
             ["process": "Probe", "pid": 12, "message": "old process"],
             ["process": "ProbeHelper", "pid": 13, "message": "other process"],

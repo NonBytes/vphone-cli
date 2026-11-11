@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 extension VPhoneGuestControl {
     func guestProxy(_ request: VPhoneProxyRequest? = nil) async throws -> VPhoneProxyStatus {

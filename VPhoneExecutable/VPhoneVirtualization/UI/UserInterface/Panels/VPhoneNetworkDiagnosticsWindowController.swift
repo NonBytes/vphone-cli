@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -12,8 +15,10 @@ final class VPhoneNetworkDiagnosticsModel {
     var interfaces = ["en0", "lo0"]
     var targetHost = ""
     var targetPort = "8080"
+    var httpsURL = "https://example.com/"
     var hostProbe: VPhoneNetworkProbeResult?
     var guestProbe: VPhoneNetworkProbeResult?
+    var httpsProbe: VPhoneHTTPSProbeResult?
     var diagnosticsBusy = false
     var captureBusy = false
     var loadingStatus = false
@@ -97,6 +102,24 @@ final class VPhoneNetworkDiagnosticsModel {
         } catch { diagnosticsError = error.localizedDescription }
     }
 
+    func verifyHTTPSProxy() async {
+        guard !diagnosticsBusy, control.isConnected else { return }
+        diagnosticsBusy = true; diagnosticsError = nil; httpsProbe = nil
+        defer { diagnosticsBusy = false }
+        do {
+            let activeProxy = try? await control.guestProxy()
+            if let activeProxy { proxy = activeProxy }
+            let request: VPhoneHTTPSProbeRequest
+            if let activeProxy, activeProxy.enabled, !activeProxy.host.isEmpty, activeProxy.port > 0 {
+                request = VPhoneHTTPSProbeRequest(url: httpsURL, proxyHost: activeProxy.host, proxyPort: activeProxy.port)
+            } else {
+                request = VPhoneHTTPSProbeRequest(url: httpsURL, proxyHost: nil, proxyPort: nil)
+            }
+            let json = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
+            httpsProbe = try await control.guestTool("vphone-guest-network", arguments: ["verify-https", json], as: VPhoneHTTPSProbeResult.self)
+        } catch { diagnosticsError = error.localizedDescription }
+    }
+
     func reloadCapture() async {
         guard !captureBusy, !loadingStatus else { return }
         loadingStatus = true
@@ -176,11 +199,12 @@ final class VPhoneNetworkDiagnosticsModel {
             struct Report: Encodable {
                 let capturedAt: Double; let guestAddresses: String; let guestIPv4: String
                 let proxy: VPhoneProxyStatus?; let hostProbe: VPhoneNetworkProbeResult?; let guestProbe: VPhoneNetworkProbeResult?
+                let httpsProbe: VPhoneHTTPSProbeResult?
                 let capture: VPhoneCaptureStatus
             }
             let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(Report(capturedAt: Date().timeIntervalSince1970, guestAddresses: addresses,
-                guestIPv4: ipv4, proxy: proxy, hostProbe: hostProbe, guestProbe: guestProbe, capture: capture))
+                guestIPv4: ipv4, proxy: proxy, hostProbe: hostProbe, guestProbe: guestProbe, httpsProbe: httpsProbe, capture: capture))
             let panel = NSSavePanel(); panel.allowedContentTypes = [.json]; panel.nameFieldStringValue = "network-diagnostics.json"
             panel.begin { [weak self] response in
                 Task { @MainActor [weak self] in
@@ -245,6 +269,14 @@ private struct VPhoneNetworkDiagnosticsView: View {
                 HStack(alignment: .top) {
                     probe(model.hostProbe, title: "Host VM Process")
                     probe(model.guestProbe, title: "Guest")
+                }
+                HStack {
+                    TextField("https://example.com/", text: $model.httpsURL)
+                    Button("Verify HTTPS Proxy + CA Trust") { Task { await model.verifyHTTPSProxy() } }
+                        .disabled(model.diagnosticsBusy || !model.control.isConnected)
+                }
+                if let https = model.httpsProbe {
+                    httpsProbeView(https)
                 }
                 if let error = model.diagnosticsError { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
                 Divider()
@@ -311,5 +343,31 @@ private struct VPhoneNetworkDiagnosticsView: View {
             } else { Text("Not tested").foregroundStyle(.secondary) }
         }.font(.system(.caption, design: .monospaced)).textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func httpsProbeView(_ result: VPhoneHTTPSProbeResult) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label(result.trusted ? "HTTPS & CA Trust Verified" : "HTTPS / CA Check Failed",
+                      systemImage: result.trusted ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(result.trusted ? .green : .orange)
+                Spacer()
+                Text("\(result.elapsedMilliseconds) ms").foregroundStyle(.secondary)
+            }
+            Text("URL: \(result.url) — Proxy: \(result.proxyEndpoint ?? "direct / system")\(result.httpStatus.map { " — HTTP \($0)" } ?? "")")
+            if let leaf = result.leafSubject {
+                Text("Leaf cert: \(leaf)" + (result.rootIssuer.map { " — Issuer/Root: \($0)" } ?? ""))
+            }
+            if let error = result.error {
+                Text("Error: \(error)").foregroundStyle(.red)
+            }
+            if let hint = result.hint {
+                Text(hint).foregroundStyle(result.trusted ? Color.secondary : Color.orange)
+            }
+        }.font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
     }
 }

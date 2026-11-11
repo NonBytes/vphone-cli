@@ -1,4 +1,7 @@
 import CryptoKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Darwin
 import Foundation
 import Security

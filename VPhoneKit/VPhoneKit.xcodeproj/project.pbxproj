@@ -47,6 +47,7 @@
 		AA0000000000000000000033 /* libVPhoneExternalAccessKit.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libVPhoneExternalAccessKit.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000034 /* VPhoneCoreKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPhoneCoreKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000035 /* VPhoneArchiveKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPhoneArchiveKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000036 /* libVPhonePentestKit.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libVPhonePentestKit.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -55,6 +56,7 @@
 		AA0000000000000000000023 /* VPhoneExternalAccessKit */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPhoneExternalAccessKit; sourceTree = "<group>"; };
 		AA0000000000000000000024 /* VPhoneCoreKitTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPhoneCoreKitTests; sourceTree = "<group>"; };
 		AA0000000000000000000025 /* VPhoneArchiveKitTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPhoneArchiveKitTests; sourceTree = "<group>"; };
+		AA0000000000000000000026 /* VPhonePentestKit */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPhonePentestKit; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +112,7 @@
 				AA0000000000000000000021 /* VPhoneCoreKit */,
 				AA0000000000000000000022 /* VPhoneArchiveKit */,
 				AA0000000000000000000023 /* VPhoneExternalAccessKit */,
+				AA0000000000000000000026 /* VPhonePentestKit */,
 				AA0000000000000000000024 /* VPhoneCoreKitTests */,
 				AA0000000000000000000025 /* VPhoneArchiveKitTests */,
 				AA0000000000000000000003 /* Products */,
@@ -122,6 +125,7 @@
 				AA0000000000000000000031 /* libVPhoneCoreKit.a */,
 				AA0000000000000000000032 /* libVPhoneArchiveKit.a */,
 				AA0000000000000000000033 /* libVPhoneExternalAccessKit.a */,
+				AA0000000000000000000036 /* libVPhonePentestKit.a */,
 				AA0000000000000000000034 /* VPhoneCoreKitTests.xctest */,
 				AA0000000000000000000035 /* VPhoneArchiveKitTests.xctest */,
 			);
@@ -193,6 +197,24 @@
 			name = VPhoneExternalAccessKit;
 			productName = VPhoneExternalAccessKit;
 			productReference = AA0000000000000000000033 /* libVPhoneExternalAccessKit.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		AA0000000000000000000016 /* VPhonePentestKit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000086 /* Build configuration list for PBXNativeTarget "VPhonePentestKit" */;
+			buildPhases = (
+				AA0000000000000000000056 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000026 /* VPhonePentestKit */,
+			);
+			name = VPhonePentestKit;
+			productName = VPhonePentestKit;
+			productReference = AA0000000000000000000036 /* libVPhonePentestKit.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		AA0000000000000000000014 /* VPhoneCoreKitTests */ = {
@@ -268,6 +290,7 @@
 				AA0000000000000000000011 /* VPhoneCoreKit */,
 				AA0000000000000000000012 /* VPhoneArchiveKit */,
 				AA0000000000000000000013 /* VPhoneExternalAccessKit */,
+				AA0000000000000000000016 /* VPhonePentestKit */,
 				AA0000000000000000000014 /* VPhoneCoreKitTests */,
 				AA0000000000000000000015 /* VPhoneArchiveKitTests */,
 			);
@@ -304,6 +327,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA0000000000000000000055 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000056 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -489,6 +519,37 @@
 			};
 			name = Release;
 		};
+		AA000000000000000000006B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGNING_ALLOWED = NO;
+				DEFINES_MODULE = YES;
+				ENABLE_TESTABILITY = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = VPhonePentestKit;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AA000000000000000000006C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGNING_ALLOWED = NO;
+				DEFINES_MODULE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = VPhonePentestKit;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 		AA0000000000000000000071 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -566,6 +627,15 @@
 			buildConfigurations = (
 				AA0000000000000000000069 /* Debug */,
 				AA000000000000000000006A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000086 /* Build configuration list for PBXNativeTarget "VPhonePentestKit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000000000000000000006B /* Debug */,
+				AA000000000000000000006C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

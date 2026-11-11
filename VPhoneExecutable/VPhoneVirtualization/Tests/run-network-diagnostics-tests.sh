@@ -3,14 +3,15 @@
 set -euo pipefail
 root="$(cd "${0:a:h}/../../.." && pwd)"
 out="$root/.build/network-diagnostics-tests"
-shared="$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication"
+shared="$root/VPhoneKit/VPhonePentestKit"
 network="$root/VPhoneExecutable/VPhoneVirtualization/Network"
 /bin/mkdir -p "$out"
 /usr/bin/xcrun --sdk macosx clang -target arm64-apple-macos15.0 -O2 -c "$network/VPhoneCaptureNative.c" -o "$out/native.o"
 /usr/bin/xcrun --sdk macosx swiftc -swift-version 6 -parse-as-library -target arm64-apple-macos15.0 \
     -module-cache-path "$out/modules" -import-objc-header "$network/VPhoneCaptureNative.h" \
     "$shared/VPhoneNetworkCapture.swift" "$shared/VPhoneNetworkProbe.swift" \
-    "$shared/VPhoneProxyConfiguration.swift" "${0:a:h}/NetworkDiagnosticsTests.swift" "$out/native.o" -o "$out/tests"
+    "$shared/VPhoneProxyConfiguration.swift" "${0:a:h}/NetworkDiagnosticsTests.swift" "$out/native.o" \
+    -o "$out/tests" -framework Security
 "$out/tests"
 if [[ "${1:-}" == --live ]]; then
     machine="${2:?Pass the test VM name}"

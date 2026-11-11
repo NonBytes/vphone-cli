@@ -264,7 +264,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
 			showEnvVarsInLog = 0;
-			shellScript = "set -euo pipefail\nroot=\"$(cd \"$SRCROOT/../..\" && pwd)\"\n/usr/bin/xcodebuild -hideShellScriptEnvironment -project \"$root/VPhoneKit/VPhoneKit.xcodeproj\" -scheme VPhoneArchiveKit -configuration \"$CONFIGURATION\" -destination 'platform=macOS,arch=arm64' -derivedDataPath \"$root/.build/XcodeKit\" CODE_SIGNING_ALLOWED=NO build\n";
+			shellScript = "set -euo pipefail\nroot=\"$(cd \"$SRCROOT/../..\" && pwd)\"\n/usr/bin/xcodebuild -hideShellScriptEnvironment -project \"$root/VPhoneKit/VPhoneKit.xcodeproj\" -scheme VPhoneArchiveKit -configuration \"$CONFIGURATION\" -destination 'platform=macOS,arch=arm64' -derivedDataPath \"$root/.build/XcodeKit\" CODE_SIGNING_ALLOWED=NO build\n\"$root/scripts/build-pentest-kit.zsh\" \"$CONFIGURATION\" \"$root/.build/XcodeKit/Build/Products/$CONFIGURATION\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -359,6 +359,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lVPhoneCoreKit",
+					"-lVPhonePentestKit",
 				);
 				PRODUCT_NAME = VPhoneVirtualMachineKit;
 				SDKROOT = macosx;
@@ -381,6 +382,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lVPhoneCoreKit",
+					"-lVPhonePentestKit",
 				);
 				PRODUCT_NAME = VPhoneVirtualMachineKit;
 				SDKROOT = macosx;
@@ -429,6 +431,7 @@
 					"$(inherited)",
 					"-lVPhoneVirtualMachineKit",
 					"-lVPhoneCoreKit",
+					"-lVPhonePentestKit",
 				);
 				PRODUCT_NAME = "vphone-vm";
 				SDKROOT = macosx;
@@ -450,6 +453,7 @@
 					"$(inherited)",
 					"-lVPhoneVirtualMachineKit",
 					"-lVPhoneCoreKit",
+					"-lVPhonePentestKit",
 				);
 				PRODUCT_NAME = "vphone-vm";
 				SDKROOT = macosx;

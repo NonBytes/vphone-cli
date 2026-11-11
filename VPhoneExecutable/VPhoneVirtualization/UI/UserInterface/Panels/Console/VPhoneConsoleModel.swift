@@ -1,15 +1,16 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Foundation
 import UniformTypeIdentifiers
 
-/// Streams the guest unified log by running vphoned `logs.syslog` captures
-/// back to back while the window is open and not paused.
+/// Streams the guest unified log by polling vphoned `logs.syslog` back to back
+/// while the window is open and not paused.
 ///
-/// Each capture opens its own `OSLogEventLiveStream` in the guest, collects
-/// events for `captureSeconds`, then invalidates it. Captures never overlap in
-/// time, so no event is reported twice and rows are appended without
-/// de-duplication. Events logged during the round trip between two captures
-/// are not seen.
+/// Continuous streaming passes a `session` identifier so `vphoned` keeps one
+/// `OSLogEventLiveStream` open across consecutive polls without losing events
+/// during the RPC round trip; paused Refresh captures a single 2-second window.
 @MainActor
 @Observable
 final class VPhoneConsoleModel {
@@ -22,12 +23,25 @@ final class VPhoneConsoleModel {
     let appScope: VPhoneAppLogScope?
 
     /// Whether captures run. The window opens streaming.
-    var isRunning = true
+    var isRunning = true {
+        didSet {
+            if !isRunning { streamSessionID = nil }
+        }
+    }
+
     /// A server-side process name filter (case-insensitive substring), sent
     /// with the next capture.
-    var processFilter = ""
+    var processFilter = "" {
+        didSet {
+            if processFilter != oldValue { streamSessionID = nil }
+        }
+    }
+
     var levelFilter: VPhoneConsoleLevelFilter = .all {
-        didSet { rebuildVisible() }
+        didSet {
+            if levelFilter != oldValue { streamSessionID = nil }
+            rebuildVisible()
+        }
     }
 
     /// A client-side filter over the loaded rows.
@@ -54,6 +68,7 @@ final class VPhoneConsoleModel {
     private(set) var lastCaptureTruncated = false
 
     private var nextID = 0
+    private var streamSessionID: String?
 
     init(control: VPhoneGuestControl, appScope: VPhoneAppLogScope? = nil) {
         self.control = control
@@ -94,7 +109,7 @@ final class VPhoneConsoleModel {
         isCapturing = true
         defer { isCapturing = false }
         do {
-            let result = try await control.call("logs.syslog", params: captureParameters)
+            let result = try await control.call("logs.syslog", params: captureParameters(includeSession: !force))
             if !Task.isCancelled && (isRunning || force) {
                 apply(syslogResult: result)
             }
@@ -112,6 +127,10 @@ final class VPhoneConsoleModel {
     }
 
     var captureParameters: [String: Any] {
+        captureParameters(includeSession: false)
+    }
+
+    func captureParameters(includeSession: Bool) -> [String: Any] {
         var params: [String: Any] = [
             "seconds": Self.captureSeconds,
             "level": levelFilter.rawValue,
@@ -120,6 +139,11 @@ final class VPhoneConsoleModel {
         let process = appScope?.process ?? processFilter.trimmingCharacters(in: .whitespacesAndNewlines)
         if !process.isEmpty {
             params["process"] = process
+        }
+        if includeSession {
+            let session = streamSessionID ?? UUID().uuidString
+            streamSessionID = session
+            params["session"] = session
         }
         return params
     }

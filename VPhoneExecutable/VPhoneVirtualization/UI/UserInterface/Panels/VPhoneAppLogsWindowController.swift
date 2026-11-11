@@ -15,13 +15,19 @@ final class VPhoneAppLogsWindowController: NSObject, NSWindowDelegate {
         if window == nil {
             let hosting = NSHostingController(rootView: VPhoneAppLogsView(model: model))
             hosting.sceneBridgingOptions = [.toolbars]
+            hosting.sizingOptions = []
+            let minimumContentSize = NSSize(width: 960, height: 540)
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1140, height: 760),
                 styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
             window.title = "App Logs & Crash Viewer"
             window.contentViewController = hosting
-            window.contentMinSize = NSSize(width: 960, height: 540)
+            window.contentMinSize = minimumContentSize
             window.isReleasedWhenClosed = false; window.delegate = self
-            window.setFrameAutosaveName("vphone-app-logs"); window.center(); self.window = window
+            let restored = window.setFrameUsingName("vphone-app-logs")
+            window.setFrameAutosaveName("vphone-app-logs")
+            Self.clampMinimumContentSize(of: window, minimum: minimumContentSize)
+            if !restored { window.center() }
+            self.window = window
         }
         NSApp.activate(ignoringOtherApps: true); window?.makeKeyAndOrderFront(nil)
         Task { await model.refreshApps() }
@@ -29,6 +35,12 @@ final class VPhoneAppLogsWindowController: NSObject, NSWindowDelegate {
 
     nonisolated func windowWillClose(_: Notification) {
         MainActor.assumeIsolated { model.close(); window = nil }
+    }
+
+    private static func clampMinimumContentSize(of window: NSWindow, minimum: NSSize) {
+        let content = window.contentRect(forFrameRect: window.frame).size
+        guard content.width < minimum.width || content.height < minimum.height else { return }
+        window.setContentSize(NSSize(width: max(content.width, minimum.width), height: max(content.height, minimum.height)))
     }
 }
 
@@ -56,13 +68,14 @@ private struct VPhoneAppLogsView: View {
                         Text("Log executable: \(scope.process). Choose Start to collect new entries. Apps sharing this executable name may match; extensions and system-service logs are excluded.")
                     }
                     Text("Crash candidates are matched by filename using the bundle ID or executable. Verify report identity in its contents. No report is deleted from the guest.")
-                    Text("Log captures run in 2-second batches with gaps between batches, up to 2,000 entries per batch and 10,000 retained rows. Private/redacted values remain redacted. Exports stay local and may contain app data.")
+                    Text("Streaming keeps a continuous log session in the guest across polls, up to 2,000 entries per batch and 10,000 retained rows. Refresh captures a single 2-second window. Private/redacted values remain redacted. Exports stay local and may contain app data.")
                 }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.bottom, 8)
             }
             if let error = model.error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled).padding(.horizontal, 12) }
             Divider()
             if model.selectedApp == nil {
                 ContentUnavailableView("Choose an App", systemImage: "text.magnifyingglass", description: Text("Select an installed app to inspect its new logs and crash report candidates."))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 TabView(selection: $model.tab) {
                     Group {
@@ -70,16 +83,29 @@ private struct VPhoneAppLogsView: View {
                             VPhoneConsoleView(model: console).id(ObjectIdentifier(console))
                         } else if model.resolving {
                             ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             ContentUnavailableView("Logs Unavailable", systemImage: "exclamationmark.triangle", description: Text("Reload App Scope after checking the guest connection and executable."))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }.tabItem { Text("App Logs") }.tag(0)
                     Group {
-                        if let crashes = model.crashes { VPhoneCrashLogsView(model: crashes).id(ObjectIdentifier(crashes)) }
+                        if let crashes = model.crashes {
+                            VPhoneCrashLogsView(model: crashes).id(ObjectIdentifier(crashes))
+                        } else if model.resolving {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ContentUnavailableView("Crash Reports Unavailable", systemImage: "exclamationmark.triangle", description: Text("Reload App Scope after checking the guest connection and executable."))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }.tabItem { Text("Crash Reports") }.tag(1)
-                }.id(model.selectedID)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(model.selectedID)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: model.selectedID) { await model.configure() }
     }
 }

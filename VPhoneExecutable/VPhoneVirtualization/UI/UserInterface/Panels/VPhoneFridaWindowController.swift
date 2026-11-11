@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import SwiftUI
 
 @MainActor
@@ -16,13 +19,22 @@ final class VPhoneFridaModel {
     var busy = false
     var message = ""
     var error: String?
+    var localPortText = "27042"
+    var forwardedPort: UInt16?
+    var forwardBusy = false
+    var forwardError: String?
+    @ObservationIgnored private var portRelay: VPhoneFridaPortRelay?
     let missingKernelPatches: [String]?
     init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
         self.control = control
         missingKernelPatches = VPhoneFridaKernelPatchCheck.missingPatches(machineDirectory: machineDirectory)
     }
     var endpoint: String { (control.guestIPAddress ?? "<guest-ip>") + ":27042" }
-    var command: String { "frida-ps -ai -H \(endpoint) --token \(status?.token ?? "<token>")" }
+    var effectiveEndpoint: String {
+        if let forwardedPort { return "127.0.0.1:\(forwardedPort)" }
+        return endpoint
+    }
+    var command: String { "frida-ps -ai -H \(effectiveEndpoint) --token \(status?.token ?? "<token>")" }
 
     func refreshVersions() async {
         guard !loadingVersions else { return }
@@ -54,8 +66,56 @@ final class VPhoneFridaModel {
         do {
             status = try await control.guestTool("vphone-guest-frida", arguments: [name], as: VPhoneFridaStatus.self)
             if name == "start" { message = "Frida started. Use a matching Frida client on the Mac." }
-            if name == "stop" { message = "Frida stopped." }
+            if name == "stop" {
+                stopForward()
+                message = "Frida stopped."
+            } else if status?.running == false {
+                stopForward()
+            }
         } catch { self.error = String(describing: error) }
+    }
+
+    func toggleForward() async {
+        if forwardedPort != nil {
+            stopForward()
+            message = "Local Frida port forward stopped."
+        } else {
+            await startForward()
+        }
+    }
+
+    func stopForward() {
+        portRelay?.stop()
+        portRelay = nil
+        forwardedPort = nil
+    }
+
+    private func startForward() async {
+        guard !forwardBusy, status?.running == true else { return }
+        forwardBusy = true; forwardError = nil
+        defer { forwardBusy = false }
+        do {
+            let trimmed = localPortText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let portValue = UInt16(trimmed), portValue == 0 || portValue >= 1 else {
+                throw VPhoneProxyError("Local forward port must be 0 (auto) or 1–65535.")
+            }
+            let control = control
+            // Probe guest port 27042 once before binding localhost so failures report immediately.
+            let probe = try await VPhoneGuestShellChannel.openPort(control: control, port: 27042, onOutput: { _ in }, onEnd: { _ in })
+            probe.close()
+            stopForward()
+            let relay = try VPhoneFridaPortRelay(localPort: portValue) { output, end in
+                try await VPhoneGuestShellChannel.openPort(control: control, port: 27042, onOutput: output, onEnd: { _ in end() })
+            }
+            let bound = try await relay.start()
+            portRelay = relay
+            forwardedPort = bound
+            localPortText = String(bound)
+            message = "Forwarding 127.0.0.1:\(bound) -> guest 127.0.0.1:27042."
+        } catch {
+            stopForward()
+            forwardError = error.localizedDescription
+        }
     }
 
     func install() async {
@@ -146,10 +206,28 @@ struct VPhoneFridaView: View {
                     .foregroundStyle(status.running ? .green : .secondary)
                 Text("Installed version: \(status.installed ? (status.version.isEmpty ? "Unknown" : status.version) : "Not installed")")
                 if status.running {
-                    Text("Endpoint: \(model.endpoint)").textSelection(.enabled)
+                    Text("Endpoint: \(model.effectiveEndpoint)").textSelection(.enabled)
                     SecureField("Connection token", text: .constant(status.token))
                     HStack {
-                        Text("frida-ps -ai -H \(model.endpoint) --token <token>").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        Text("Forward to Mac port 127.0.0.1:")
+                        TextField("27042", text: $model.localPortText)
+                            .frame(width: 72)
+                            .disabled(model.forwardedPort != nil || model.forwardBusy || model.busy)
+                        Button(model.forwardedPort == nil ? "Start Forward" : "Stop Forward") {
+                            Task { await model.toggleForward() }
+                        }.disabled(model.forwardBusy || model.busy)
+                        if model.forwardBusy { ProgressView().controlSize(.small) }
+                        if let port = model.forwardedPort {
+                            Text("Active (:\(port))")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                    if let forwardError = model.forwardError {
+                        Text(forwardError).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                    HStack {
+                        Text("frida-ps -ai -H \(model.effectiveEndpoint) --token <token>").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                         Button("Copy command") {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(model.command, forType: .string)

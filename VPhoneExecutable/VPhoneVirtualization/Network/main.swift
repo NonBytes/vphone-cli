@@ -13,6 +13,11 @@ do {
         let target = try JSONDecoder().decode(VPhoneNetworkTarget.self, from: Data(args[1].utf8))
         let result = try VPhoneNetworkProbe.run(target, origin: "Guest")
         FileHandle.standardOutput.write(try JSONEncoder().encode(result))
+    } else if verb == "verify-https", args.count == 2 {
+        guard args[1].utf8.count <= 4096 else { throw VPhoneNetworkError("HTTPS diagnostic request exceeds its limit.") }
+        let request = try JSONDecoder().decode(VPhoneHTTPSProbeRequest.self, from: Data(args[1].utf8))
+        let result = try VPhoneNetworkProbe.verifyHTTPS(request)
+        FileHandle.standardOutput.write(try JSONEncoder().encode(result))
     } else {
         let store = try VPhoneGuestCapture()
         let state: VPhoneCaptureStatus

@@ -97,6 +97,28 @@ import Foundation
         _ = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(listener, $0, &size) } }
         let result = try VPhoneNetworkProbe.run(.init(host: "127.0.0.1", port: Int(UInt16(bigEndian: address.sin_port))), origin: "Fixture")
         check(result.addresses == ["127.0.0.1"] && result.attempts.first?.connected == true, "loopback TCP probe")
-        print("Network diagnostics fixtures passed (filters, PCAP, BPF decoder, local DNS/TCP).")
+
+        rejects("HTTPS URL requires https scheme") {
+            _ = try VPhoneNetworkProbe.verifyHTTPS(.init(url: "http://example.com/", proxyHost: nil, proxyPort: nil))
+        }
+        rejects("HTTPS proxy requires valid port") {
+            _ = try VPhoneNetworkProbe.verifyHTTPS(.init(url: "https://example.com/", proxyHost: "127.0.0.1", proxyPort: 70000))
+        }
+        // Close an ephemeral port so loopback proxy verification fails deterministically offline.
+        let closedListener = socket(AF_INET, SOCK_STREAM, 0)
+        guard closedListener >= 0 else { throw VPhoneNetworkError("Cannot create closed fixture socket") }
+        var closedAddr = sockaddr_in()
+        closedAddr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size); closedAddr.sin_family = sa_family_t(AF_INET)
+        closedAddr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        _ = withUnsafePointer(to: &closedAddr) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(closedListener, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) } }
+        var closedLen = socklen_t(MemoryLayout<sockaddr_in>.size)
+        _ = withUnsafeMutablePointer(to: &closedAddr) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(closedListener, $0, &closedLen) } }
+        let unusedPort = Int(UInt16(bigEndian: closedAddr.sin_port))
+        close(closedListener)
+        let failedHTTPS = try VPhoneNetworkProbe.verifyHTTPS(.init(url: "https://example.com/", proxyHost: "127.0.0.1", proxyPort: unusedPort))
+        check(!failedHTTPS.trusted && failedHTTPS.proxyEndpoint == "127.0.0.1:\(unusedPort)" && failedHTTPS.error != nil,
+              "closed loopback proxy fails closed with diagnostic message")
+
+        print("Network diagnostics fixtures passed (filters, PCAP, BPF decoder, local DNS/TCP, HTTPS proxy probe).")
     }
 }
