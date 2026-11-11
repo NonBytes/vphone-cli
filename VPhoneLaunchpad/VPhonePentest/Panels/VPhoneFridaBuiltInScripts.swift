@@ -21,9 +21,9 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
     var summary: String {
         switch self {
         case .sslPinningBypass:
-            "Hooks Security.framework's trust evaluation so a proxy's certificate is accepted, covering most apps that pin through the system trust store. An app with its own pinning (a bundled public key check, for example) needs a script of its own."
+            "Hooks Security.framework's trust evaluation (SecTrustEvaluate, SecTrustEvaluateWithError, SecTrustGetTrustResult) so a proxy's certificate is accepted, covering most apps that pin through the system trust store. An app with its own pinning (a bundled public key check, for example) needs a script of its own."
         case .jailbreakDetectionBypass:
-            "Hides the common jailbreak tells (Cydia-family paths, the cydia:// scheme, su/bash/substrate paths, fork()) from the usual Objective-C and libc checks. A detector with its own anti-Frida or anti-debugger check needs a script of its own."
+            "Hides the common jailbreak tells (Cydia/Sileo/Zebra/Filza/rootless paths and URL schemes, substrate/substitute/libhooker/ellekit/bash/ssh/sshd/apt paths, fork()) from the usual Objective-C and libc checks (access, stat, lstat, fopen). A detector with its own anti-Frida or anti-debugger check needs a script of its own."
         }
     }
 
@@ -41,43 +41,56 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
     // implements itself (e.g. comparing a bundled public key by hand).
     (function () {
         var security = Process.findModuleByName('Security');
-        var evaluate = security ? security.findExportByName('SecTrustEvaluate') : null;
-        if (evaluate) {
-            Interceptor.replace(evaluate, new NativeCallback(function (trust, result) {
+        var hookedCount = 0;
+
+        var hookTrustResult = function (name) {
+            var addr = security ? security.findExportByName(name) : null;
+            if (!addr) return;
+            Interceptor.replace(addr, new NativeCallback(function (trust, result) {
                 if (!result.isNull()) {
                     result.writeU32(1); // kSecTrustResultProceed
                 }
                 return 0; // errSecSuccess
             }, 'int', ['pointer', 'pointer']));
-            console.log('[+] SecTrustEvaluate hooked');
-        }
+            hookedCount++;
+            console.log('[+] ' + name + ' hooked');
+        };
+
+        hookTrustResult('SecTrustEvaluate');
+        hookTrustResult('SecTrustGetTrustResult');
+
         var evaluateWithError = security ? security.findExportByName('SecTrustEvaluateWithError') : null;
         if (evaluateWithError) {
-            Interceptor.replace(evaluateWithError, new NativeCallback(function () {
+            Interceptor.replace(evaluateWithError, new NativeCallback(function (trust, error) {
+                if (!error.isNull()) {
+                    error.writePointer(ptr(0));
+                }
                 return 1; // true
             }, 'bool', ['pointer', 'pointer']));
+            hookedCount++;
             console.log('[+] SecTrustEvaluateWithError hooked');
         }
-        if (!evaluate && !evaluateWithError) {
-            console.log('[-] Neither SecTrustEvaluate nor SecTrustEvaluateWithError was found');
+        if (hookedCount === 0) {
+            console.log('[-] No SecTrust* exports were found in Security');
         }
     })();
     """
 
     private static let jailbreakDetectionBypassSource = """
-    // Jailbreak Detection Bypass — hides the usual tells (Cydia-family
-    // paths, the cydia:// scheme, su/bash/substrate paths, fork()) from the
-    // common Objective-C and libc checks. Does not cover an app's own
-    // anti-Frida or anti-debugger checks.
+    // Jailbreak Detection Bypass — hides the usual tells (Cydia/Sileo/Zebra/Filza
+    // paths and URL schemes, substrate/substitute/libhooker/ellekit/bash/ssh/sshd/apt
+    // paths, fork()) from common Objective-C and libc checks. Does not cover an
+    // app's own anti-Frida or anti-debugger checks.
     (function () {
-        var suspectPattern = /Cydia|Sileo|Zebra|substrate|MobileSubstrate|\\/bin\\/su|\\/usr\\/sbin\\/sshd|\\/etc\\/apt|\\/private\\/var\\/lib\\/apt/i;
+        var suspectPattern = /Cydia|Sileo|Zebra|Filza|substrate|MobileSubstrate|libhooker|libsubstitute|ellekit|\\/var\\/jb|\\/private\\/var\\/jb|\\/bin\\/bash|\\/bin\\/su|\\/usr\\/bin\\/ssh|\\/usr\\/sbin\\/sshd|\\/etc\\/apt|\\/private\\/var\\/lib\\/apt/i;
+        var suspectSchemePattern = /^(?:cydia|sileo|zbra|filza|undecimus):\\/\\//i;
 
         if (typeof ObjC !== 'undefined' && ObjC.available) {
             var fileExists = ObjC.classes.NSFileManager['- fileExistsAtPath:'];
             if (fileExists) {
                 Interceptor.attach(fileExists.implementation, {
                     onEnter(args) {
-                        this.suspect = suspectPattern.test(new ObjC.Object(args[2]).toString());
+                        this.suspect = !args[2].isNull() && suspectPattern.test(new ObjC.Object(args[2]).toString());
                     },
                     onLeave(retval) {
                         if (this.suspect) retval.replace(0);
@@ -89,7 +102,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
             if (canOpenURL) {
                 Interceptor.attach(canOpenURL.implementation, {
                     onEnter(args) {
-                        this.suspect = /cydia:\\/\\//i.test(new ObjC.Object(args[2]).toString());
+                        this.suspect = !args[2].isNull() && suspectSchemePattern.test(new ObjC.Object(args[2]).toString());
                     },
                     onLeave(retval) {
                         if (this.suspect) retval.replace(0);
@@ -142,7 +155,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
                     Interceptor.attach(canOpenURLImp, {
                         onEnter(args) {
                             var urlStr = args[2].isNull() ? ptr(0) : objcMsgSendPtr(args[2], absStrSel);
-                            this.suspect = /cydia:\\/\\//i.test(nsStringToJs(urlStr));
+                            this.suspect = suspectSchemePattern.test(nsStringToJs(urlStr));
                         },
                         onLeave(retval) {
                             if (this.suspect) retval.replace(0);
@@ -155,18 +168,53 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
             }
         }
 
-        var access = Module.findGlobalExportByName('access');
-        if (access) {
-            Interceptor.attach(access, {
+        var errnoAddr = Module.findGlobalExportByName('__error');
+        var errnoFn = errnoAddr ? new NativeFunction(errnoAddr, 'pointer', []) : null;
+        var setEnoent = function () {
+            if (errnoFn) errnoFn().writeS32(2); // ENOENT
+        };
+
+        var hooked = {};
+        ['access', 'stat', 'lstat', 'stat64', 'lstat64'].forEach(function (name) {
+            var addr = Module.findGlobalExportByName(name);
+            if (!addr) return;
+            var key = addr.toString();
+            if (hooked[key]) return;
+            hooked[key] = true;
+            Interceptor.attach(addr, {
                 onEnter(args) {
                     this.suspect = !args[0].isNull() && suspectPattern.test(args[0].readUtf8String() || '');
                 },
                 onLeave(retval) {
-                    if (this.suspect) retval.replace(-1);
+                    if (this.suspect) {
+                        retval.replace(-1);
+                        setEnoent();
+                    }
                 },
             });
-            console.log('[+] access() hooked');
+            console.log('[+] ' + name + '() hooked');
+        });
+
+        var fopenAddr = Module.findGlobalExportByName('fopen');
+        var fcloseAddr = Module.findGlobalExportByName('fclose');
+        var fcloseFn = fcloseAddr ? new NativeFunction(fcloseAddr, 'int', ['pointer']) : null;
+        if (fopenAddr && !hooked[fopenAddr.toString()]) {
+            hooked[fopenAddr.toString()] = true;
+            Interceptor.attach(fopenAddr, {
+                onEnter(args) {
+                    this.suspect = !args[0].isNull() && suspectPattern.test(args[0].readUtf8String() || '');
+                },
+                onLeave(retval) {
+                    if (this.suspect) {
+                        if (!retval.isNull() && fcloseFn) fcloseFn(retval);
+                        retval.replace(ptr(0));
+                        setEnoent();
+                    }
+                },
+            });
+            console.log('[+] fopen() hooked');
         }
+
         var fork = Module.findGlobalExportByName('fork');
         if (fork) {
             Interceptor.replace(fork, new NativeCallback(function () { return -1; }, 'int', []));

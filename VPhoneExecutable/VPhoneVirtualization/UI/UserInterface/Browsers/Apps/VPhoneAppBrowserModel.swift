@@ -523,7 +523,7 @@ final class VPhoneAppBrowserModel {
             panel.begin { [weak self] response in
                 Task { @MainActor [weak self] in
                     guard let self, response == .OK, let url = panel.url else { return }
-                    do { try data.write(to: url, options: .atomic) }
+                    do { try VPhoneSandboxSnapshot.writeReport(data, to: url) }
                     catch { status = failure("Unable to save the inspector report.", error) }
                 }
             }

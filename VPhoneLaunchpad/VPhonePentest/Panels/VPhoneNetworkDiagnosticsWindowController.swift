@@ -24,6 +24,7 @@ final class VPhoneNetworkDiagnosticsModel {
     var filterPort = ""
     var capture = VPhoneCaptureStatus()
     var confirmingDiscard = false
+    private static let stopFlushMessage = "Stop requested; waiting for the capture file to flush."
     private var monitor: Task<Void, Never>?
     private var generation = 0
     private var opened = false
@@ -106,6 +107,7 @@ final class VPhoneNetworkDiagnosticsModel {
             try state.validate()
             guard operation == generation, opened, !captureBusy else { return }
             capture = state
+            if !state.active, message == Self.stopFlushMessage { message = "" }
             if let error = state.error { captureError = error }
         } catch { captureError = error.localizedDescription }
     }
@@ -132,7 +134,7 @@ final class VPhoneNetworkDiagnosticsModel {
             capture = state
             if verb == "start" { ownsCapture = true }
             if verb == "discard" { ownsCapture = false }
-            if verb == "stop" { message = "Stop requested; waiting for the capture file to flush." }
+            if verb == "stop", state.active { message = Self.stopFlushMessage }
             if let error = state.error { captureError = error }
         } catch { captureError = error.localizedDescription }
     }
