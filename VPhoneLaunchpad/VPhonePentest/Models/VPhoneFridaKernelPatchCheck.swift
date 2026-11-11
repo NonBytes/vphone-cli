@@ -13,7 +13,7 @@ enum VPhoneFridaKernelPatchCheck {
         "kernel-exp-frida_syscall_filter_off",
     ]
 
-    /// `--preset frida` is `standard` plus exactly these four; it exists
+    /// `--preset frida` enables the Frida patch set, including these four. It exists
     /// because `--preset experimental` also unblocks unrelated hv_vmm_present/
     /// identity patches that hung a disposable VM at the boot logo in testing.
     static let setupHint = "--preset frida"

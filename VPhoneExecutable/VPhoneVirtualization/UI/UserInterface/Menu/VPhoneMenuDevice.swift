@@ -55,6 +55,7 @@ extension VPhoneMenuController {
         sideButton.isHidden = true
         watchSideButtonItem = sideButton
         menu.addItem(sideButton)
+        menu.addItem(buildVisionOSImmersionMenu())
         menu.addItem(makeItem("Power", action: #selector(sendPower), symbol: "power"))
         menu.addItem(makeItem("Volume Up", action: #selector(sendVolumeUp), symbol: "speaker.plus"))
         menu.addItem(makeItem("Volume Down", action: #selector(sendVolumeDown), symbol: "speaker.minus"))
@@ -335,9 +336,13 @@ extension VPhoneMenuController {
             do {
                 try await control.rotate(toFirstOf: [orientation])
             } catch {
+                // A guest that keeps the device turned turns its screen by
+                // itself once the app in front or the lock allows it.
                 VPhoneAlert.present(
                     title: "Unable to Rotate",
-                    message: "The app in front does not support this orientation.",
+                    message: control.deviceOrientation == orientation
+                        ? "The app in front does not support this orientation, or rotation is locked. The device stays turned, so the screen turns when that changes."
+                        : "The app in front does not support this orientation.",
                     style: .warning,
                 )
             }
@@ -352,22 +357,31 @@ extension VPhoneMenuController {
         rotate(clockwise: true)
     }
 
-    /// Turns the guest a quarter turn from its interface orientation, the
-    /// one already turning to when pressed again. An orientation the app in
-    /// front refuses, such as upside down on the Home Screen, is skipped for
-    /// the one after it. The window turns with the guest.
+    /// Turns the guest device a quarter turn from the way it is held, the
+    /// one already turning to when pressed again, as turning a real one in
+    /// the hand does: the interface follows where the app in front allows it
+    /// and otherwise when an app that does comes to the front, and the window
+    /// turns with the interface. A guest that does not publish its device
+    /// orientation turns from its interface orientation instead, an
+    /// orientation the app in front refuses (such as upside down on the Home
+    /// Screen) being skipped for the one after it.
     private func rotate(clockwise: Bool) {
         Task {
-            var current = control.interfaceOrientation
-            if current == nil {
-                let method = control.guestCapabilities.contains("display_orientation")
-                    ? "display.orientation" : "display.rotation"
-                let degrees = try? await (control.call(method)["degrees"] as? NSNumber)?.intValue
-                current = degrees.flatMap(VPhoneDisplayOrientation.init(degrees:))
+            if control.deviceOrientation == nil, control.interfaceOrientation == nil {
+                if control.guestCapabilities.contains("display_orientation") {
+                    if let reading = try? await control.call("display.orientation") {
+                        control.followOrientation(reading)
+                    }
+                } else if let degrees = try? await (control.call("display.rotation")["degrees"] as? NSNumber)?.intValue {
+                    control.interfaceOrientation = VPhoneDisplayOrientation(degrees: degrees)
+                }
             }
-            guard let current else { return }
-            let next = current.turned(clockwise: clockwise)
-            try? await control.rotate(toFirstOf: [next, next.turned(clockwise: clockwise)])
+            if let device = control.deviceOrientation {
+                try? await control.rotate(toFirstOf: [device.turned(clockwise: clockwise)])
+            } else if let current = control.interfaceOrientation {
+                let next = current.turned(clockwise: clockwise)
+                try? await control.rotate(toFirstOf: [next, next.turned(clockwise: clockwise)])
+            }
         }
     }
 
@@ -502,6 +516,61 @@ extension VPhoneMenuController {
         monitor.isEnabled.toggle()
         item.state = monitor.isEnabled ? .on : .off
         UserDefaults.standard.set(!monitor.isEnabled, forKey: "touchIDForwardingDisabled")
+    }
+
+    // MARK: - visionOS Environment
+
+    func buildVisionOSImmersionMenu() -> NSMenuItem {
+        let item = NSMenuItem(title: "Environment Immersion", action: nil, keyEquivalent: "")
+        item.image = menuSymbol("mountain.2")
+        let menu = NSMenu(title: "Environment Immersion")
+        menu.autoenablesItems = false
+        visionOSImmersionChoices = VPhoneVisionOSImmersionModel.Level.allCases.map { level in
+            let choice = makeItem(level.title, action: #selector(setVisionOSImmersion(_:)))
+            choice.representedObject = level.rawValue
+            choice.isEnabled = false
+            menu.addItem(choice)
+            return choice
+        }
+        item.submenu = menu
+        item.isHidden = true
+        item.isEnabled = false
+        item.toolTip = VPhoneLocalization.text("Choose an environment in Home View, then adjust its immersion.")
+        visionOSImmersionItem = item
+        return item
+    }
+
+    func updateVisionOSImmersionAvailability(connected: Bool, capabilities: [String]) {
+        visionOSImmersionModel.updateConnection(connected: connected, capabilities: capabilities)
+        updateVisionOSImmersionMenuState()
+    }
+
+    private func updateVisionOSImmersionMenuState() {
+        visionOSImmersionItem?.isHidden = !visionOSImmersionModel.isVisible
+        visionOSImmersionItem?.isEnabled = visionOSImmersionModel.isEnabled
+        for choice in visionOSImmersionChoices { choice.isEnabled = visionOSImmersionModel.isEnabled }
+    }
+
+    @objc func setVisionOSImmersion(_ sender: NSMenuItem) {
+        guard control.isConnected, control.guestCapabilities.contains("visionos_immersion"),
+              let value = sender.representedObject as? Double,
+              let level = VPhoneVisionOSImmersionModel.Level(rawValue: value),
+              visionOSImmersionModel.isEnabled else { return }
+        // Disable the actions before scheduling the asynchronous request.
+        visionOSImmersionItem?.isEnabled = false
+        for choice in visionOSImmersionChoices { choice.isEnabled = false }
+        Task {
+            do {
+                try await visionOSImmersionModel.setLevel(level)
+            } catch {
+                VPhoneAlert.present(
+                    title: "Unable to Change Environment Immersion",
+                    message: error.localizedDescription,
+                    style: .warning,
+                )
+            }
+            updateVisionOSImmersionMenuState()
+        }
     }
 }
 
