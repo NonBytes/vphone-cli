@@ -20,6 +20,43 @@ no Xcode, Python, or Homebrew at runtime. See the
 [manual](Documents/en/README.md) for the base project's requirements and VM setup.
 The fork-specific workflows below are documented in this repository.
 
+## Install the fork
+
+1. Install Xcode with the iPhoneOS SDK and clone the fork.
+
+   ```sh
+   git clone https://github.com/NonBytes/vphone-cli.git
+   cd vphone-cli
+   ```
+
+2. Set `VPHONE_LAUNCHPAD_TEAM` in the local
+   `VPhoneLaunchpad/Configuration/Developer.xcconfig` to match your signing
+   identity in macOS Keychain. See the [fork build guide](Research/Host/fork_build.md).
+
+3. Build, sign and verify Launchpad. Replace the signing placeholder with
+   a name or hash from `security find-identity -v -p codesigning`.
+
+   ```sh
+   xcodebuild -project VPhoneLaunchpad/VPhoneLaunchpad.xcodeproj \
+     -scheme VPhoneLaunchpad -configuration Debug \
+     -destination 'platform=macOS,arch=arm64' \
+     -derivedDataPath .build/XcodeLaunchpad build
+
+   app=.build/XcodeLaunchpad/Build/Products/Debug/vphone-launchpad.app
+   zsh VPhoneLaunchpad/Build/SignLaunchpad.sh "$app" '<signing-identity>'
+   codesign --verify --strict --deep "$app"
+   ```
+
+4. Quit Launchpad and Pentest Tools. Copy the signed `vphone-launchpad.app`
+   from the build path above to **Applications** in Finder. Open it and
+   complete **Host Setup**. [Host setup guide](Documents/en/get-started/host-setup.md)
+
+5. Install a Core Bundle from the same version series in Launchpad, then
+   create or select a test VM and start it. For this fork's camera and
+   proxy/CA tools, build and install the fork's Core separately and select it
+   using **Actions → Change Core Bundle…** while the VM is stopped.
+   [Core version matching](Documents/en/get-started/downloads.md) · [Build and install Core](Research/Host/fork_build.md#optional-core-bundle-build)
+
 ## Pentest tools in this fork
 
 In this fork's **VPhone Launchpad**, select a machine → **Actions → Pentest Tools…**.
@@ -43,8 +80,31 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Patch IPA with Frida Gadget](Research/Guest/gadget_patchipa.md) | Embed Gadget/config in an unencrypted iOS IPA and sign a new IPA ad hoc for vphone VMs |
 | [Install → Launch → Gadget Session](Research/Host/gadget_deployment.md) | Verify the patched IPA hash, select a VM, install/launch explicitly, and transfer endpoint/token through a temporary USB loopback tunnel |
 
+Start the VM for guest operations, then open the tool from **Pentest Tools**.
+After a VM restart, use **Reconnect / Check APIs**. You can also open the hub
+with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/en/launchpad/launchpad-cli.md)
+
+- **App Inspector and IPA export** — select an app in App Browser, open
+  App Inspector, then choose **Export Installed IPA…** to save its bundle.
+  Use **Install App Package** in App Browser to install a test IPA or TIPA.
+- **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
+  capture a baseline, run your test, then select **Scan & Compare**.
+- **Frida Server and Session** — choose a release in Frida Server, click
+  **Download & Install → Start**, then open Frida Session in **Frida Server**
+  mode. Enter the reachable endpoint and token, select the app, and choose
+  Spawn or Attach. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
+- **Network Diagnostics + PCAP** — enter a target for **Test DNS / TCP**.
+  Select an interface and filter, then use **Start Capture → Stop → Save PCAP…**.
+- **Logs and deep links** — select an app in App Logs & Crash Viewer and
+  start App Logs or open Crash Reports. In Deep Link Tester, select an app,
+  enter a URL, and click **Open URL in Selected App**.
+- **Keychain and evidence** — select an app and group scope for **Scan Metadata**
+  or **Dump Readable Values**. In Evidence Export, add files or a guest screenshot,
+  then use **Prepare Preview → Export Reviewed Evidence…**.
+
 For the IPA flow, open **Local IPA Tools → Patch IPA with Frida Gadget…**.
-After patching, use **Install Patched IPA → Launch App → Open Gadget Session**,
+Choose an unencrypted IPA and download or select iOS Gadget. You can patch
+with the VM stopped. Select a running VM for deployment, then use **Install Patched IPA → Launch App → Open Gadget Session**,
 then **Test Connection → Attach Gadget**. USB transport selects the target VM's
 UDID and reaches guest loopback without adding a guest network listener.
 Keep the target app foreground and the VM unlocked during testing. Encrypted
@@ -55,31 +115,24 @@ For repeatable checks with synthetic data, see the
 the observed Keychain and log-capture limitations.
 The fixture also includes [app-context jailbreak checks](Research/Guest/jailbreak_detection_fixture.md)
 with individual observations and an inconclusive result when no selected signal is found.
+Build it with `zsh VPhoneLaunchpad/Tests/BuildPentestFixture.sh`, install the
+generated `.build/pentest-qa-fixture/PentestFixture.ipa` through **App Browser →
+Install App Package**, then open **VPhone Pentest QA → Run jailbreak checks**
+inside the guest. Use the unpatched fixture for the baseline.
 
 Keep VM folders, exported evidence, patched IPAs and signing credentials outside
 Git. Evidence may retain identifying metadata; text redaction does not redact
 screenshots or PCAP payloads. Use synthetic apps/data for public examples.
 
-Camera and proxy/CA features remain in the VM window and come from its selected
-Core: [Mac camera setup](Research/Guest/mac_camera_local.md) and
-[proxy/CA setup](Research/Guest/proxy_menu.md). Existing Core panels retain the
-UI and capabilities shipped in that Core; use Launchpad's hub for current tools.
+With the fork's Core selected, use **Features → Source: Mac Camera…** in the
+VM window, choose a camera, and click **Start Streaming**. Allow macOS Camera
+access when prompted. [Mac camera setup](Research/Guest/mac_camera_local.md)
 
-## Build and install this fork
+Open **Network → Proxy…** in the VM window, enable the proxy, enter the host
+and port reachable from the guest, and click **Apply**. Use
+**Import CA Certificate…** to add your test CA. [Proxy and CA setup](Research/Guest/proxy_menu.md)
 
-Build and sign **this fork's Launchpad** to obtain the current pentest tools.
-Building only `VPhone.bundle` does not update Launchpad's bundled tools.
-See the [fork build/install guide](Research/Host/fork_build.md) for both outputs,
-local signing, helper checks and optional Core installation.
-
-For VM setup, use [Downloads](Documents/en/get-started/downloads.md),
-[Create and Run](Documents/en/machines/create-and-run.md), and the
-[Launchpad CLI](Documents/en/launchpad/launchpad-cli.md).
-Each VM retains its selected Core; opening the tools does not restore a VM or
-update its guest environment. Guest/kernel policy and Frida compatibility still
-apply; see the [Frida preset investigation](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations).
-
-### Let an agent do it
+## Let an agent do it
 
 ```text
 Set up vphone on this Mac. Read the upstream skill at
