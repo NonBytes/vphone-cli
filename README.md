@@ -99,14 +99,15 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 
 | Feature | What it provides |
 | --- | --- |
-| [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS and sandbox paths |
-| [Frida Tools](Research/Guest/frida_server.md) | Server and Session in one window as two tabs: official/custom server installation, version checks, authentication and Start/Stop; then Spawn/Attach (server or Gadget) with built-in or local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
+| [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS, sandbox paths, **Static Binary & Manifest Security Scanner** (`MH_PIE`, stack canary, ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`), and **Add to MASVS Findings** |
+| **Storage Inspector** | Browse app data & App Group containers (`files.list`), preview XML/binary Plists, inspect unencrypted/encrypted SQLite 3 databases & table rows read-only, view JSON/UTF-8/Hex, scan for secrets/JWT/PEM/world-writable permissions, and **Add to MASVS Findings** |
+| [Frida Tools](Research/Guest/frida_server.md) | Server and Session in one window as two tabs: official/custom server installation, version checks, authentication and Start/Stop; **Multi-Script Composer** + Quick Presets combining 7 built-in Frida 17 scripts (**SSL Pinning Bypass**, **Jailbreak Detection Bypass**, **App Keychain Dump**, **Biometric Bypass**, **Crypto API Tracer**, **HTTP Request Logger**, **Pasteboard Monitor**) or local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
 | [Sandbox Diff](Research/Guest/sandbox_diff.md) | Bounded before/after file hashes and metadata; unreadable or unstable paths remain uncertain |
 | [Network Diagnostics + PCAP](Research/Guest/network_diagnostics.md) | Reachability checks and interface-wide packet capture with Stop/export for Wireshark |
 | [App Logs & Crash Viewer](Research/Guest/app_logs.md) | Process logs collected in bounded batches with gaps, crash report inspection and local export |
-| [Deep Link Tester](Research/Guest/deep_link_tester.md) | URL schemes, editable payloads and test history |
-| [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process |
-| [Evidence Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes and a redaction review |
+| [Deep Link Tester](Research/Guest/deep_link_tester.md) | URL schemes, `applinks:` Associated Domains extraction, categorized **Payload Fuzzer** (`XSS`, `Open Redirect`, `Path Traversal`, `Auth Leak`, `Parser Edge Cases`), filtered **Run History Matrix** with latency, and **Add to MASVS Findings** |
+| [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process; send inspected items to **MASVS Findings** |
+| [Evidence & MASVS Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes, interactive **MASVS Findings Builder**, Markdown (`findings-report.md`) & escaped dark HTML (`findings-report.html`) reports, and a redaction review |
 | [Export Installed IPA](Research/Guest/ipa_export.md) | Export the installed app bundle; excludes sandbox/Keychain data and performs no decryption |
 | [Patch IPA with Frida Gadget](Research/Guest/gadget_patchipa.md) | Embed Gadget/config in an unencrypted iOS IPA and sign a new IPA ad hoc for vphone VMs |
 | [Install → Launch → Gadget Session](Research/Host/gadget_deployment.md) | Verify the patched IPA hash, select a VM, install/launch explicitly, and transfer endpoint/token through a temporary USB loopback tunnel |
@@ -115,23 +116,32 @@ Start the VM for guest operations, then open the tool from **Pentest Tools**.
 After a VM restart, use **Reconnect / Check APIs**. You can also open the hub
 with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/en/launchpad/launchpad-cli.md)
 
-- **App Inspector and IPA export** — select an app in App Browser, open
-  App Inspector, then choose **Export Installed IPA…** to save its bundle.
-  Use **Install App Package** in App Browser to install a test IPA or TIPA.
+- **App Inspector, Binary Scanner, and IPA export** — select an app in App Browser,
+  open App Inspector to run **Run Security Scan** (arm64 Mach-O protections, weak APIs,
+  URLs, entitlements, and ATS), launch **Storage Inspector…**, or choose
+  **Export Installed IPA…** to save its bundle. Use **Install App Package** in App
+  Browser to install a test IPA or TIPA.
+- **Storage Inspector** — open from the Pentest Hub or App Inspector, choose an app and
+  data/App Group root, inspect XML/binary Plists or SQLite tables & rows, run **Scan for Secrets**,
+  and add findings directly to the MASVS store.
 - **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
   capture a baseline, run your test, then select **Scan & Compare**.
 - **Frida Tools** — open **Frida Tools**, choose a release on the **Server**
   tab, click **Download & Install → Start**, then switch to the **Session**
-  tab. Enter the reachable endpoint and token, select the app, and choose
+  tab. Toggle one or more built-in hooks (or a quick preset) in the **Multi-Script Composer**
+  alongside custom JS, enter the endpoint and token, select the app, and choose
   Spawn or Attach. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
 - **Network Diagnostics + PCAP** — enter a target for **Test DNS / TCP**.
   Select an interface and filter, then use **Start Capture → Stop → Save PCAP…**.
 - **Logs and deep links** — select an app in App Logs & Crash Viewer and
-  start App Logs or open Crash Reports. In Deep Link Tester, select an app,
-  enter a URL, and click **Open URL in Selected App**.
-- **Keychain and evidence** — select an app and group scope for **Scan Metadata**
-  or **Dump Readable Values**. In Evidence Export, add files or a guest screenshot,
-  then use **Prepare Preview → Export Reviewed Evidence…**.
+  start App Logs or open Crash Reports. In Deep Link Tester, review URL schemes
+  and Associated Domains, test manually or run batches on the **Payload Fuzzer** tab,
+  filter the **Run History Matrix**, and add interesting runs to MASVS Findings.
+- **Keychain, MASVS Findings, and Evidence Export** — select an app and group scope
+  for **Scan Metadata** or **Dump Readable Values** (and add flagged rows to MASVS
+  Findings). Open **Evidence Export**, manage findings on the **MASVS Findings** tab,
+  add attachments or guest screenshots, and run **Prepare Preview → Export Reviewed Evidence…**
+  to generate redacted `context.txt`, `findings-report.md`, and `findings-report.html`.
 
 For the IPA flow, open **Local IPA Tools → Patch IPA with Frida Gadget…**.
 Choose an unencrypted IPA and download or select iOS Gadget. You can patch
@@ -175,12 +185,22 @@ Launchpad (see [Install the fork](#install-the-fork)) to pick them up. See
 technical details.
 
 - **Frida Tools & Built-in Scripts** — Unified **Frida Tools** window
-  (Server + Session tabs), searchable **Choose App…** picker, expanded
-  built-in **SSL Pinning Bypass**, **Jailbreak Detection Bypass**, and
-  **App Keychain Dump** scripts, Frida 17 compatibility fixes
-  (`Module.findExportByName` removal, `libobjc.A.dylib` fallback, and
-  external-script global `ObjC` preflight warnings), and fixed-port Frida
-  Server local forwarding (`27042`) over USB / guest channel.
+  (Server + Session tabs), searchable **Choose App…** picker, **Multi-Script Composer**
+  with Quick Presets and 7 Frida 17-safe built-in scripts (**SSL Pinning Bypass**,
+  **Jailbreak Detection Bypass**, **App Keychain Dump**, **Biometric Bypass**,
+  **Crypto API Tracer**, **HTTP Request Logger**, **Pasteboard Monitor**), Frida 17
+  compatibility fixes (`Module.findExportByName` removal, `libobjc.A.dylib`
+  fallback, and external-script global `ObjC` preflight warnings), and fixed-port
+  Frida Server local forwarding (`27042`) over USB / guest channel.
+- **Storage Inspector, Binary Scanner, Deep Link Fuzzer & MASVS Findings** — Added
+  **Storage Inspector** (container & App Group enumeration, XML/binary Plist &
+  read-only SQLite3 table/row inspection, encrypted DB check, and secret/permission
+  scanner), arm64 **Static Binary & Manifest Security Scanner** (`MH_PIE`, canary,
+  ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`, ATS)
+  in App Inspector & JSON reports, **Deep Link Payload Fuzzer** (`applinks:`
+  Associated Domains, 5 payload categories, filtered History Matrix), and shared
+  **MASVS Findings & Report Builder** (`findings-report.md` and XSS-escaped
+  `findings-report.html` inside Evidence Export).
 - **Guest Connection & VSOCK Transport** — Eliminated transient `"The guest
   agent is not connected"` errors on back-to-back requests (single-threaded
   `vphoned` VSOCK EventLoop + `connectionLost` retry), prevented UI disconnect
