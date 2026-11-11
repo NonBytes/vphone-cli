@@ -234,6 +234,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/87a2b7df-6a1a-4c43-baa9-9b2315095b3f/iPhone17,1_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/16584c22-bd85-424c-a45d-5aa78098db98/iPhone17,1_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/59ffd938-75b6-41e5-af04-f4295ee8aeb3/iPhone17,1_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/ba681148-cc53-467c-bff5-dbcb03cb03bc/iPhone17,1_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/a75ca3b6-83d4-440d-99fc-99ecb7406750/iPhone17,1_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 16 Pro Max
         (devices: ["iPhone17,2"], releases: [
@@ -254,6 +256,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/a1dbd14a-9e9d-49b3-9af6-02286d68883f/iPhone17,2_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/2f4f3b1f-a7cd-4c38-ae94-2ebd11a76253/iPhone17,2_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/3741bcd4-e0a6-43a7-bac1-74f363efb9ab/iPhone17,2_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/3a256522-d649-403a-8ec5-b6fbcb940cbe/iPhone17,2_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/174fcce0-6d12-4bae-a2c3-9fd2e13d6dff/iPhone17,2_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 16 Plus
         (devices: ["iPhone17,4"], releases: [
@@ -274,6 +278,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/911faed2-7d37-4532-8a4a-bd60530e1b11/iPhone17,4_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/601712cb-7aa9-4914-b421-91d45da959e6/iPhone17,4_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/ff004e4f-0c2c-489a-b3c2-42b07bb962bc/iPhone17,4_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/690caa55-74ed-47aa-b017-cb3a692bf20d/iPhone17,4_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/16086188-f4d1-4f35-ad68-658912567bb3/iPhone17,4_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 16e
         (devices: ["iPhone17,5"], releases: [
@@ -294,6 +300,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/19c41505-0ca3-4039-8594-b8169550b4c6/iPhone17,5_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/d79065c6-1467-4207-b204-4c8f9d080aa1/iPhone17,5_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/096468f2-4871-44bd-bcba-5b661400d70b/iPhone17,5_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/a31d2089-6410-4063-81a3-1f7f3f53277e/iPhone17,5_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/df2c0b32-ff11-47da-82f5-6cfa1f893c92/iPhone17,5_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 17 Pro
         (devices: ["iPhone18,1"], releases: [
@@ -315,6 +323,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/f768ecdf-e037-44e6-bfa6-949b6d127c4f/iPhone18,1_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/e4bd9396-e611-4d22-b29a-0ed802448015/iPhone18,1_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/8451c50e-8b6f-4f5c-94c2-81469528464e/iPhone18,1_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/f7e03864-9d1c-4854-8f15-440ee15f9114/iPhone18,1_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/3940ea4c-2d34-40fb-8b5e-1cce1534a75b/iPhone18,1_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 17 Pro Max
         (devices: ["iPhone18,2"], releases: [
@@ -336,6 +346,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/1a337b3d-ffd8-424a-abc4-092b64d551ab/iPhone18,2_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/8d2fc0d7-5c81-4712-ac4e-c4a88de4cef7/iPhone18,2_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/3b7299da-a6a5-4bf6-82db-cd37f8c2d160/iPhone18,2_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/82995481-b196-4d33-bd11-97788acc1d53/iPhone18,2_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/5cf23110-0e1e-4f62-aef3-746ff41c71f4/iPhone18,2_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 17
         (devices: ["iPhone18,3"], releases: [
@@ -357,6 +369,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/c2f9fa07-0acc-4038-99f4-d7a4b1ac9c06/iPhone18,3_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/b18c9502-c21d-4555-9bf7-21f3a238e6d7/iPhone18,3_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/052dd27b-a831-4746-b00a-2e6a7f5a5586/iPhone18,3_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/fd6e15e5-2710-4a00-821d-215fdcf1af95/iPhone18,3_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/8b4addc4-3c52-43c0-99fa-7c1ea20f7225/iPhone18,3_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone Air
         (devices: ["iPhone18,4"], releases: [
@@ -378,6 +392,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/c459f07a-97b9-4057-ab6d-8241040687d9/iPhone18,4_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/fdb27442-4a14-48d1-bf30-574a47241a3f/iPhone18,4_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/91255a6b-fab1-4e33-a38a-6de41a2bb61c/iPhone18,4_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/9d7e9bfa-4de2-4654-8f87-c63c26c7cf03/iPhone18,4_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/63c5826a-4cda-45d6-8e80-cd6035a3d6d2/iPhone18,4_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPhone 17e
         (devices: ["iPhone18,5"], releases: [
@@ -393,14 +409,19 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/543c77da-97fc-4e4e-b2e2-942b8d34c723/iPhone18,5_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/dff48a54-47d4-4a76-909e-21ac46b95468/iPhone18,5_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/dad095d6-083a-4ff2-a2be-29503e316461/iPhone18,5_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/8864e09a-978e-418a-8924-1ebd914df39b/iPhone18,5_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/02748097-576c-446e-85fc-dca0b3d4a482/iPhone18,5_27.2.1_24B156_Restore.ipsw"),
         ]),
         (devices: ["iPhone19,2"], releases: [
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/8cd333d4-1025-4e89-99a2-1373d2b5bfcb/iPhone19,2_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/fdde63b6-6de4-4199-a5d4-7ba4e46b758e/iPhone19,2,iPhone19,3,iPhone19,7_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/72981b11-802f-4be1-8345-01eecd9908fe/iPhone19,2,iPhone19,3,iPhone19,7_27.2.1_24B156_Restore.ipsw"),
         ]),
         // Initial single-display bring-up; see Research/Guest/iphone_duo_bringup.md.
         (devices: ["iPhone19,4"], releases: [
             ("27.1", "https://updates.cdn-apple.com/2026FallFCS/3f41a447-d8a6-48ae-83ae-056a64f57fd4/iPhone19,4_27.1_24A94425_Restore.ipsw"),
             ("27.2", "https://updates.cdn-apple.com/2026FallFCS/8d0335dc-f553-4d16-b07b-28951fde8f9e/iPhone19,4_27.2_24B91020_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/a553d457-a2b6-4b9d-86f9-2f9d67631fd6/iPhone19,4_27.2.1_24B91034_Restore.ipsw"),
         ]),
     ]
 
@@ -428,6 +449,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/cf7db64d-5866-4bf2-bfff-50a32f58bec3/iPad16,1,iPad16,2_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/e81c639f-1417-45aa-8a75-6f262083fe37/iPad16,1,iPad16,2_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/46399de6-53d0-47ec-baea-c203630bcee9/iPad16,1,iPad16,2_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/5312c473-c055-431a-a4cb-0d64aebe0413/iPad16,1,iPad16,2_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/e363693d-d615-4fe6-a005-e509682fcb57/iPad16,1,iPad16,2_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPad (A16)
         (devices: ["iPad15,7"], releases: [
@@ -448,6 +471,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/ac34b338-5954-4440-acd7-eb623372b116/iPad15,7_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/cbdb3e7c-6078-4116-81f5-9ca857711975/iPad15,7_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/224ac70a-6dd1-4fd4-8d3a-45f3c4026600/iPad15,7_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/14528a7a-accd-49ef-9931-44bb85432620/iPad15,7_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/49305b30-c9f6-4d83-a1b9-724588b89304/iPad15,7_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPad Air (M3), 11- and 13-inch
         (devices: ["iPad15,3", "iPad15,5"], releases: [
@@ -468,6 +493,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/3ddb0f1f-46ed-48f4-aaad-9837e83144fa/iPad15,3,iPad15,4,iPad15,5,iPad15,6_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/0b0970ac-f84c-4323-82ab-f153c69c89b7/iPad15,3,iPad15,4,iPad15,5,iPad15,6_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/7cabbf62-92ba-48e9-afaa-d8ec39313fa8/iPad15,3,iPad15,4,iPad15,5,iPad15,6_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/e9922d41-a093-496f-86f4-b73e161b1c2b/iPad15,3,iPad15,4,iPad15,5,iPad15,6_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/73418b55-432c-4183-a4e2-0b29873c88f8/iPad15,3,iPad15,4,iPad15,5,iPad15,6_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPad Pro (M4), 11- and 13-inch
         (devices: ["iPad16,3", "iPad16,5"], releases: [
@@ -488,6 +515,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/9f44484a-c9ac-4a85-8240-435894b1464f/iPad_Pro_M4_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/459900f0-887c-4dee-a819-3395e7bf67b5/iPad_Pro_M4_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/7532c1a2-9d94-419d-ad88-bd0e3a0e2bbc/iPad_Pro_M4_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/b6694d59-2d1a-41ab-99bd-5acfb5e4ba8c/iPad_Pro_M4_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/5b69d25c-7aa6-4d1a-8348-573b5d045d66/iPad_Pro_M4_27.2.1_24B156_Restore.ipsw"),
         ]),
         // iPad Pro (M5), 11- and 13-inch
         (devices: ["iPad17,1", "iPad17,3"], releases: [
@@ -507,6 +536,8 @@ public enum VPhoneFirmwareCatalog {
             ("26.6.2", "https://updates.cdn-apple.com/2026SummerFCS/c92fa0b5-4f21-4e74-8980-2926c7320a78/iPad17,1,iPad17,2,iPad17,3,iPad17,4_26.6.2_23G90_Restore.ipsw"),
             ("27.0", "https://updates.cdn-apple.com/2026FallFCS/3d6d90ea-e942-4a86-834f-939769d6e3f4/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.0_24A437_Restore.ipsw"),
             ("27.0.1", "https://updates.cdn-apple.com/2026FallFCS/6074e110-d48d-40c2-b0e8-b611520941a3/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.0.1_24A446_Restore.ipsw"),
+            ("27.2", "https://updates.cdn-apple.com/2026FallFCS/b79b2e3c-6409-4d03-a01c-01b2a07cbabb/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.2_24B119_Restore.ipsw"),
+            ("27.2.1", "https://updates.cdn-apple.com/2026FallFCS/02c18e38-cadb-4d4e-a754-96c00d73e8eb/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.2.1_24B156_Restore.ipsw"),
         ]),
     ]
 

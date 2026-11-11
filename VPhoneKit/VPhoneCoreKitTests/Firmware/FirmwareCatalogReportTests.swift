@@ -226,7 +226,7 @@ struct FirmwareCatalogReportTests {
         for guest in VPhoneGuestDevice.known where guest.isPad {
             let pairings = VPhoneFirmwareCatalog.pairings(for: guest.productType)
             #expect(pairings.map(\.iosName).first == "iPadOS 26.0" || guest.productType.hasPrefix("iPad17,"))
-            #expect(pairings.map(\.iosName).last == "iPadOS 27.0.1")
+            #expect(pairings.map(\.iosName).last == "iPadOS 27.2.1")
             for p in pairings {
                 #expect(p.device == guest.productType)
                 #expect(p.iosURL.hasPrefix("https://updates.cdn-apple.com/"))
@@ -250,14 +250,22 @@ struct FirmwareCatalogReportTests {
             default: "iOS 26.0"
             }
             #expect(pairings.map(\.iosName).first == firstRelease)
-            #expect(pairings.map(\.iosName).last == (guest.productType == "iPhone19,4" ? "iOS 27.2" : "iOS 27.0.1"))
+            #expect(pairings.map(\.iosName).last == "iOS 27.2.1")
             for p in pairings {
                 #expect(p.device == guest.productType)
                 #expect(p.iosURL.hasPrefix("https://updates.cdn-apple.com/"))
                 let name = (p.iosURL as NSString).lastPathComponent
-                #expect(name.hasPrefix("\(guest.productType)_\(p.iosName.dropFirst("iOS ".count))_"))
+                // Apple sometimes groups several models into one restore image
+                // (e.g. iPhone19,2,iPhone19,3,iPhone19,7_27.2_…); the device's
+                // own identifier (itself comma-separated, "iPhone19,2") is
+                // then one name among others before the version, not the
+                // whole leading component.
+                let version = p.iosName.dropFirst("iOS ".count)
+                let devicesField = name.prefix(while: { $0 != "_" })
+                #expect(devicesField.contains(guest.productType))
+                #expect(name.contains("_\(version)_"))
                 #expect(name.hasSuffix("_Restore.ipsw"))
-                #expect(p.cloudosURL == VPhoneFirmwareCatalog.recommendedCloudOS(forVersion: String(p.iosName.dropFirst("iOS ".count))).url)
+                #expect(p.cloudosURL == VPhoneFirmwareCatalog.recommendedCloudOS(forVersion: String(version)).url)
             }
         }
         #expect(VPhoneFirmwareCatalog.pairings(for: "iPhone18,1") != VPhoneFirmwareCatalog.pairings)
