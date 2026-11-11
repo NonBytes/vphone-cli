@@ -245,6 +245,11 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   read its message, so a failure showed as `(VPhoneVirtualMachineKit.
   VPhoneGuestControl.ControlError error 5.)` instead of what actually went
   wrong.
+- **Frida Session's app picker is a proper list now, not a menu of
+  one-line text.** Picking the app to Spawn or Attach to used to be a
+  dropdown with the icon, name, bundle ID and PID all squeezed onto one
+  line. It's a popover list now, each row its own icon, name, bundle ID
+  and PID.
 
 ## Set up with an AI agent
 
