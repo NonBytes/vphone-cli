@@ -49,7 +49,7 @@ final class VPhoneGuestShellChannel: VPhoneFridaPortChannel, @unchecked Sendable
         case failed(String)
     }
 
-    enum ChannelError: Error, CustomStringConvertible {
+    enum ChannelError: Error, CustomStringConvertible, LocalizedError {
         case handshakeFailed(String)
         case refused(String)
 
@@ -59,6 +59,10 @@ final class VPhoneGuestShellChannel: VPhoneFridaPortChannel, @unchecked Sendable
             case let .refused(message): message
             }
         }
+
+        // Without this, `error.localizedDescription` falls back to NSError's
+        // generic "(Domain error N.)" instead of `description` above.
+        var errorDescription: String? { description }
     }
 
     private let connection: VZVirtioSocketConnection

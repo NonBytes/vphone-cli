@@ -8,7 +8,7 @@ import VPhoneCoreKit
 @MainActor
 @Observable
 final class VPhoneGuestControl {
-    enum ControlError: Error, CustomStringConvertible {
+    enum ControlError: Error, CustomStringConvertible, LocalizedError {
         case notConnected
         case unsupportedCapability(String)
         case protocolError(String)
@@ -28,6 +28,11 @@ final class VPhoneGuestControl {
             case let .guestError(value), let .bootstrapAlreadyInstalled(value), let .locationServicesOff(value): value
             }
         }
+
+        // Without this, `error.localizedDescription` (used throughout the
+        // UI to show a caught error) falls back to NSError's generic
+        // "(Domain error N.)" instead of `description` above.
+        var errorDescription: String? { description }
     }
 
     /// vphoned refused an `/v1/rpc` call. `body` is its error object as sent;

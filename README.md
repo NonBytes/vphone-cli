@@ -239,6 +239,12 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   even though the very next check a second later would have succeeded. It
   now retries a couple of times first; only a connection that stays down
   reports as disconnected.
+- **A failed guest shell/port-relay operation (used by Frida's "Use guest
+  transport" option) now shows its real error instead of a raw error
+  code.** Its error type was missing the piece that lets `.localizedDescription`
+  read its message, so a failure showed as `(VPhoneVirtualMachineKit.
+  VPhoneGuestControl.ControlError error 5.)` instead of what actually went
+  wrong.
 
 ## Set up with an AI agent
 
