@@ -176,23 +176,30 @@ technical details.
 
 - **Frida Tools & Built-in Scripts** — Unified **Frida Tools** window
   (Server + Session tabs), searchable **Choose App…** picker, expanded
-  built-in **SSL Pinning Bypass** and **Jailbreak Detection Bypass** scripts,
-  and Frida 17 compatibility fixes (`Module.findExportByName` removal and
-  `libobjc.A.dylib` fallback when the `ObjC` bridge is absent).
+  built-in **SSL Pinning Bypass**, **Jailbreak Detection Bypass**, and
+  **App Keychain Dump** scripts, Frida 17 compatibility fixes
+  (`Module.findExportByName` removal, `libobjc.A.dylib` fallback, and
+  external-script global `ObjC` preflight warnings), and fixed-port Frida
+  Server local forwarding (`27042`) over USB / guest channel.
 - **Guest Connection & VSOCK Transport** — Eliminated transient `"The guest
   agent is not connected"` errors on back-to-back requests (single-threaded
   `vphoned` VSOCK EventLoop + `connectionLost` retry), prevented UI disconnect
   flapping on single health-check hiccups, and surfaced real localized errors
   for guest shell/port-relay failures.
-- **Launchpad & VM Window** — Direct **Features → Pentest Tools…** menu in
-  the VM window, real File Browser transfer progress, large-preset support in
-  the Patches inspector (including `frida`), one-step preset switching,
-  active Core Bundle visibility in New Machine, private `0600` App Inspector
-  JSON exports, and clean PCAP stop-flush status clearing.
+- **Launchpad, Network & App Logs** — Direct **Features → Pentest Tools…**
+  menu in the VM window, real File Browser transfer progress, large-preset
+  support in the Patches inspector (including `frida`), one-step preset
+  switching, **Preset** and active Core Bundle controls on the **New Machine**
+  basic page, **Verify HTTPS Proxy + CA Trust** probe in Network Diagnostics
+  (`verify-https`), bounded App Logs & Crash Viewer log streaming/filtering,
+  private `0600` App Inspector JSON exports, and clean PCAP stop-flush status
+  clearing.
 - **Firmware, CFW & Build** — Extended firmware catalog through iOS 27.2.1
   (plus `scripts/check-firmware-catalog.zsh`), `frida.plist` vs `standard.plist`
   drift guard in `ValidateBundle.sh` and tests, unmount retry for transient
-  `"Resource busy"` errors during `cfw install` / `cfw update-environment`, and
+  `"Resource busy"` errors during `cfw install` / `cfw update-environment`,
+  consolidated shared Pentest core into `VPhoneKit/VPhonePentestKit`
+  (`scripts/build-pentest-kit.zsh` and `pentest-kit-parity-tests.zsh`), and
   aligned workspace package pins for `VPhoneLaunchpad`.
 
 ## Set up with an AI agent

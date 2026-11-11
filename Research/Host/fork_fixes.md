@@ -11,6 +11,16 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   dead-end with "go start it in the other window." They are two tabs of the
   same window today, so starting the server and starting a session no longer
   mean leaving one window to find the other.
+- **Frida Session now includes a built-in App Keychain Dump script, external
+  global-`ObjC` preflight warning, and fixed-port Frida Server forwarding.**
+  **Built-in Scripts → App Keychain Dump** queries readable Keychain items inside
+  the attached app process via pure `Security` / `CoreFoundation` C exports
+  (so it works on Frida 17 without the `ObjC` bridge). Loading an external
+  script that calls global `ObjC` without guarding or importing
+  `frida-objc-bridge` displays an inline preflight warning instead of failing
+  silently in QuickJS. On the **Server** tab, **Start Forward** exposes guest
+  `frida-server` locally on loopback (default `127.0.0.1:27042`) over USB in
+  Launchpad or the guest shell channel in the VM window.
 - **Frida Session has two built-in scripts: SSL Pinning Bypass and Jailbreak
   Detection Bypass.** Previously every session needed a local `.js` file
   chosen by hand, even for the two checks almost every test starts with. Pick
@@ -96,11 +106,19 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   CLI by hand. It now saves the change and, if the machine is stopped, chains
   **Update Kernel** and **Apply to Guest** right after, so switching preset is
   one step instead of three.
-- **New Machine shows which Core Bundle its firmware list is reading from.**
-  With more than one Core Bundle installed, the Device/iOS pickers read from
-  whichever one is chosen in **Advanced Options → Firmware** — easy to miss, and
-  the usual reason a newer iOS release doesn't show up. The basic page now
-  names that Core Bundle directly, with a one-click way to change it.
+- **New Machine shows both the Preset picker and active Core Bundle directly on
+  the basic page.** Instead of hunting in **Advanced Options** before creating a
+  test VM, researchers can pick `standard`, `frida`, or another preset right on
+  the basic page alongside the active Core Bundle selector.
+- **Network Diagnostics can verify end-to-end HTTPS proxy + guest CA trust.**
+  `vphone-guest-network verify-https` and the **Verify HTTPS Proxy + CA Trust**
+  panel action issue a TLS `HEAD` request inside the guest (with optional HTTP/HTTPS
+  proxy override), evaluate system `SecTrustEvaluateWithError`, and report leaf/root
+  subjects plus actionable trust hints.
+- **Console and App Logs stream bounded log batches reliably.** `vphoned`'s
+  `logs.syslog` / `logs.crash` handlers and the host `VPhoneConsoleModel` /
+  `VPhoneAppLogsWindowController` coordinate scoped streaming, clear feedback, and
+  private exports consistently across both `VPhonePentest` and the VM window.
 - **Standalone App Inspector JSON reports now use private `0600` permissions.**
   `saveInspectorReport()` in both `VPhonePentest` and the VM window previously
   wrote `app-inspector.json` with default `0644` permissions; both now route
@@ -135,6 +153,15 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   without updating the workspace's own pin, so a clean build through
   `VPhone.xcworkspace` always failed a licence-staging check. Every pin now
   agrees.
+- **Shared pure-Swift Pentest core consolidated into `VPhoneKit/VPhonePentestKit`.**
+  17 previously duplicated model, Frida, network, sandbox, evidence, deep-link,
+  keychain, log-scope, and crash-parsing files now have a single source of truth in
+  `VPhoneKit/VPhonePentestKit/`. `scripts/build-pentest-kit.zsh` builds
+  `libVPhonePentestKit.a` and `VPhonePentestKit.swiftmodule` incrementally under
+  Swift 6 strict concurrency for `VPhoneVirtualization` and `VPhoneLaunchpad`,
+  `VPhoneKit.xcodeproj` declares the native `VPhonePentestKit` target, and
+  `scripts/tests/pentest-kit-parity-tests.zsh` prevents duplicate files from
+  reappearing.
 - **Bundle validation and catalog tests guard against `frida.plist` drifting
   from `standard.plist`.** `ValidateBundle.sh` now checks on every `VPhone`
   build that `frida.plist` uses `Block` selection and differs from
