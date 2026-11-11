@@ -129,15 +129,20 @@ struct VPhoneLaunchpadCommandLine {
     /// `onLine` and `onProgress` run on the reader thread, never on the main
     /// actor. Progress lines go only to `onProgress`, never to the output.
     /// `environment` is added to the child's; it never appears in the history.
+    /// `keepsFullOutput` disables the collector's line cap: set it for a
+    /// command whose entire (but finite) output must be read back, such as a
+    /// pretty-printed `--json` document, rather than a long-running console
+    /// this only tails for its last lines.
     func run(
         _ arguments: [String],
         recordInHistory: Bool = true,
         environment: [String: String] = [:],
+        keepsFullOutput: Bool = false,
         onLine: (@Sendable (String) -> Void)? = nil,
         onProgress: (@Sendable (Double) -> Void)? = nil,
     ) async throws -> VPhoneLaunchpadCommandResult {
         let entry = recordInHistory ? history.record(Self.display(arguments)) : nil
-        let collector = VPhoneLaunchpadLineCollector()
+        let collector = VPhoneLaunchpadLineCollector(capped: !keepsFullOutput)
         let child = try VPhoneLaunchpadChildProcess(executable: executable, arguments: arguments, environment: environment) { line in
             if let fraction = Self.progress(in: line) {
                 onProgress?(fraction)
@@ -205,11 +210,19 @@ struct VPhoneLaunchpadCommandLine {
 final nonisolated class VPhoneLaunchpadLineCollector: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [String] = []
+    /// Bounds memory for a long-running console; off for a command whose
+    /// full output is read back once, such as a pretty-printed `--json` body,
+    /// where dropping early lines would drop the document's own opening brace.
+    private let capped: Bool
+
+    init(capped: Bool = true) {
+        self.capped = capped
+    }
 
     func append(_ line: String) {
         lock.withLock {
             storage.append(line)
-            if storage.count > 4000 {
+            if capped, storage.count > 4000 {
                 storage.removeFirst(storage.count - 4000)
             }
         }

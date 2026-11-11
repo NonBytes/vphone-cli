@@ -286,7 +286,7 @@ extension VPhoneLaunchpadPatchCatalog {
         if let machine {
             arguments += machine.libraryArguments
         }
-        let result = try await commandLine.run(arguments, recordInHistory: false)
+        let result = try await commandLine.run(arguments, recordInHistory: false, keepsFullOutput: true)
         guard result.succeeded, let data = result.jsonData else {
             throw VPhoneLaunchpadError(
                 String(localized: "Unable to list the bundle's patches."),

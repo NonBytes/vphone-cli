@@ -10,8 +10,8 @@ struct FirmwarePickerTests {
 
     // MARK: - Catalog integrity
 
-    @Test func `catalog has twenty seven pairings`() {
-        #expect(VPhoneFirmwareCatalog.pairings.count == 27)
+    @Test func `catalog has twenty nine pairings`() {
+        #expect(VPhoneFirmwareCatalog.pairings.count == 29)
     }
 
     @Test func `every pairing is populated`() {
@@ -141,7 +141,7 @@ struct FirmwarePickerTests {
             write: { lines.append($0) },
         )
         let menu = lines.filter { $0.hasPrefix("  [") }
-        #expect(menu.count == 27)
+        #expect(menu.count == 29)
         // Label text starts in one column regardless of 1- vs 2-digit index.
         let labelStarts = Set(menu.map { $0.range(of: "] ")!.upperBound.utf16Offset(in: $0) })
         #expect(labelStarts.count == 1)

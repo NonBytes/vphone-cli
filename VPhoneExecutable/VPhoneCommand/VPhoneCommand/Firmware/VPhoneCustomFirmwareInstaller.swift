@@ -655,9 +655,9 @@ struct VPhoneCustomFirmwareInstaller {
         // The snapshot rename is a full install's alone: it has already been
         // done on any VM an environment update is allowed to run against, and
         // this run creates no new snapshot to flip.
-        _ = try tool("/sbin/umount", [xart.path])
+        try unmountRetrying(xart.path)
         xartMounted = false
-        _ = try tool("/sbin/umount", [system.path])
+        try unmountRetrying(system.path)
         systemMounted = false
         _ = try tool("/usr/sbin/diskutil", ["eject", baseDisk], quiet: true)
         diskAttached = false
@@ -5008,6 +5008,19 @@ struct VPhoneCustomFirmwareInstaller {
     @discardableResult
     private func patch(_ verb: String, _ arguments: [String]) throws -> String {
         try tool(executable.path, ["cfw", verb] + arguments)
+    }
+
+    /// A volume this run just wrote to and re-signed can briefly look busy to a
+    /// plain `umount` while a system service (code-signing re-scan, Spotlight)
+    /// finishes touching the files, even though nothing here still holds them
+    /// open. Retry before falling back to a forced unmount, instead of failing
+    /// the whole run over a race that clears itself within a second.
+    private func unmountRetrying(_ path: String) throws {
+        for attempt in 0..<3 {
+            if (try? tool("/sbin/umount", [path], quiet: true)) != nil { return }
+            if attempt < 2 { Thread.sleep(forTimeInterval: 0.5) }
+        }
+        _ = try tool("/sbin/umount", ["-f", path])
     }
 
     @discardableResult

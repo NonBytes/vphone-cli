@@ -206,6 +206,8 @@ public enum VPhoneFirmwareCatalog {
         .init(iosName: "iOS 27.0 RC", iosURL: "https://updates.cdn-apple.com/2026FallFCS/2d0cd01d-b4f9-4a20-a1e8-f3be54570da7/iPhone17,3_27.0_24A435_Restore.ipsw", cloudosName: "cloudOS 26.4", cloudosURL: cloud264),
         .init(iosName: "iOS 27.0", iosURL: "https://updates.cdn-apple.com/2026FallFCS/5130b3f9-3b4e-469a-b60e-93f6b310cdd9/iPhone17,3_27.0_24A437_Restore.ipsw", cloudosName: "cloudOS 26.4", cloudosURL: cloud264),
         .init(iosName: "iOS 27.0.1", iosURL: "https://updates.cdn-apple.com/2026FallFCS/38dca0ee-bb5d-4132-ad13-62d57bcd6d32/iPhone17,3_27.0.1_24A446_Restore.ipsw", cloudosName: "cloudOS 26.4", cloudosURL: cloud264),
+        .init(iosName: "iOS 27.2", iosURL: "https://updates.cdn-apple.com/2026FallFCS/c6c0afa0-c002-45b9-ad4c-d2db3bfa30ac/iPhone17,3_27.2_24B119_Restore.ipsw", cloudosName: "cloudOS 26.4", cloudosURL: cloud264),
+        .init(iosName: "iOS 27.2.1", iosURL: "https://updates.cdn-apple.com/2026FallFCS/f1cb4dfc-33bd-4c76-a4b2-c97b22339085/iPhone17,3_27.2.1_24B156_Restore.ipsw", cloudosName: "cloudOS 26.4", cloudosURL: cloud264),
     ]
 
     /// iOS releases of the iPhones other than the iPhone17,3, one entry per
