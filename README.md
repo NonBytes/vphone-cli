@@ -79,7 +79,7 @@ research guests and choose an APFS volume for the VM library.
    Launchpad, then create or select a test VM and start it. For this fork's camera and
    proxy/CA tools, build and install the fork's Core separately and select it
    using **Actions → Change Core Bundle…** while the VM is stopped.
-   [Core version matching](Documents/en/get-started/downloads.md) · [Build and install Core](Research/Host/fork_build.md#optional-core-bundle-build)
+   [Core version matching](Documents/en/get-started/downloads.md) · [Build and install Core](Research/Host/fork_build.md#optional-core-bundle-build) · [Core Bundles and local builds](Documents/en/launchpad/core-bundles.md)
 
 ### Upgrade an existing VM from 2.15
 
