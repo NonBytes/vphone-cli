@@ -228,6 +228,11 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   dead-end with "go start it in the other window." They're two tabs of the
   same window today, so starting the server and starting a session no
   longer means leaving one window to find the other.
+- **The VM window's own Features menu can open Pentest Tools directly.**
+  Pentest Tools ships with Launchpad, not the VM, so using it used to mean
+  switching to Launchpad, finding this machine, and opening its Actions
+  menu. **Features → Pentest Tools…** now opens it for this machine without
+  leaving the VM window, as long as Launchpad is installed.
 
 ## Set up with an AI agent
 

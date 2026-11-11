@@ -39,6 +39,9 @@ class VPhoneMenuController {
     lazy var evidenceExportWindowController = VPhoneEvidenceExportWindowController(control: control)
     lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
     lazy var fridaToolsWindowController = VPhoneFridaToolsWindowController(control: control, machineDirectory: machineDirectory)
+    /// Launchpad's Pentest Tools helper, opened directly from this VM's own
+    /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
+    var pentestToolsApp: NSRunningApplication?
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
     var showsTVControls = false {
