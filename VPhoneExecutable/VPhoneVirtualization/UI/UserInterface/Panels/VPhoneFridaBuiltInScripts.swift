@@ -40,7 +40,8 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
     // system trust store (SecTrust*); does not cover a pinning check an app
     // implements itself (e.g. comparing a bundled public key by hand).
     (function () {
-        var evaluate = Module.findExportByName('Security', 'SecTrustEvaluate');
+        var security = Process.findModuleByName('Security');
+        var evaluate = security ? security.findExportByName('SecTrustEvaluate') : null;
         if (evaluate) {
             Interceptor.replace(evaluate, new NativeCallback(function (trust, result) {
                 if (!result.isNull()) {
@@ -50,7 +51,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
             }, 'int', ['pointer', 'pointer']));
             console.log('[+] SecTrustEvaluate hooked');
         }
-        var evaluateWithError = Module.findExportByName('Security', 'SecTrustEvaluateWithError');
+        var evaluateWithError = security ? security.findExportByName('SecTrustEvaluateWithError') : null;
         if (evaluateWithError) {
             Interceptor.replace(evaluateWithError, new NativeCallback(function () {
                 return 1; // true
@@ -100,7 +101,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
             console.log('[-] Objective-C runtime not available');
         }
 
-        var access = Module.findExportByName(null, 'access');
+        var access = Module.findGlobalExportByName('access');
         if (access) {
             Interceptor.attach(access, {
                 onEnter(args) {
@@ -112,7 +113,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
             });
             console.log('[+] access() hooked');
         }
-        var fork = Module.findExportByName(null, 'fork');
+        var fork = Module.findGlobalExportByName('fork');
         if (fork) {
             Interceptor.replace(fork, new NativeCallback(function () { return -1; }, 'int', []));
             console.log('[+] fork() hooked');

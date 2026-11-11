@@ -250,6 +250,12 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   a menu with the icon, name, bundle ID and PID all squeezed onto one
   line. **Choose App…** now opens a sortable, searchable table — the same
   columns App Browser uses — and double-click or Choose picks one.
+- **Fixed: both built-in Frida scripts (SSL Pinning Bypass, Jailbreak
+  Detection Bypass) threw `TypeError: not a function` on load.** They
+  called the static `Module.findExportByName()`, which Frida 17 removed.
+  They now use `Process.findModuleByName(...).findExportByName(...)` for
+  the named-module lookup and `Module.findGlobalExportByName(...)` for the
+  global one.
 
 ## Set up with an AI agent
 
