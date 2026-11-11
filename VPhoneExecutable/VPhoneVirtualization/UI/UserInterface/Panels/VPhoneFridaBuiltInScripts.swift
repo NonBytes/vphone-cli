@@ -72,7 +72,7 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
     (function () {
         var suspectPattern = /Cydia|Sileo|Zebra|substrate|MobileSubstrate|\\/bin\\/su|\\/usr\\/sbin\\/sshd|\\/etc\\/apt|\\/private\\/var\\/lib\\/apt/i;
 
-        if (ObjC.available) {
+        if (typeof ObjC !== 'undefined' && ObjC.available) {
             var fileExists = ObjC.classes.NSFileManager['- fileExistsAtPath:'];
             if (fileExists) {
                 Interceptor.attach(fileExists.implementation, {
@@ -98,14 +98,68 @@ enum VPhoneFridaBuiltInScript: String, CaseIterable, Identifiable {
                 console.log('[+] -[UIApplication canOpenURL:] hooked');
             }
         } else {
-            console.log('[-] Objective-C runtime not available');
+            var libobjc = Process.findModuleByName('libobjc.A.dylib');
+            var getClass = libobjc ? libobjc.findExportByName('objc_getClass') : null;
+            var registerName = libobjc ? libobjc.findExportByName('sel_registerName') : null;
+            var getInstanceMethod = libobjc ? libobjc.findExportByName('class_getInstanceMethod') : null;
+            var getImplementation = libobjc ? libobjc.findExportByName('method_getImplementation') : null;
+            var msgSend = libobjc ? libobjc.findExportByName('objc_msgSend') : null;
+            if (getClass && registerName && getInstanceMethod && getImplementation && msgSend) {
+                var objcGetClass = new NativeFunction(getClass, 'pointer', ['pointer']);
+                var selRegisterName = new NativeFunction(registerName, 'pointer', ['pointer']);
+                var classGetInstanceMethod = new NativeFunction(getInstanceMethod, 'pointer', ['pointer', 'pointer']);
+                var methodGetImplementation = new NativeFunction(getImplementation, 'pointer', ['pointer']);
+                var objcMsgSendPtr = new NativeFunction(msgSend, 'pointer', ['pointer', 'pointer']);
+                var utf8Sel = selRegisterName(Memory.allocUtf8String('UTF8String'));
+                var absStrSel = selRegisterName(Memory.allocUtf8String('absoluteString'));
+                var findImp = function (clsName, selName) {
+                    var cls = objcGetClass(Memory.allocUtf8String(clsName));
+                    if (cls.isNull()) return null;
+                    var m = classGetInstanceMethod(cls, selRegisterName(Memory.allocUtf8String(selName)));
+                    if (m.isNull()) return null;
+                    var imp = methodGetImplementation(m);
+                    return imp.isNull() ? null : imp;
+                };
+                var nsStringToJs = function (nsStr) {
+                    if (nsStr.isNull()) return '';
+                    var cstr = objcMsgSendPtr(nsStr, utf8Sel);
+                    return cstr.isNull() ? '' : (cstr.readUtf8String() || '');
+                };
+                var fileExistsImp = findImp('NSFileManager', 'fileExistsAtPath:');
+                if (fileExistsImp) {
+                    Interceptor.attach(fileExistsImp, {
+                        onEnter(args) {
+                            this.suspect = suspectPattern.test(nsStringToJs(args[2]));
+                        },
+                        onLeave(retval) {
+                            if (this.suspect) retval.replace(0);
+                        },
+                    });
+                    console.log('[+] -[NSFileManager fileExistsAtPath:] hooked');
+                }
+                var canOpenURLImp = findImp('UIApplication', 'canOpenURL:');
+                if (canOpenURLImp) {
+                    Interceptor.attach(canOpenURLImp, {
+                        onEnter(args) {
+                            var urlStr = args[2].isNull() ? ptr(0) : objcMsgSendPtr(args[2], absStrSel);
+                            this.suspect = /cydia:\\/\\//i.test(nsStringToJs(urlStr));
+                        },
+                        onLeave(retval) {
+                            if (this.suspect) retval.replace(0);
+                        },
+                    });
+                    console.log('[+] -[UIApplication canOpenURL:] hooked');
+                }
+            } else {
+                console.log('[-] Objective-C runtime not available');
+            }
         }
 
         var access = Module.findGlobalExportByName('access');
         if (access) {
             Interceptor.attach(access, {
                 onEnter(args) {
-                    this.suspect = suspectPattern.test(args[0].readUtf8String() || '');
+                    this.suspect = !args[0].isNull() && suspectPattern.test(args[0].readUtf8String() || '');
                 },
                 onLeave(retval) {
                     if (this.suspect) retval.replace(-1);
