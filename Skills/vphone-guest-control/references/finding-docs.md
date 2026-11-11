@@ -40,6 +40,7 @@ note's command lines.
 | Skipping Setup Assistant, device state after boot | `Research/Guest/setup_assistant_skip.md` |
 | Developer Mode, DDI mount errors | `Research/Guest/devmode_xpc_protocol.md` |
 | App install fails, signature, profile checks, UDID | `Research/Guest/xcode_install_signature_gate.md` |
+| Instruments stacks are bare addresses, `unable to create symbolicator`, a system bundle's seal is invalid | `Research/Guest/instruments_symbolication.md` |
 | Location simulation returns `unavailable` | `Research/Guest/location_simulation_26_4_failure.md` |
 | `location.*` times out after 120 s, or every CoreLocation client hangs | `Research/Guest/locationd_startup_deadlock.md` |
 | Camera / virtual camera | `Research/Guest/virtual_camera_transport.md` |
@@ -90,7 +91,7 @@ reads one.
 | --- | --- |
 | What does a Launchpad CLI command do | `VPhoneLaunchpad/VPhoneLaunchpad/Control/VPhoneLaunchpadControlCommands.swift`; command table in `VPhoneLaunchpad/VPhoneLaunchpadShared/VPhoneLaunchpadControl.swift` |
 | What does `vphone.sock` accept | `VPhoneExecutable/VPhoneVirtualization/UI/VPhoneHostAutomationServer.swift` (header comment lists the verbs) |
-| An RPC method's parameters | `VPhoneDaemon/Daemon/GuestAPI.swift` and `GuestAPI+<Area>.swift` |
+| An RPC method's parameters | `guest rpc <machine> methods.list`; source: the `<Area>Method` enums in `VPhoneDaemon/Daemon/GuestAPI.swift` and `GuestAPI+<Area>.swift` |
 | Bootstrap install | `VPhoneDaemon/Daemon/Bootstrap/GuestIrisinInstaller.swift` |
 | Creation steps | `VPhoneLaunchpad/VPhoneLaunchpad/Machines/VPhoneLaunchpadCreationPipeline.swift` |
 | Firmware patches | `VPhoneExecutable/VPhoneCommand/FirmwarePatcher/` |

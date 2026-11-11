@@ -26,6 +26,11 @@ class VPhoneMenuController {
     var softwareKeyboardItem: NSMenuItem?
     var tvControlCenterItem: NSMenuItem?
     var tvRemoteItem: NSMenuItem?
+    var visionOSImmersionItem: NSMenuItem?
+    var visionOSImmersionChoices: [NSMenuItem] = []
+    lazy var visionOSImmersionModel = VPhoneVisionOSImmersionModel { [control] method, params in
+        _ = try await control.call(method, params: params)
+    }
     lazy var tvRemoteWindowController = VPhoneTVRemoteWindowController(control: control)
     lazy var proxyWindowController = VPhoneProxyWindowController(control: control)
     lazy var networkDiagnosticsWindowController = VPhoneNetworkDiagnosticsWindowController(control: control)
@@ -57,6 +62,17 @@ class VPhoneMenuController {
     var unlockAtStartupItem: NSMenuItem?
     /// Saves the Sync Host Location setting to this machine's config.plist.
     var onHostLocationSyncChange: ((Bool) throws -> Void)?
+    /// Saves the developer tunnel setting to this machine's config.plist.
+    var onDeveloperTunnelChange: ((Bool) throws -> Void)?
+    var developerTunnelItem: NSMenuItem?
+    /// Nil in DFU and when the guest's UDID is unknown, which leaves the
+    /// item disabled.
+    var developerTunnel: VPhoneDeveloperTunnel? {
+        didSet {
+            developerTunnelItem?.state = developerTunnel?.isEnabled == true ? .on : .off
+            developerTunnelItem?.isEnabled = developerTunnel != nil
+        }
+    }
 
     var onSessionPressed: (() -> Void)?
     var onFilesPressed: (() -> Void)?
@@ -102,6 +118,8 @@ class VPhoneMenuController {
     var locationProvider: VPhoneLocationProvider?
     var locationMenuItem: NSMenuItem?
     var locationPresetMenuItem: NSMenuItem?
+    var locationCustomMenuItem: NSMenuItem?
+    var locationWindowController: VPhoneLocationWindowController?
     var locationReplayStartItem: NSMenuItem?
     var locationReplayStopItem: NSMenuItem?
     var screenRecorder: VPhoneScreenRecorder?

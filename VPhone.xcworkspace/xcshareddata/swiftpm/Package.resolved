@@ -15,8 +15,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mhdhejazi/Dynamic.git",
       "state" : {
-        "revision" : "ab9a2570862d54aed2663691bb767f881226a12f",
-        "version" : "1.2.0"
+        "revision" : "772883073d044bc754d401cabb6574624eb3778f"
       }
     },
     {
@@ -24,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/owngoal-dev/icli.git",
       "state" : {
-        "revision" : "2fbdb5ee61d8c320732deb9768b22506f5e3d411",
-        "version" : "0.10.0"
+        "revision" : "bd25a1d08ce951e10ac4ee572f432550525bd353",
+        "version" : "1.0.0"
       }
     },
     {
