@@ -16,6 +16,6 @@ kit="$root/VPhoneKit/VPhonePentestKit"
     "$kit/VPhoneProxyScriptResult.swift" \
     "$kit/VPhoneSandboxSnapshot.swift" \
     "$kit/VPhoneEvidencePackage.swift" \
-    "$kit/VPhonePanelShared.swift" "$kit/VPhoneAppRecord.swift" \
+    "$kit/VPhonePanelShared.swift" "$kit/VPhoneAppRecord.swift" "$kit/VPhoneMASVSFinding.swift" \
     "$kit/VPhoneEvidenceExportWindowController.swift" "${0:a:h}/EvidenceExportTests.swift" -o "$out/tests"
 "$out/tests"

@@ -7,7 +7,12 @@ import Foundation
     var calls: [(String,String)] = []
     var refuse = false
     var slow = false
-    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] { [:] }
+    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] {
+        if method == "apps.binary", params["bundle_id"] as? String == "com.example.fixture" {
+            return ["entitlements": ["com.apple.developer.associated-domains": ["applinks:example.test", "webcredentials:ignored.test"]]]
+        }
+        return [:]
+    }
     func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
     func uploadFile(path: String, data: Data, permissions: String) async throws {}
     func downloadFile(path: String) async throws -> Data { Data() }
@@ -80,6 +85,44 @@ import Foundation
         precondition(model.archive.history.count == 3, "Closing must not erase the fact that a URL was opened")
         let attrs = try FileManager.default.attributesOfItem(atPath:url.path)
         precondition((attrs[.posixPermissions] as? NSNumber)?.intValue == 0o600)
-        print("Deep Link Tester checks passed: raw payload preservation, query encoding, no automatic replay, success/failure history, target provenance, bounded archive and private export.")
+
+        // Feature 4: Associated Domains, Fuzz Payloads, Batch Fuzzer, Filtered History & MASVS Findings
+        VPhoneMASVSFindingStore.shared.clear()
+        let domains = VPhoneDeepLinkFuzzer.associatedDomains(fromEntitlements: [
+            "com.apple.developer.associated-domains": ["applinks:api.example.test", "applinks:*.example.test", "activitycontinuation:ignored.test"]
+        ])
+        precondition(domains == ["api.example.test"])
+        let generatedPayloads = try VPhoneDeepLinkFuzzer.buildPayloads(
+            baseURL: "fixture://open?target={PAYLOAD}",
+            categories: [.openRedirect, .xss]
+        )
+        precondition(!generatedPayloads.isEmpty && generatedPayloads.count <= VPhoneDeepLinkFuzzer.maximumBatchSize)
+        precondition(generatedPayloads.allSatisfy { !$0.url.contains("{PAYLOAD}") && $0.url.hasPrefix("fixture://open?target=") })
+
+        let fuzzModel = VPhoneDeepLinkTesterModel(control: control)
+        control.refuse = false; control.slow = false
+        await fuzzModel.refresh()
+        fuzzModel.selectedID = "com.example.fixture"
+        await fuzzModel.refreshSelectedAppDomains()
+        precondition(fuzzModel.associatedDomains == ["example.test"])
+        fuzzModel.rawURL = "fixture://open?next={PAYLOAD}"
+        fuzzModel.fuzzCategories = [.openRedirect]
+        fuzzModel.fuzzDelayMilliseconds = 0
+        await fuzzModel.runFuzzBatch()
+        precondition(!fuzzModel.fuzzing && fuzzModel.fuzzCompleted == fuzzModel.fuzzTotal && fuzzModel.fuzzTotal > 0)
+        precondition(fuzzModel.archive.history.count == fuzzModel.fuzzTotal)
+        fuzzModel.historyFilter = "Accepted"
+        precondition(fuzzModel.filteredHistory.count == fuzzModel.fuzzTotal)
+        fuzzModel.historyFilter = "Failed"
+        precondition(fuzzModel.filteredHistory.isEmpty)
+        fuzzModel.historyFilter = "All"
+        if let firstRun = fuzzModel.archive.history.first {
+            fuzzModel.sendRunToFindings(firstRun)
+            precondition(VPhoneMASVSFindingStore.shared.findings.count == 1)
+            precondition(VPhoneMASVSFindingStore.shared.findings[0].category == .platform)
+        }
+        VPhoneMASVSFindingStore.shared.clear()
+
+        print("Deep Link Tester checks passed: raw payload preservation, query encoding, no automatic replay, success/failure history, associated domains, payload fuzzer, target provenance, bounded archive and private export.")
     }
 }

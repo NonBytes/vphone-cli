@@ -43,7 +43,8 @@ import Darwin
         rejects { _ = try VPhoneEvidencePackage.read(root) }
         let sourceData = try VPhoneEvidencePackage.read(source)
         precondition(sourceData == Data(fixture.utf8))
-        let control = VPhoneGuestControl(), model = VPhoneEvidenceExportModel(control: control)
+        let store = VPhoneMASVSFindingStore()
+        let control = VPhoneGuestControl(), model = VPhoneEvidenceExportModel(control: control, findingStore: store)
         await model.refresh(); model.selectedID = "com.example.fixture"; model.title = "Synthetic evidence"
         model.attachments = [.init(name: "attachment.txt", data: Data(fixture.utf8), isText: true), .init(name: "capture.pcap", data: Data([1,2,3]), isText: false)]
         model.secrets = "private-literal"
@@ -76,6 +77,40 @@ import Darwin
         let preparing = Task { await model.prepare() }
         try await Task.sleep(for: .milliseconds(10)); model.close(); await preparing.value
         precondition(model.reviewed.isEmpty && model.attachments.isEmpty && model.secrets.isEmpty)
-        print("PASS: Evidence redaction, provenance, binary opt-in, stale review, private export and manifest hashes")
+
+        // Feature 5: MASVS Findings report rendering (Markdown + XSS-escaped HTML + redaction)
+        control.slow = false
+        let xssTitle = "Token exposure <script>alert('xss')</script> with private-literal"
+        precondition(model.addFinding(
+            title: xssTitle,
+            category: .storage,
+            severity: .high,
+            description: "Token stored unencrypted.",
+            proof: "token=private-literal",
+            remediation: "Move to Keychain"
+        ))
+        precondition(model.addFinding(
+            title: "Low severity info check",
+            category: .code,
+            severity: .info,
+            description: "Info note",
+            proof: "",
+            remediation: ""
+        ))
+        model.title = "MASVS Report Test"
+        model.secrets = "private-literal"
+        model.allowOriginals = false
+        await model.prepare()
+        let mdArtifact = model.reviewed.first { $0.name == "findings-report.md" }
+        let htmlArtifact = model.reviewed.first { $0.name == "findings-report.html" }
+        precondition(mdArtifact != nil && htmlArtifact != nil, "MASVS findings reports must be included when findings exist")
+        let mdText = String(decoding: mdArtifact!.data, as: UTF8.self)
+        let htmlText = String(decoding: htmlArtifact!.data, as: UTF8.self)
+        precondition(!mdText.contains("private-literal") && !htmlText.contains("private-literal"))
+        precondition(!htmlText.contains("<script>alert") && htmlText.contains("&lt;script&gt;alert"))
+        precondition(mdText.contains("MASVS-STORAGE") && mdText.contains("[High]"))
+        store.clear()
+
+        print("PASS: Evidence redaction, provenance, binary opt-in, stale review, private export, MASVS reports and manifest hashes")
     }
 }
