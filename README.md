@@ -100,8 +100,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | Feature | What it provides |
 | --- | --- |
 | [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS and sandbox paths |
-| [Frida Server](Research/Guest/frida_server.md) | Official/custom server installation, version checks, authentication and Start/Stop |
-| [Frida Session](Research/Host/gadget_sessions.md) | Server Spawn/Attach or Gadget Attach, local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
+| [Frida Tools](Research/Guest/frida_server.md) | Server and Session in one window as two tabs: official/custom server installation, version checks, authentication and Start/Stop; then Spawn/Attach (server or Gadget) with built-in or local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
 | [Sandbox Diff](Research/Guest/sandbox_diff.md) | Bounded before/after file hashes and metadata; unreadable or unstable paths remain uncertain |
 | [Network Diagnostics + PCAP](Research/Guest/network_diagnostics.md) | Reachability checks and interface-wide packet capture with Stop/export for Wireshark |
 | [App Logs & Crash Viewer](Research/Guest/app_logs.md) | Process logs collected in bounded batches with gaps, crash report inspection and local export |
@@ -121,9 +120,9 @@ with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/e
   Use **Install App Package** in App Browser to install a test IPA or TIPA.
 - **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
   capture a baseline, run your test, then select **Scan & Compare**.
-- **Frida Server and Session** — choose a release in Frida Server, click
-  **Download & Install → Start**, then open Frida Session in **Frida Server**
-  mode. Enter the reachable endpoint and token, select the app, and choose
+- **Frida Tools** — open **Frida Tools**, choose a release on the **Server**
+  tab, click **Download & Install → Start**, then switch to the **Session**
+  tab. Enter the reachable endpoint and token, select the app, and choose
   Spawn or Attach. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
 - **Network Diagnostics + PCAP** — enter a target for **Test DNS / TCP**.
   Select an interface and filter, then use **Start Capture → Stop → Save PCAP…**.
@@ -224,6 +223,11 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   chosen by hand, even for the two checks almost every test starts with.
   Pick one from the new **Built-in Scripts** menu next to Choose Script…;
   anything more specific to the target still needs its own script.
+- **Frida Server and Frida Session are one window now: Frida Tools.**
+  Switching to a session before starting the guest's Frida server used to
+  dead-end with "go start it in the other window." They're two tabs of the
+  same window today, so starting the server and starting a session no
+  longer means leaving one window to find the other.
 
 ## Set up with an AI agent
 

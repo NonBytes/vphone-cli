@@ -1,6 +1,6 @@
 # Guest Frida server manager
 
-Open **Features > Frida Server…** in an iOS/iPadOS VM. Choose a release from the
+Open **Features > Frida Tools…** (Server tab) in an iOS/iPadOS VM. Choose a release from the
 dropdown or use Other version, then Download & Install. Installation does not start
 the server. Start creates a new random token and listens on the guest's port
 27042. Copy command includes the token for a Mac Frida client. Use matching
@@ -130,8 +130,9 @@ of 12, with a session-window cache of at most 512 images. Refresh Apps clears
 the cache; unavailable icons retain a generic app symbol. Icon loading does
 not require a running Frida server or an attached session.
 
-Features > Frida Session is separate from server installation/lifecycle.
-Start the managed server first, select a registered app, then Spawn or Attach
+Features > Frida Tools' Session tab is separate from server installation/lifecycle,
+though both now live in the same window. Start the managed server first (Server
+tab), select a registered app, then Spawn or Attach
 to running PID. Refresh Apps reads the existing `apps.list` contract. Attach
 rechecks the selected app's current PID with `apps.list` before connecting. The
 default transport is VSOCK: a private, ephemeral 127.0.0.1 listener forwards
@@ -353,9 +354,10 @@ warning rather than enabling the set by default. `VPhoneFridaKernelPatchCheck`
 (`VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneFridaKernelPatchCheck.swift`)
 reads the VM's own `PatchReceipt.plist` (`Parts.kernelcache.Patches`) for the
 four required identifiers; `nil` (receipt missing/unreadable) suppresses the
-warning rather than assuming either state. Both `VPhoneFridaWindowController`
-(Frida Server) and `VPhoneFridaSessionWindowController` (Frida Session) now
-take an optional `machineDirectory` (threaded from
+warning rather than assuming either state. Both the Frida Server and Frida
+Session models (now the two tabs of `VPhoneFridaToolsWindowController`; they
+were separate window controllers at the time this was written) take an
+optional `machineDirectory` (threaded from
 `VPhoneVirtualMachineAppDelegate` through `VPhoneMenuController`, the same
 `options.configURL`-derived path already used for `sceneIdentifier`) and show
 an orange caption banner naming the missing patches and how to fix it, when

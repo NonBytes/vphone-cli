@@ -38,8 +38,7 @@ class VPhoneMenuController {
     lazy var deepLinkTesterWindowController = VPhoneDeepLinkTesterWindowController(control: control)
     lazy var evidenceExportWindowController = VPhoneEvidenceExportWindowController(control: control)
     lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
-    lazy var fridaWindowController = VPhoneFridaWindowController(control: control, machineDirectory: machineDirectory)
-    lazy var fridaSessionWindowController = VPhoneFridaSessionWindowController(control: control, machineDirectory: machineDirectory)
+    lazy var fridaToolsWindowController = VPhoneFridaToolsWindowController(control: control, machineDirectory: machineDirectory)
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
     var showsTVControls = false {

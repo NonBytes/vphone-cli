@@ -97,22 +97,8 @@ final class VPhoneFridaModel {
     }
 }
 
-@MainActor
-final class VPhoneFridaWindowController {
-    private let model: VPhoneFridaModel
-    private let window: VPhoneGuestToolWindow
-    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
-        let model = VPhoneFridaModel(control: control, machineDirectory: machineDirectory)
-        self.model = model
-        window = VPhoneGuestToolWindow(title: "Frida Server", autosaveName: "vphone-frida-server",
-                                      size: NSSize(width: 690, height: 610), minSize: NSSize(width: 600, height: 560)) {
-            VPhoneFridaView(model: model)
-        }
-    }
-    func show() { window.show(); Task { await model.operation("status"); await model.refreshVersions() } }
-}
-
-private struct VPhoneFridaView: View {
+/// The Server tab of Frida Tools (`VPhoneFridaToolsWindowController`).
+struct VPhoneFridaView: View {
     @Bindable var model: VPhoneFridaModel
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {

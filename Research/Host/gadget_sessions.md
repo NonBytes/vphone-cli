@@ -1,6 +1,6 @@
 # Gadget sessions in Launchpad Pentest Tools
 
-Pentest Tools → Local IPA Tools → Frida Session → **Gadget**. The entry remains
+Pentest Tools → Frida Tools → Session tab → **Gadget**. The entry remains
 available when guest RPC or Apps API is unavailable; Gadget speaks its own TCP
 protocol. The Frida Server mode retains the managed server's token lookup and
 app Spawn/Attach behavior. This change does not start a server, boot a VM,

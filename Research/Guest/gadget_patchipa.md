@@ -49,10 +49,10 @@ frida -H 127.0.0.1:27043 --token '<copied-token>' -n Gadget
 ```
 
 Here the host endpoint presumes a separately configured working transport;
-it is not created by the patcher. Launchpad's Frida Session now also offers a
+it is not created by the patcher. Frida Tools' Session tab now also offers a
 Gadget mode with connection testing, Attach, scripts, console and Keychain
-profiles; see Research/Host/gadget_sessions.md. The Frida Server mode retains
-its managed server workflow.
+profiles; see Research/Host/gadget_sessions.md. Its Server tab retains
+the managed server workflow.
 
 ## Implementation and bounds
 

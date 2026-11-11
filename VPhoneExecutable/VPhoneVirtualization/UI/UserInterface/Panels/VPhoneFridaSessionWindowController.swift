@@ -217,38 +217,8 @@ final class VPhoneFridaSessionModel {
     }
 }
 
-@MainActor
-final class VPhoneFridaSessionWindowController: NSObject, NSWindowDelegate {
-    private let model: VPhoneFridaSessionModel
-    private var window: NSWindow?
-    init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
-        model = VPhoneFridaSessionModel(control: control, machineDirectory: machineDirectory)
-    }
-
-    func show() {
-        if window == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 780, height: 620),
-                                  styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-            window.title = "Frida Session"
-            window.contentViewController = NSHostingController(rootView: VPhoneFridaSessionView(model: model))
-            window.contentMinSize = NSSize(width: 660, height: 510)
-            window.isReleasedWhenClosed = false
-            window.delegate = self
-            window.setFrameAutosaveName("vphone-frida-session")
-            window.center()
-            self.window = window
-        }
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
-        Task { await model.refresh() }
-    }
-
-    nonisolated func windowWillClose(_: Notification) {
-        MainActor.assumeIsolated { model.detach(); model.icons.reset(); window = nil }
-    }
-}
-
-private struct VPhoneFridaSessionView: View {
+/// The Session tab of Frida Tools (`VPhoneFridaToolsWindowController`).
+struct VPhoneFridaSessionView: View {
     @Bindable var model: VPhoneFridaSessionModel
 
     var body: some View {
