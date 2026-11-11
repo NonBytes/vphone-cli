@@ -26,6 +26,7 @@ final class VPhoneFridaSessionModel {
     private var generation = 0
     private var relay: VPhoneFridaPortRelay?
     let missingKernelPatches: [String]?
+    @ObservationIgnored private var appPicker: VPhoneFridaAppPickerWindowController?
 
     init(control: VPhoneGuestControl, machineDirectory: URL? = nil) {
         self.control = control
@@ -91,6 +92,13 @@ final class VPhoneFridaSessionModel {
         scriptSource = script.source
         builtInScript = script
         error = nil
+    }
+
+    func chooseApp() {
+        guard !active, !busy else { return }
+        let picker = appPicker ?? VPhoneFridaAppPickerWindowController(model: self)
+        appPicker = picker
+        picker.show { [weak self] app in self?.selectedID = app.id }
     }
 
     func start() async {
@@ -220,7 +228,6 @@ final class VPhoneFridaSessionModel {
 /// The Session tab of Frida Tools (`VPhoneFridaToolsWindowController`).
 struct VPhoneFridaSessionView: View {
     @Bindable var model: VPhoneFridaSessionModel
-    @State private var showsAppPicker = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -230,7 +237,7 @@ struct VPhoneFridaSessionView: View {
             }
             HStack {
                 Button {
-                    showsAppPicker = true
+                    model.chooseApp()
                 } label: {
                     HStack(spacing: 6) {
                         appIcon(model.selectedApp).frame(width: 18, height: 18)
@@ -241,9 +248,6 @@ struct VPhoneFridaSessionView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .disabled(model.active || model.busy)
-                .popover(isPresented: $showsAppPicker, arrowEdge: .bottom) {
-                    appPickerPopover
-                }
                 .task(id: model.icons.revision) {
                     if let app = model.selectedApp { model.icons.request(app) }
                     for app in model.apps.prefix(512) { model.icons.request(app) }
@@ -327,29 +331,4 @@ struct VPhoneFridaSessionView: View {
         }
     }
 
-    /// The app list as a proper list of rows — icon, name, bundle ID and a
-    /// running PID — rather than one line of text per app in a menu.
-    private var appPickerPopover: some View {
-        List(model.apps) { app in
-            Button {
-                model.selectedID = app.id
-                showsAppPicker = false
-            } label: {
-                HStack(spacing: 10) {
-                    appIcon(app).frame(width: 32, height: 32)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(app.displayName)
-                        Text(app.bundleID).font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if app.isRunning {
-                        Text("PID \(app.pid)").font(.caption).monospacedDigit().foregroundStyle(.secondary)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(width: 380, height: 360)
-    }
 }
