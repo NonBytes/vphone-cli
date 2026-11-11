@@ -89,7 +89,7 @@ final class VPhoneLaunchpadLeases {
         }
         state = .checking
         do {
-            let result = try await commandLine.run(["vm", "leases", "--json"] + libraryArguments, recordInHistory: false)
+            let result = try await commandLine.run(["vm", "leases", "--json"] + libraryArguments, recordInHistory: false, keepsFullOutput: true)
             guard result.succeeded, let data = result.jsonData else {
                 state = .failed(result.lines.last ?? String(localized: "vm leases failed"))
                 return

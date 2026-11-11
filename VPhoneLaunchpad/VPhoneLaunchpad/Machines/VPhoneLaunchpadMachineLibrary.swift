@@ -1031,7 +1031,7 @@ final class VPhoneLaunchpadMachineLibrary {
         var errors: [String] = []
         for root in roots where root == libraryRoot || VPhoneLaunchpadMachineLocations.isAvailable(root) {
             do {
-                let result = try await commandLine.run(VPhoneLaunchpadTemplateCommands.list + ["--library-root", root], recordInHistory: false)
+                let result = try await commandLine.run(VPhoneLaunchpadTemplateCommands.list + ["--library-root", root], recordInHistory: false, keepsFullOutput: true)
                 guard result.succeeded, let data = result.jsonData else {
                     errors.append(result.tail)
                     continue

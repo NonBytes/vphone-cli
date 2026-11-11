@@ -402,6 +402,18 @@ struct VPhoneLaunchpadNewMachineView: View {
 
     @ViewBuilder
     private var firmwareChoice: some View {
+        // The Device/iOS pickers below read their catalog from this Core
+        // Bundle; with more than one installed it's easy to be stuck looking
+        // at an old one's catalog without noticing, since the picker that
+        // changes it lives one sheet deeper, in Advanced Options > Firmware.
+        if model.bundles.selectableVersions.count > 1 {
+            LabeledContent("Core Bundle") {
+                HStack {
+                    Text(verbatim: bundleVersion ?? "—").foregroundStyle(.secondary)
+                    Button("Change…") { open(.firmware) }
+                }
+            }
+        }
         if usesCustomSources {
             LabeledContent("Firmware") {
                 HStack {
