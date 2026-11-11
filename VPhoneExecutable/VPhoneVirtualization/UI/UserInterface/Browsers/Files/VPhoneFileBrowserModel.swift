@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Observation
 import VPhoneCoreKit
 

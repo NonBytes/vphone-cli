@@ -1,11 +1,22 @@
 import Foundation
 
-enum VPhoneLocalization { static let bundle = Bundle.main }
-@MainActor final class VPhoneGuestControl {
+@MainActor final class VPhoneGuestControl: VPhoneGuestControlling {
     var isConnected = true
+    var guestIPAddress: String? { nil }
+    var sandboxMachineScope: String { "" }
     var calls: [(String,String)] = []
     var refuse = false
     var slow = false
+    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] { [:] }
+    func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
+    func uploadFile(path: String, data: Data, permissions: String) async throws {}
+    func downloadFile(path: String) async throws -> Data { Data() }
+    func pullFile(_ path: String, to localURL: URL, maximumBytes: Int?, permissions: Int?) async throws -> Int64 { 0 }
+    func installIPA(localURL: URL) async throws -> String { "" }
+    func screenshotJPEG() async throws -> Data { Data() }
+    func guestProxy() async throws -> VPhoneProxyStatus { fatalError() }
+    func runGuestToolReply(_ name: String, arguments: [String]) async throws -> [String: Any] { [:] }
+    func makeFridaRelay(localPort: UInt16, guestPort: UInt16) async throws -> VPhoneFridaPortRelay { fatalError() }
     func appList() async throws -> [String:Any] { ["apps":[["bundle_id":"com.example.fixture","name":"Fixture","version":"1","build":"2"],["bundle_id":"com.example.other","name":"Other"]]] }
     func appURLSchemes() async throws -> [String:Any] { ["schemes":["com.example.fixture":["fixture","fixture","bad scheme"]]] }
     func appOpenURL(_ url: String, bundleID: String) async throws -> [String:Any] {

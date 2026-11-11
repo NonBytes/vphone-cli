@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 struct VPhoneServicesView: View {
     @Bindable var model: VPhoneServicesModel

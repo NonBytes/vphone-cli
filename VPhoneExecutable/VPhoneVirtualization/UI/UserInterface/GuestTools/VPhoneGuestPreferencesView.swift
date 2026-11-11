@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 struct VPhoneGuestPreferencesView: View {
     @Bindable var model: VPhoneGuestPreferencesModel

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// One process from vphoned's `processes.list`. Task statistics, jetsam
 /// fields and the bundle identifier are absent when the guest could not read

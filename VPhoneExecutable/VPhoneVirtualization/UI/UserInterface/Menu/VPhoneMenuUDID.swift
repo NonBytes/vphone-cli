@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 // MARK: - UDID Menu Items
 

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// The names `input.button` accepts.
 enum VPhoneControlsButton: String, CaseIterable, Identifiable {

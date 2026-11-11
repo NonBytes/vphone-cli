@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// Display, audio, power, hardware button, keyboard and Darwin notification
 /// controls for the guest.

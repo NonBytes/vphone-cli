@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// The three-state fold control, the guest-side counterpart of Apple's
 /// simulator fold chrome: one picker for the screen states, one sweep

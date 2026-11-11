@@ -2,45 +2,16 @@ import Darwin
 import Foundation
 import Virtualization
 import VPhoneCoreKit
+import VPhonePentestKit
 
 /// The VM UI's direct HTTP client over VSOCK. It does not open a host TCP
 /// listener; only --api-listen creates one through VPhoneAPIProxy.
 @MainActor
 @Observable
-final class VPhoneGuestControl {
-    enum ControlError: Error, CustomStringConvertible, LocalizedError {
-        case notConnected
-        /// The VSOCK connection to vphoned broke mid-request. `detail` says
-        /// which step failed, so a flapping link is not reported as the guest
-        /// agent being absent.
-        case connectionLost(String)
-        case unsupportedCapability(String)
-        case protocolError(String)
-        case guestError(String)
-        /// `bootstrap.install` found a completed installation in the guest.
-        case bootstrapAlreadyInstalled(String)
-        /// The guest's Location Services switch is off, so it has no location to
-        /// give an app, a simulated one included.
-        case locationServicesOff(String)
-
-        var description: String {
-            switch self {
-            case .notConnected:
-                VPhoneLocalization.text("The guest agent is not connected. Wait for it to connect, then try again.")
-            case let .connectionLost(detail):
-                VPhoneLocalization.text("The guest agent is not connected. Wait for it to connect, then try again.")
-                    + " (\(detail))"
-            case let .unsupportedCapability(value): "guest does not support capability: \(value)"
-            case let .protocolError(value): "API protocol error: \(value)"
-            case let .guestError(value), let .bootstrapAlreadyInstalled(value), let .locationServicesOff(value): value
-            }
-        }
-
-        // Without this, `error.localizedDescription` (used throughout the
-        // UI to show a caught error) falls back to NSError's generic
-        // "(Domain error N.)" instead of `description` above.
-        var errorDescription: String? { description }
-    }
+final class VPhoneGuestControl: VPhoneGuestControlling {
+    typealias ControlError = VPhoneGuestControlError
+    typealias KeychainResult = VPhoneGuestKeychainResult
+    typealias KeychainIdentity = VPhoneGuestKeychainIdentity
 
     /// vphoned refused an `/v1/rpc` call. `body` is its error object as sent;
     /// it came from JSON, so it serializes back unchanged.
@@ -878,17 +849,33 @@ final class VPhoneGuestControl {
         return entries
     }
 
+    func downloadFile(path: String) async throws -> Data {
+        try await downloadFileImpl(path: path, onProgress: nil)
+    }
+
     /// `onProgress` reports cumulative bytes received so far; it runs on a
     /// background thread, never the main actor.
-    func downloadFile(path: String, onProgress: (@Sendable (Int64) -> Void)? = nil) async throws -> Data {
+    func downloadFile(path: String, onProgress: @escaping @Sendable (Int64) -> Void) async throws -> Data {
+        try await downloadFileImpl(path: path, onProgress: onProgress)
+    }
+
+    private func downloadFileImpl(path: String, onProgress: (@Sendable (Int64) -> Void)?) async throws -> Data {
         let response = try await http(method: "GET", path: filePath(path), limits: .download, onProgress: onProgress)
         guard response.status == 200 else { throw try httpError(response) }
         return response.body
     }
 
+    func uploadFile(path: String, data: Data, permissions: String = "644") async throws {
+        try await uploadFileImpl(path: path, data: data, permissions: permissions, onProgress: nil)
+    }
+
     /// `onProgress` reports cumulative bytes sent so far; it runs on a
     /// background thread, never the main actor.
-    func uploadFile(path: String, data: Data, permissions: String = "644", onProgress: (@Sendable (Int64) -> Void)? = nil) async throws {
+    func uploadFile(path: String, data: Data, permissions: String = "644", onProgress: @escaping @Sendable (Int64) -> Void) async throws {
+        try await uploadFileImpl(path: path, data: data, permissions: permissions, onProgress: onProgress)
+    }
+
+    private func uploadFileImpl(path: String, data: Data, permissions: String, onProgress: (@Sendable (Int64) -> Void)?) async throws {
         let response = try await http(
             method: "PUT",
             path: filePath(path, mode: permissions),

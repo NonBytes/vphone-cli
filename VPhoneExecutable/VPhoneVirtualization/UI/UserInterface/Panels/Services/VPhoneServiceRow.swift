@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// One launchd service as `services.list` and `services.status` report it.
 struct VPhoneServiceRow: Identifiable, Hashable {

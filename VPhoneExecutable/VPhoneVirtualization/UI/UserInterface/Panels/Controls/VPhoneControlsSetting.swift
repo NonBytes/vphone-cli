@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// A guest value the Controls window writes, named as it reads mid-sentence.
 enum VPhoneControlsSetting: Equatable {

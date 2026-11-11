@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 // MARK: - Setup Assistant Menu Item
 

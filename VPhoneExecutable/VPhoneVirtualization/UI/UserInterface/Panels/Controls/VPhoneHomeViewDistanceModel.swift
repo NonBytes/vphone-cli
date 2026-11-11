@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Observation
 
 /// The guest owns the distance-to-detail mapping. No arbitrary metre values

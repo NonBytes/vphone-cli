@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// The signals `processes.kill` accepts. The raw value is the wire name.
 enum VPhoneProcessSignal: String, CaseIterable, Identifiable {

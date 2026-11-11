@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import SwiftUI
 
 /// The guest's terminal, in a window of its own beside the VM's screen.

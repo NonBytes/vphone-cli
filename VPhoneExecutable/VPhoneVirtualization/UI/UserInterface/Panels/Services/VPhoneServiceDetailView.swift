@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// Key facts for the selected service beside launchd's `print` description.
 struct VPhoneServiceDetailView: View {

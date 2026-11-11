@@ -16,7 +16,7 @@ xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -isysroot "$sdk" -dynamic
 xcrun swiftc -swift-version 6 -parse-as-library -target arm64-apple-macos15.0 -module-cache-path "$out/modules" \
  -I "$products" -F "$framework" -framework libarchive -lz -lbz2 -liconv -lxml2 \
  "$ui/Models/"{VPhoneGadgetMachO,VPhoneGadgetArchive,VPhoneGadgetPatcher,VPhoneIPAExport,VPhoneIPAArchive}.swift \
- "$kit/"{VPhoneEvidencePackage,VPhoneSandboxSnapshot}.swift \
- "$ui/Panels/VPhonePanelShared.swift" "$ui/Support/"{VPhoneLocalization,VPhoneGuestFileName}.swift \
+ "$kit/"{VPhoneEvidencePackage,VPhoneSandboxSnapshot,VPhonePanelShared,VPhoneLocalization}.swift \
+ "$ui/Support/VPhoneGuestFileName.swift" \
  "${0:a:h}/GadgetPatchTests.swift" -o "$out/tests"
 "$out/tests" "$out"

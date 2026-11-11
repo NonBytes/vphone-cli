@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// A virtual Digital Crown action. Successful requests are acknowledgements,
 /// not observations of the headset's current immersion level.

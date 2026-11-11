@@ -1,21 +1,25 @@
 import Foundation
 
-enum VPhoneLocalization {
-    static let bundle = Bundle.main
-    static func text(_ key: String) -> String { key }
-    static func format(_ key: String, _ args: CVarArg...) -> String { String(format:key,arguments:args) }
-}
-@MainActor final class VPhoneGuestControl {
-    struct KeychainIdentity {
-        var itemClass = "genp"; var account = ""; var service = ""; var server = ""; var accessGroup = ""
-    }
-    struct KeychainResult { let items: [[String: Any]]; let diagnostics: [String] }
+@MainActor final class VPhoneGuestControl: VPhoneGuestControlling {
+    typealias KeychainIdentity = VPhoneGuestKeychainIdentity
+    typealias KeychainResult = VPhoneGuestKeychainResult
     var isConnected = true
+    var guestIPAddress: String? { nil }
+    var sandboxMachineScope: String { "" }
     var entries: [[String: Any]] = []
     var reads: [KeychainIdentity] = []
     var value = "fixture-secret"
     var slow = false
     var denied = false
+    func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
+    func uploadFile(path: String, data: Data, permissions: String) async throws {}
+    func downloadFile(path: String) async throws -> Data { Data() }
+    func pullFile(_ path: String, to localURL: URL, maximumBytes: Int?, permissions: Int?) async throws -> Int64 { 0 }
+    func installIPA(localURL: URL) async throws -> String { "" }
+    func screenshotJPEG() async throws -> Data { Data() }
+    func guestProxy() async throws -> VPhoneProxyStatus { fatalError() }
+    func runGuestToolReply(_ name: String, arguments: [String]) async throws -> [String: Any] { [:] }
+    func makeFridaRelay(localPort: UInt16, guestPort: UInt16) async throws -> VPhoneFridaPortRelay { fatalError() }
     func appList() async throws -> [String: Any] { ["apps":[]] }
     func call(_ method: String, params: [String: Any]) async throws -> [String: Any] { ["entitlements":["keychain-access-groups":["group.fixture"]]] }
     func listKeychainItems() async throws -> KeychainResult { .init(items:entries,diagnostics:["fixture metadata"]) }

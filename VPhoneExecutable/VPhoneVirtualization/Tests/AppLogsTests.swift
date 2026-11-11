@@ -1,16 +1,24 @@
 import Foundation
 
-enum VPhoneLocalization { static let bundle = Bundle.main }
-struct VPhoneGuestToolStatus { let message: String; let isError: Bool }
-
 /// Only supplies transport responses to the real ConsoleModel. No guest API
 /// implementation is replaced in the shipped bundle.
-@MainActor final class VPhoneGuestControl {
+@MainActor final class VPhoneGuestControl: VPhoneGuestControlling {
     var isConnected = true
+    var guestIPAddress: String? { nil }
+    var sandboxMachineScope: String { "" }
     var response: [String: Any] = [:]
     var parameters: [String: Any] = [:]
     var slow = false
     var slowExecutable = false
+    func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
+    func uploadFile(path: String, data: Data, permissions: String) async throws {}
+    func downloadFile(path: String) async throws -> Data { Data() }
+    func pullFile(_ path: String, to localURL: URL, maximumBytes: Int?, permissions: Int?) async throws -> Int64 { 0 }
+    func installIPA(localURL: URL) async throws -> String { "" }
+    func screenshotJPEG() async throws -> Data { Data() }
+    func guestProxy() async throws -> VPhoneProxyStatus { fatalError() }
+    func runGuestToolReply(_ name: String, arguments: [String]) async throws -> [String: Any] { [:] }
+    func makeFridaRelay(localPort: UInt16, guestPort: UInt16) async throws -> VPhoneFridaPortRelay { fatalError() }
     func call(_ method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         if method == "apps.info" {
             let bundleID = params["bundle_id"] as? String ?? ""
@@ -24,9 +32,9 @@ struct VPhoneGuestToolStatus { let message: String; let isError: Bool }
     }
 }
 
-@MainActor final class VPhoneCrashLogsModel {
-    let bundleID: String?
-    init(control: VPhoneGuestControl, bundleID: String? = nil) { self.bundleID = bundleID }
+@MainActor public final class VPhoneCrashLogsModel {
+    public let bundleID: String?
+    public init(control: any VPhoneGuestControlling, bundleID: String? = nil) { self.bundleID = bundleID }
 }
 
 @main struct AppLogsTests {

@@ -1,4 +1,7 @@
 import CoreFoundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Foundation
 
 // MARK: - Attitude RPC

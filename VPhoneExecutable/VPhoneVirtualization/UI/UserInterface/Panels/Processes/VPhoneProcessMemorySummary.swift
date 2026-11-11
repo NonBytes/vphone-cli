@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// The `memory` object of vphoned's `memory.pressure`: kernel memory sysctls.
 struct VPhoneProcessMemorySummary {

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// The interface rotations `display.rotation` accepts, by icli's rotation spec.
 enum VPhoneControlsOrientation: Int, CaseIterable, Identifiable {

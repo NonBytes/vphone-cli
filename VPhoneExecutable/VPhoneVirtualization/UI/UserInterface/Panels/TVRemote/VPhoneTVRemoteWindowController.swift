@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// One remote per VM process. Opening it never changes guest setup or pairing.
 @MainActor

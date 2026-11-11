@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 struct VPhoneGuestClipboardView: View {
     @Bindable var model: VPhoneGuestClipboardModel

@@ -1,4 +1,7 @@
 import CoreLocation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import Foundation
 
 /// Forwards the host Mac's location to the guest VM via vsock.

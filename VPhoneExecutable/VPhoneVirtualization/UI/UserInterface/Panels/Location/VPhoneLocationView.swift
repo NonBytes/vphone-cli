@@ -6,6 +6,9 @@
 //
 
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import MapKit
 import SwiftUI
 

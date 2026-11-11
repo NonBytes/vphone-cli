@@ -1,5 +1,8 @@
 @preconcurrency import Foundation
 import SwiftUI
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import UniformTypeIdentifiers
 import VPhoneCoreKit
 

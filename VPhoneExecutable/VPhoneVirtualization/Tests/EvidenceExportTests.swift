@@ -1,10 +1,22 @@
 import Foundation
 import Darwin
 
-enum VPhoneLocalization { static let bundle = Bundle.main }
-@MainActor final class VPhoneGuestControl {
+@MainActor final class VPhoneGuestControl: VPhoneGuestControlling {
     var isConnected = true
+    var guestIPAddress: String? { nil }
+    var sandboxMachineScope: String { "" }
     var slow = false
+    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] {
+        try await call(method)
+    }
+    func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
+    func uploadFile(path: String, data: Data, permissions: String) async throws {}
+    func downloadFile(path: String) async throws -> Data { Data() }
+    func pullFile(_ path: String, to localURL: URL, maximumBytes: Int?, permissions: Int?) async throws -> Int64 { 0 }
+    func installIPA(localURL: URL) async throws -> String { "" }
+    func guestProxy() async throws -> VPhoneProxyStatus { fatalError() }
+    func runGuestToolReply(_ name: String, arguments: [String]) async throws -> [String: Any] { [:] }
+    func makeFridaRelay(localPort: UInt16, guestPort: UInt16) async throws -> VPhoneFridaPortRelay { fatalError() }
     func appList() async throws -> [String: Any] { ["apps": [["bundle_id": "com.example.fixture", "name": "Fixture", "version": "3", "build": "42"]]] }
     func screenshotJPEG() async throws -> Data { Data([0xff, 0xd8, 0xff]) }
     func call(_ method: String) async throws -> [String: Any] {

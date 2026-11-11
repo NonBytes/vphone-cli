@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// Special keys `input.key` accepts.
 enum VPhoneControlsKey: String, CaseIterable, Identifiable {

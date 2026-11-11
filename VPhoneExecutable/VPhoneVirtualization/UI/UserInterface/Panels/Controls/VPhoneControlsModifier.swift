@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// Modifier prefixes `input.key` accepts, in the order they are pressed.
 enum VPhoneControlsModifier: String, CaseIterable, Identifiable {

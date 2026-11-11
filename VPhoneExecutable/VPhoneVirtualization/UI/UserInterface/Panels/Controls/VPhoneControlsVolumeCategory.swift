@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// AVSystemController volume categories `audio.volume` reads and sets.
 enum VPhoneControlsVolumeCategory: String, CaseIterable, Identifiable {

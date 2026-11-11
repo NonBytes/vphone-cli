@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 extension VPhoneMenuController {
     func buildNetworkMenu() -> NSMenuItem {
