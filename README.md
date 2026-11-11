@@ -174,43 +174,26 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
 [Install the fork](#install-the-fork)) to pick them up.
 
 - **`cfw update-environment` / `cfw install` no longer fail on a transient
-  "Resource busy" unmount.** The guest-environment patcher mounts the VM's
-  `system` and `xART` volumes, writes and re-signs files on them (including
-  the Audio/VirtualAudio plugin and the GPU compiler cache bundle), then
-  unmounts. Right after a file on a freshly mounted volume is re-signed, macOS
-  can briefly hold it open (code-signing re-scan, Spotlight), so a plain
-  `umount` right afterward can fail with `Resource busy`, aborting the whole
-  run with the volume otherwise fully patched. `unmountRetrying()`
-  ([VPhoneCustomFirmwareInstaller.swift](VPhoneExecutable/VPhoneCommand/VPhoneCommand/Firmware/VPhoneCustomFirmwareInstaller.swift))
-  retries a few times over about a second before falling back to a forced
-  unmount, so the run completes instead of needing a manual retry.
-- **iPhone 16 (iPhone17,3) firmware catalog extended to iOS 27.2 and
-  27.2.1.** The built-in list of iPhone17,3 restore-IPSW ↔ cloudOS pairings
-  ([VPhoneFirmwareCatalog.swift](VPhoneKit/VPhoneCoreKit/Firmware/VPhoneFirmwareCatalog.swift))
-  previously stopped at 27.0.1, even though Apple has since shipped 27.2 and
-  27.2.1. Both new releases are signed by Apple as of this writing and pair
-  with the same cloudOS 26.4 as every other 27.x entry. New Machine now offers
-  27.2.1 by default for this device, and `vm create` resolves it the same way.
-  Verified end to end: a fresh VM built on 27.2.1 restores, installs CFW and
-  boots.
+  "Resource busy" unmount.** Right after a file on a freshly mounted volume is
+  re-signed, macOS can briefly hold it open (code-signing re-scan, Spotlight),
+  so unmounting right afterward could fail and abort the whole run with the
+  volume otherwise fully patched. The unmount now retries for about a second
+  before falling back to a forced unmount, so the run completes instead of
+  needing a manual retry.
+- **Firmware catalog extended to iOS 27.2 and 27.2.1 for every supported
+  iPhone and iPad.** The built-in list of restore-IPSW ↔ cloudOS pairings
+  previously stopped at 27.0.1 for most models, even though Apple has since
+  shipped 27.2 and 27.2.1. New Machine now offers the newest release by
+  default, and `vm create` resolves it the same way. Verified end to end: a
+  fresh VM built on 27.2.1 restores, installs CFW and boots.
 - **Launchpad's Patches inspector no longer shows "Unavailable" for a large
-  patch set, such as the `frida` preset.** Every `vphone-cli` command Launchpad
-  runs collects its output through a line buffer capped at 4000 lines, sized
-  for tailing a long-running VM console without unbounded memory growth. A
-  pretty-printed `fw patches --json` document for a big preset (the `frida`
-  preset, which adds kernel patches on top of `standard`, runs well past
-  4000 lines) is read back the same way, so the cap silently dropped the
-  document's opening `{` before the JSON parser ever saw it — even though the
-  command itself had already succeeded. The inspector then had no way to tell
-  the difference from a real failure. `VPhoneLaunchpadCommandLine.run` now
-  takes a `keepsFullOutput` flag that turns the cap off for a command whose
-  complete (but finite) output must be read back
-  ([VPhoneLaunchpadCommandLine.swift](VPhoneLaunchpad/VPhoneLaunchpad/Command/VPhoneLaunchpadCommandLine.swift)),
-  and the Patches inspector now sets it
-  ([VPhoneLaunchpadPatchCatalog.swift](VPhoneLaunchpad/VPhoneLaunchpad/Machines/VPhoneLaunchpadPatchCatalog.swift)).
-  The **Update Kernel** and **Apply to Guest** buttons now appear and work for
-  `frida` and any other large preset, with no restore needed for the kernel
-  patches.
+  patch set, such as the `frida` preset.** A big preset's `fw patches --json`
+  output is long enough that an internal line-buffer limit was silently
+  dropping the start of the document before Launchpad could parse it, even
+  though the command itself had already succeeded — so the inspector had no
+  way to tell the difference from a real failure. The **Update Kernel** and
+  **Apply to Guest** buttons now appear and work for `frida` and any other
+  large preset, with no restore needed for the kernel patches.
 
 ## Set up with an AI agent
 
