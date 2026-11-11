@@ -309,81 +309,95 @@ final class VPhoneGuestControl {
         setDisconnected()
     }
 
+    /// A connection that was healthy can drop a single health check to a
+    /// transient guest-side hiccup (SEP or display work, a brief connection
+    /// reset) that clears within a second or two. Retry before flipping the
+    /// whole UI to disconnected over a blip that was about to clear on its
+    /// own; a connection that was already down still reports failure at once.
     private func probe() async {
         do {
-            let response = try await http(method: "GET", path: "/v1/health")
-            guard response.status == 200,
-                  let info = try JSONSerialization.jsonObject(with: response.body) as? [String: Any],
-                  info["api_version"] as? Int == 1
-            else {
-                throw ControlError.protocolError("incompatible guest API")
-            }
-            if let binary = guestBinaryURL,
-               let hash = guestBinaryDigest.sha256(of: binary),
-               hash != info["binary_hash"] as? String,
-               let data = try? Data(contentsOf: binary, options: .mappedIfSafe)
-            {
-                print("[control] updating vphoned over HTTP...")
-                try await createDirectory(path: "/var/root/Library/Caches")
-                try await uploadFile(path: "/var/root/Library/Caches/vphoned.next", data: data)
-                _ = try await call("agent.apply_update", params: ["sha256": hash])
-                setDisconnected()
-                return
-            }
-            // The probe repeats every few seconds; assign only changes so
-            // observing windows do not redraw on every probe.
-            let capabilities = info["capabilities"] as? [String] ?? []
-            if capabilities != guestCapabilities {
-                guestCapabilities = capabilities
-            }
-            let ip = info["ip"] as? String
-            if ip != guestIPAddress {
-                guestIPAddress = ip
-                onGuestIPAddressChange?(ip)
-            }
-            let ios = info["ios"] as? String
-            if ios != guestIOSVersion {
-                guestIOSVersion = ios
-            }
-            let setupPending = info["setup_pending"] as? Bool ?? false
-            if setupPending != isSetupAssistantPending {
-                isSetupAssistantPending = setupPending
-            }
-            if !isConnected {
-                isConnected = true
-                print("[control] connected to vphoned HTTP API (iOS \(guestIOSVersion ?? "?"))")
-                onConnect?(guestCapabilities)
-                let instance = info["instance"] as? String
-                let started = instance == nil || instance != connectedInstance
-                connectedInstance = instance
-                if started, unlocksAtStartup, capabilities.contains("screen_unlock") {
-                    if setupPending {
-                        print("[unlock] Setup Assistant is pending; leaving the guest as it is")
-                    } else {
-                        Task { await unlockAtStartup() }
-                    }
-                }
-                if syncsGuestEnvironment, capabilities.contains("environment_update") {
-                    Task { await syncEnvironment() }
-                }
-                if capabilities.contains("network_ipv4"), let setting = guestIPv4Setting {
-                    Task { await applyGuestIPv4(setting) }
-                }
-                if capabilities.contains("network_hostname") {
-                    Task { await applyGuestLocalHostName(guestLocalHostName) }
-                }
-                if capabilities.contains("device_name") {
-                    Task { await applyGuestDeviceName(guestDeviceName) }
-                }
-                if capabilities.contains("network_static_names"), let entries = guestStaticNames?() {
-                    Task { await applyGuestStaticNames(entries) }
-                }
-            }
+            try await attemptProbe()
         } catch {
-            if !isConnected {
+            if isConnected {
+                for _ in 0 ..< 2 {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    if (try? await attemptProbe()) != nil { return }
+                }
+            } else {
                 print("[control] probe failed: \(error)")
             }
             setDisconnected()
+        }
+    }
+
+    private func attemptProbe() async throws {
+        let response = try await http(method: "GET", path: "/v1/health")
+        guard response.status == 200,
+              let info = try JSONSerialization.jsonObject(with: response.body) as? [String: Any],
+              info["api_version"] as? Int == 1
+        else {
+            throw ControlError.protocolError("incompatible guest API")
+        }
+        if let binary = guestBinaryURL,
+           let hash = guestBinaryDigest.sha256(of: binary),
+           hash != info["binary_hash"] as? String,
+           let data = try? Data(contentsOf: binary, options: .mappedIfSafe)
+        {
+            print("[control] updating vphoned over HTTP...")
+            try await createDirectory(path: "/var/root/Library/Caches")
+            try await uploadFile(path: "/var/root/Library/Caches/vphoned.next", data: data)
+            _ = try await call("agent.apply_update", params: ["sha256": hash])
+            setDisconnected()
+            return
+        }
+        // The probe repeats every few seconds; assign only changes so
+        // observing windows do not redraw on every probe.
+        let capabilities = info["capabilities"] as? [String] ?? []
+        if capabilities != guestCapabilities {
+            guestCapabilities = capabilities
+        }
+        let ip = info["ip"] as? String
+        if ip != guestIPAddress {
+            guestIPAddress = ip
+            onGuestIPAddressChange?(ip)
+        }
+        let ios = info["ios"] as? String
+        if ios != guestIOSVersion {
+            guestIOSVersion = ios
+        }
+        let setupPending = info["setup_pending"] as? Bool ?? false
+        if setupPending != isSetupAssistantPending {
+            isSetupAssistantPending = setupPending
+        }
+        if !isConnected {
+            isConnected = true
+            print("[control] connected to vphoned HTTP API (iOS \(guestIOSVersion ?? "?"))")
+            onConnect?(guestCapabilities)
+            let instance = info["instance"] as? String
+            let started = instance == nil || instance != connectedInstance
+            connectedInstance = instance
+            if started, unlocksAtStartup, capabilities.contains("screen_unlock") {
+                if setupPending {
+                    print("[unlock] Setup Assistant is pending; leaving the guest as it is")
+                } else {
+                    Task { await unlockAtStartup() }
+                }
+            }
+            if syncsGuestEnvironment, capabilities.contains("environment_update") {
+                Task { await syncEnvironment() }
+            }
+            if capabilities.contains("network_ipv4"), let setting = guestIPv4Setting {
+                Task { await applyGuestIPv4(setting) }
+            }
+            if capabilities.contains("network_hostname") {
+                Task { await applyGuestLocalHostName(guestLocalHostName) }
+            }
+            if capabilities.contains("device_name") {
+                Task { await applyGuestDeviceName(guestDeviceName) }
+            }
+            if capabilities.contains("network_static_names"), let entries = guestStaticNames?() {
+                Task { await applyGuestStaticNames(entries) }
+            }
         }
     }
 

@@ -233,6 +233,12 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   switching to Launchpad, finding this machine, and opening its Actions
   menu. **Features → Pentest Tools…** now opens it for this machine without
   leaving the VM window, as long as Launchpad is installed.
+- **The guest connection no longer flaps on a single transient reset.**
+  A health check that failed once — a brief guest-side hiccup from SEP or
+  display work — used to flip the whole UI to "Disconnected" immediately,
+  even though the very next check a second later would have succeeded. It
+  now retries a couple of times first; only a connection that stays down
+  reports as disconnected.
 
 ## Set up with an AI agent
 
