@@ -193,7 +193,28 @@ running the fork day to day. Build a fresh Core Bundle and Launchpad (see
   though the command itself had already succeeded — so the inspector had no
   way to tell the difference from a real failure. The **Update Kernel** and
   **Apply to Guest** buttons now appear and work for `frida` and any other
-  large preset, with no restore needed for the kernel patches.
+  large preset, with no restore needed for the kernel patches. The same fix
+  covers `vm leases` and `vm template list`, which can grow the same way.
+- **Switching an existing machine's preset now actually works from
+  Launchpad.** The Patches inspector's **Edit…** used to only show the
+  current choice; picking a different preset (`standard` → `frida`, say) had
+  to go through the CLI by hand. It now saves the change and, if the machine
+  is stopped, chains **Update Kernel** and **Apply to Guest** right after, so
+  switching preset is one step instead of three.
+- **New Machine shows which Core Bundle its firmware list is reading from.**
+  With more than one Core Bundle installed, the Device/iOS pickers read from
+  whichever one is chosen in Advanced Options → Firmware — easy to miss, and
+  the usual reason a newer iOS release doesn't show up. The basic page now
+  names that Core Bundle directly, with a one-click way to change it.
+- **`scripts/check-firmware-catalog.zsh`** flags any device already in the
+  firmware catalog that Apple has since signed a newer build for, by
+  checking against [ipsw.me](https://ipsw.me). It only reports; adding the
+  pairing is still a manual edit.
+- **Building VPhoneLaunchpad through the full workspace no longer fails on a
+  package-pin mismatch.** A dependency had been bumped for Launchpad alone
+  without updating the workspace's own pin, so a clean build through
+  `VPhone.xcworkspace` always failed a licence-staging check. Every pin now
+  agrees.
 
 ## Set up with an AI agent
 
