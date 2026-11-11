@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/libarchive.xcframework.git",
       "state" : {
-        "revision" : "82687c75e530917b7fbeb15cd5f9369524637155",
-        "version" : "1.0.0"
+        "revision" : "8ad2cac40f705d2b8b03311c3c3714b0a50d15ce",
+        "version" : "1.0.2"
       }
     },
     {
