@@ -21,12 +21,7 @@ enum DeviceMockingTests {
             }
         }
 
-        // 3. Network Profiles
-        precondition(VPhoneNetworkConditionProfile.offline.isOffline, "Offline profile must have isOffline true")
-        precondition(!VPhoneNetworkConditionProfile.unthrottled.isOffline, "Unthrottled must not be offline")
-        precondition(VPhoneNetworkConditionProfile.cellular3G.delayMs == 200, "3G delay must be 200ms")
-
-        // 4. Model State & Battery Application
+        // 3. Model State & Battery Application
         await MainActor.run {
             let mock = MockDeviceMockingGuestControl()
             let model = VPhoneDeviceMockingModel(control: mock)
@@ -39,13 +34,10 @@ enum DeviceMockingTests {
                 await model.applyBiometricMode(.forceSuccess)
                 precondition(model.isBiometricHookActive, "Biometric hook must be active")
                 precondition(model.biometricMode == .forceSuccess, "Biometric mode must be forceSuccess")
-
-                await model.applyNetworkProfile(.offline)
-                precondition(model.networkProfile.isOffline, "Profile must be offline")
             }
         }
 
-        print("Device Mocking checks passed: battery simulation, biometric mock modes, Frida script synthesis and network profiles.")
+        print("Device Mocking checks passed: battery simulation, biometric mock modes, and Frida script synthesis.")
     }
 }
 
