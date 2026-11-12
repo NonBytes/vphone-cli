@@ -44,6 +44,7 @@ extension VPhoneMenuController {
         menu.addItem(keychainBrowser)
         menu.addItem(makeItem("Keychain Inspector…", action: #selector(showKeychainInspector)))
         menu.addItem(makeItem("Device & Hardware Mocking Hub…", action: #selector(showDeviceMockingHub), symbol: "slider.horizontal.3"))
+        menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
 

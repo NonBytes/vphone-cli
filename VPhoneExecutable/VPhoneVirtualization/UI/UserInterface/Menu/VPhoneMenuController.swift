@@ -36,6 +36,7 @@ class VPhoneMenuController {
     }
     lazy var tvRemoteWindowController = VPhoneTVRemoteWindowController(control: control)
     lazy var proxyWindowController = VPhoneProxyWindowController(control: control)
+    lazy var proxyAssistantWindowController = VPhoneProxyAssistantWindowController(control: control)
     lazy var networkDiagnosticsWindowController = VPhoneNetworkDiagnosticsWindowController(control: control)
     lazy var keychainInspectorWindowController = VPhoneKeychainInspectorWindowController(control: control)
     lazy var deepLinkTesterWindowController = VPhoneDeepLinkTesterWindowController(control: control)
@@ -164,6 +165,9 @@ class VPhoneMenuController {
         self.machineDirectory = machineDirectory
         guestToolsWindowController = VPhoneGuestToolsWindowController(control: control)
         guestPanelsWindowController = VPhoneGuestPanelsWindowController(control: control)
+        NotificationCenter.default.addObserver(forName: Notification.Name("VPhoneOpenFridaTools"), object: nil, queue: .main) { [weak self] _ in
+            self?.showFridaTools()
+        }
         setupMenuBar()
     }
 
