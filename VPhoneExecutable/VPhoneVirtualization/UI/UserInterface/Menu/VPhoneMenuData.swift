@@ -44,6 +44,7 @@ extension VPhoneMenuController {
         menu.addItem(keychainBrowser)
         menu.addItem(makeItem("Keychain Inspector…", action: #selector(showKeychainInspector)))
         menu.addItem(makeItem("Device & Hardware Mocking Hub…", action: #selector(showDeviceMockingHub), symbol: "slider.horizontal.3"))
+        menu.addItem(makeItem("Runtime Class & Method Inspector…", action: #selector(showRuntimeInspector), symbol: "curlybraces"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
@@ -140,6 +141,7 @@ extension VPhoneMenuController {
     @objc func showKeychainInspector() { keychainInspectorWindowController.show() }
     @objc func showPasteboardInspector() { pasteboardInspectorWindowController.show() }
     @objc func showDeviceMockingHub() { deviceMockingWindowController.show() }
+    @objc func showRuntimeInspector() { runtimeInspectorWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 
