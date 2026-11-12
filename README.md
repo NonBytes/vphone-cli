@@ -108,6 +108,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Deep Link Tester](Research/Guest/deep_link_tester.md) | URL schemes, `applinks:` Associated Domains extraction, categorized **Payload Fuzzer** (`XSS`, `Open Redirect`, `Path Traversal`, `Auth Leak`, `Parser Edge Cases`), filtered **Run History Matrix** with latency, and **Add to MASVS Findings** |
 | [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process; send inspected items to **MASVS Findings** |
 | [Evidence & MASVS Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes, interactive **MASVS Findings Builder**, Markdown (`findings-report.md`) & escaped dark HTML (`findings-report.html`) reports, and a redaction review |
+| **Photos & Media Browser** | Browse, search, and filter DCIM camera captures, screenshots, and videos; inline preview with metadata (dimensions, file size, date); direct "Copy Image" to Mac clipboard, "Save…", "Open in Preview.app", and batch "Export Selected…" / "Export All…" to Mac |
 | [Export Installed IPA](Research/Guest/ipa_export.md) | Export the installed app bundle; excludes sandbox/Keychain data and performs no decryption |
 | [Patch IPA with Frida Gadget](Research/Guest/gadget_patchipa.md) | Embed Gadget/config in an unencrypted iOS IPA and sign a new IPA ad hoc for vphone VMs |
 | [Install → Launch → Gadget Session](Research/Host/gadget_deployment.md) | Verify the patched IPA hash, select a VM, install/launch explicitly, and transfer endpoint/token through a temporary USB loopback tunnel |
@@ -165,7 +166,9 @@ Keep VM folders, exported evidence, patched IPAs and signing credentials outside
 Git. Evidence may retain identifying metadata; text redaction does not redact
 screenshots or PCAP payloads. Use synthetic apps/data for public examples.
 
-With the fork's Core selected, use **Features → Source: Mac Camera…** in the
+With the fork's Core selected, use **Data → Photos** in the VM window (or **Pentest Tools → Photos & Media Browser…**) to open the dedicated media browser to preview, copy to clipboard, or export camera roll photos, screenshots, and videos directly to your Mac.
+
+Use **Features → Source: Mac Camera…** in the
 VM window, choose a camera, and click **Start Streaming**. Allow macOS Camera
 access when prompted. [Mac camera setup](Research/Guest/mac_camera_local.md)
 

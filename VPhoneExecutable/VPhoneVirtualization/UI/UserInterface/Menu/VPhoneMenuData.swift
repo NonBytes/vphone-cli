@@ -21,6 +21,15 @@ extension VPhoneMenuController {
         connectFileBrowserItem = fileBrowser
         menu.addItem(fileBrowser)
 
+        let photos = makeItem(
+            "Photos",
+            action: #selector(openPhotos),
+            symbol: "photo.on.rectangle",
+        )
+        photos.isEnabled = false
+        connectPhotosItem = photos
+        menu.addItem(photos)
+
         // Control-Command-K: Shift-Command-K is Device > Use Hardware Keyboard,
         // which comes first in the menu bar and would take the key.
         let keychainBrowser = makeItem(
@@ -93,6 +102,7 @@ extension VPhoneMenuController {
     func updateConnectAvailability(available: Bool) {
         connectSessionItem?.isEnabled = available
         connectFileBrowserItem?.isEnabled = available
+        connectPhotosItem?.isEnabled = available
         connectKeychainBrowserItem?.isEnabled = available
         connectDevModeStatusItem?.isEnabled = available
         connectPingItem?.isEnabled = available
@@ -110,6 +120,10 @@ extension VPhoneMenuController {
 
     @objc func openFiles() {
         onFilesPressed?()
+    }
+
+    @objc func openPhotos() {
+        photosWindowController.show()
     }
 
     @objc func openKeychain() {

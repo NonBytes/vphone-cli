@@ -42,6 +42,7 @@ class VPhoneMenuController {
     lazy var evidenceExportWindowController = VPhoneEvidenceExportWindowController(control: control)
     lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
     lazy var fridaToolsWindowController = VPhoneFridaToolsWindowController(control: control, machineDirectory: machineDirectory)
+    lazy var photosWindowController = VPhonePhotosWindowController(control: control)
     /// Launchpad's Pentest Tools helper, opened directly from this VM's own
     /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
     var pentestToolsApp: NSRunningApplication?
@@ -86,6 +87,7 @@ class VPhoneMenuController {
     var onAppsPressed: (() -> Void)?
     var connectSessionItem: NSMenuItem?
     var connectFileBrowserItem: NSMenuItem?
+    var connectPhotosItem: NSMenuItem?
     var connectKeychainBrowserItem: NSMenuItem?
     var connectDevModeStatusItem: NSMenuItem?
     var connectPingItem: NSMenuItem?
