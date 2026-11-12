@@ -50,9 +50,15 @@ nonisolated struct VPhoneLaunchpadMaintenanceProgress: Equatable, Sendable {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         if trimmed.hasPrefix("[!]") {
             let text = trimmed.dropFirst(3).trimmingCharacters(in: .whitespaces)
+            if text.localizedCaseInsensitiveContains("Campo absent") {
+                return nil
+            }
             return text.isEmpty ? nil : text
         }
         let lowered = trimmed.lowercased()
+        if lowered.contains("campo absent") {
+            return nil
+        }
         return warningPrefixes.contains(where: lowered.hasPrefix) ? trimmed : nil
     }
 }

@@ -61,6 +61,7 @@ struct MaintenanceProgressTests {
             "1 guest patch(es) failed and were left in their prior state: system-launchd-cfw-jetsam",
         ], "warnings in order, markers removed: \(progress.warnings)")
         expect(read(["Error: Unknown option '--work-parent'"]).warningCount == 1, "an argument error warns")
+        expect(read(["[!] Campo absent; entitlement patch skipped"]).warningCount == 0, "Campo absent is expected on iOS 27.2+ and must not warn")
         expect(read(["[!]", "  [!]   "]).warningCount == 0, "a bare marker does not warn")
         expect(read(["the warning: is not at the start"]).warningCount == 0, "only a leading warning: counts")
 

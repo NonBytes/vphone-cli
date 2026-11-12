@@ -4798,7 +4798,7 @@ struct VPhoneCustomFirmwareInstaller {
         label: String,
     ) throws -> URL? {
         guard try system.isRegularFile(path) else {
-            print("[!] \(label) absent; entitlement patch skipped")
+            print("  [·] \(label) absent; entitlement patch skipped")
             return nil
         }
         let name = (path as NSString).lastPathComponent
