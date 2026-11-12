@@ -99,7 +99,14 @@ struct PhotosBrowserTests {
         precondition(model.previewImage != nil, "Selected image must load previewImage")
         precondition(model.copySelectedImage(), "copySelectedImage must succeed when preview is loaded")
 
-        // 6. Cleanup
+        // 6. Fast In-Memory Cache Verification
+        // Switching away and switching back must load preview immediately without task delay
+        model.selectedPhotoID = model.photos[0].id // Switch to IMG_0003.MOV
+        model.selectedPhotoID = model.photos[2].id // Switch back to cached IMG_0001.PNG
+        precondition(model.previewImage != nil, "Cached image must load synchronously with zero delay")
+        precondition(!model.isLoadingPreview, "Cached image must not trigger isLoadingPreview")
+
+        // 7. Cleanup
         model.close()
         precondition(model.previewImage == nil)
 

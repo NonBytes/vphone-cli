@@ -1,6 +1,7 @@
 #!/bin/zsh
 # vphone-tier: build
 set -euo pipefail
+exec </dev/null
 
 destination=${2:-}
 if [[ ${1:-} == --check ]]; then
@@ -70,27 +71,25 @@ while (( $# )); do
         }
         found=0
         # Read committed blobs, preserving exact pinned bytes and nested paths.
-        while IFS= read -r -d '' entry; do
-            metadata=${entry%%$'\t'*}
-            relative=${entry#*$'\t'}
+        /usr/bin/git -C "$checkout" ls-tree -r "$revision" | while IFS=$'\t' read -r metadata relative; do
             [[ $metadata == 100???\ blob\ * ]] || continue
             is_notice "$relative" || continue
             /usr/bin/git -C "$checkout" show "$revision:$relative" |
                 record_notice "$identity" "$revision" checkout "$relative"
             found=1
-        done < <(/usr/bin/git -C "$checkout" ls-tree -r -z "$revision")
+        done
         # Only notice files from this package's downloaded binary targets.
         # SDKs, build products and firmware directories are never traversed.
         artifact=$(package_directory "$packages/artifacts" "$identity") || artifact=''
         if [[ -d $artifact ]]; then
             artifact_found=0
-            while IFS= read -r -d '' file; do
+            /usr/bin/find "$artifact" -type f | while IFS= read -r file; do
                 relative=${file#$artifact/}
                 is_notice "$relative" || continue
                 record_notice "$identity" "$revision" "artifacts-${packages:h:t}" "$relative" < "$file"
                 found=1
                 artifact_found=1
-            done < <(/usr/bin/find "$artifact" -type f -print0)
+            done
             if (( ! artifact_found )); then
                 printf '%s\t%s\tartifact_missing\t-\t-\n' "$identity" "$revision" >> "$manifest"
             fi
