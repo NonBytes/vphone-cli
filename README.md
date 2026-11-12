@@ -106,6 +106,11 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Network Diagnostics + PCAP](Research/Guest/network_diagnostics.md) | Reachability checks and interface-wide packet capture with Stop/export for Wireshark |
 | [App Logs & Crash Viewer](Research/Guest/app_logs.md) | Process logs collected in bounded batches with gaps, crash report inspection and local export |
 | [Deep Link Tester](Research/Guest/deep_link_tester.md) | URL schemes, `applinks:` Associated Domains extraction, categorized **Payload Fuzzer** (`XSS`, `Open Redirect`, `Path Traversal`, `Auth Leak`, `Parser Edge Cases`), filtered **Run History Matrix** with latency, and **Add to MASVS Findings** |
+| **Zero-Config Proxy & Burp Assistant** | Automatic Burp Suite & mitmproxy profiles, 1-click PortSwigger CA installation into guest trust store (`trustd`), SSL pinning bypass coordination, and proxy reachability verification |
+| **Pasteboard / Clipboard Inspector** | Real-time guest UIPasteboard monitoring, automated secret leakage detection (JWT, API keys, passwords, credit cards), custom payload fuzzer (Unicode, RTF, JSON, format strings), and MASVS-STORAGE-2 report export |
+| **Device Environment & Mocking Hub** | Real-time battery state & thermal level simulation via `IOPMPowerSource`, and Face ID / Touch ID biometric authentication mocking (Success, Cancel, Lockout) via `LocalAuthentication` C-API hooks |
+| **Runtime Class & Method Inspector** | Dynamic Objective-C runtime class dumper, method tracer with live parameter/return value logging, and 1-click method return value override hooks (`libobjc.A.dylib` C-API on Frida 17) |
+| **App Memory Search & Scanner** | Live process memory scanner (`rw-` memory ranges), regex & secret hunter (JWT, RSA/EC private keys, API secrets, passwords, credit cards, custom regex), Frida 17 in-process enumeration generator, and MASVS-STORAGE-1 finding export |
 | [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process; send inspected items to **MASVS Findings** |
 | [Evidence & MASVS Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes, interactive **MASVS Findings Builder**, Markdown (`findings-report.md`) & escaped dark HTML (`findings-report.html`) reports, and a redaction review |
 | **Photos & Media Browser** | Browse, search, and filter DCIM camera captures, screenshots, and videos; inline preview with metadata (dimensions, file size, date); direct "Copy Image" to Mac clipboard, "Save…", "Open in Preview.app", and batch "Export Selected…" / "Export All…" to Mac |
@@ -138,6 +143,8 @@ with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/e
   start App Logs or open Crash Reports. In Deep Link Tester, review URL schemes
   and Associated Domains, test manually or run batches on the **Payload Fuzzer** tab,
   filter the **Run History Matrix**, and add interesting runs to MASVS Findings.
+- **Proxy, Pasteboard, and Mocking Hub** — configure upstream Burp Suite/mitmproxy with 1-click CA installation into iOS trust store; monitor guest clipboard for leaked secrets and fuzz with test vectors; simulate synthetic battery levels and mock Face ID / Touch ID authentication results.
+- **Runtime Inspector and Memory Scanner** — explore loaded Objective-C/Swift classes, trace method calls in real time, force method return values to bypass checks, and scan writable live process memory (RAM/Heap) for leaked credentials and tokens.
 - **Keychain, MASVS Findings, and Evidence Export** — select an app and group scope
   for **Scan Metadata** or **Dump Readable Values** (and add flagged rows to MASVS
   Findings). Open **Evidence Export**, manage findings on the **MASVS Findings** tab,
