@@ -53,6 +53,8 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
     @ObservationIgnored private var guestBinaryDigest = VPhoneFileDigestCache()
     @ObservationIgnored var onConnect: (([String]) -> Void)?
     @ObservationIgnored var onDisconnect: (() -> Void)?
+    @ObservationIgnored var onSetBattery: (@MainActor (Double, Int, Bool?) async throws -> Void)?
+    @ObservationIgnored var onSetNetworkLink: (@MainActor (Bool) async throws -> Void)?
     /// What en0 should be configured as, from the manifest. Applied on every
     /// connect, so a guest that was changed while the host was away is put back.
     @ObservationIgnored var guestIPv4Setting: VPhoneGuestIPv4Setting?
@@ -749,6 +751,24 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
                     ? try await http(method: "GET", path: "/v1/clipboard/image", limits: .download).body : nil
             info["ok"] = true
             return (info, image)
+        }
+        if type == "battery" {
+            let charge = request["charge"] as? Double ?? (request["level"] as? NSNumber)?.doubleValue ?? 100.0
+            let connectivity = (request["connectivity"] as? NSNumber)?.intValue ?? (request["state"] as? NSNumber)?.intValue ?? 1
+            let lpm = request["low_power_mode"] as? Bool
+            if let onSetBattery {
+                try await onSetBattery(charge, connectivity, lpm)
+            } else if let lpm {
+                try await lowPowerMode(enabled: lpm)
+            }
+            return (["ok": true], nil)
+        }
+        if type == "network" {
+            let link = request["link"] as? String ?? "up"
+            if let onSetNetworkLink {
+                try await onSetNetworkLink(link == "up")
+            }
+            return (["ok": true], nil)
         }
         let method: String
         switch type {

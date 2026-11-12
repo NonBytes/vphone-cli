@@ -87,6 +87,7 @@ class VPhoneHostAutomationServer {
     private weak var control: VPhoneGuestControl?
     /// For the `network` command; nil until the VM exists.
     weak var virtualMachine: VPhoneVirtualMachine?
+    weak var menuController: VPhoneMenuController?
 
     /// Matches vphoned's JSON body limit, so an `rpc` line is never refused
     /// here that the guest would accept.
@@ -322,6 +323,21 @@ class VPhoneHostAutomationServer {
                 }
                 let size = try await connectedControl().pullFile(path, to: destination)
                 return Self.reply(ok: true, result: ["path": path, "local": destination.path, "size": size])
+
+            case "battery":
+                guard let virtualMachine else {
+                    return Self.reply(ok: false, error: "the VM is not running")
+                }
+                let charge = json["charge"] as? Double ?? (json["level"] as? NSNumber)?.doubleValue ?? 100.0
+                let connectivity = (json["connectivity"] as? NSNumber)?.intValue ?? (json["state"] as? NSNumber)?.intValue ?? 1
+                menuController?.applyManualBattery(charge: charge, connectivity: connectivity)
+                if menuController == nil {
+                    virtualMachine.setBattery(charge: charge, connectivity: connectivity)
+                }
+                if let lpm = json["low_power_mode"] as? Bool {
+                    try? await connectedControl().lowPowerMode(enabled: lpm)
+                }
+                return Self.reply(ok: true)
 
             case "network":
                 guard let virtualMachine else {

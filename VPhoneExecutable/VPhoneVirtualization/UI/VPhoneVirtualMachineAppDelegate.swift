@@ -250,6 +250,18 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
             )
             mc.guestPanelsWindowController.displayWindow = wc.displayWindow
             mc.vm = vm
+            control.onSetBattery = { [weak mc, weak vm, weak control] charge, connectivity, lpm in
+                mc?.applyManualBattery(charge: charge, connectivity: connectivity)
+                if mc == nil {
+                    vm?.setBattery(charge: charge, connectivity: connectivity)
+                }
+                if let lpm, let control {
+                    try? await control.lowPowerMode(enabled: lpm)
+                }
+            }
+            control.onSetNetworkLink = { [weak vm] up in
+                try vm?.setNetworkLink(up: up)
+            }
             mc.onHardwareKeyboardChange = { [weak self] enabled in
                 guard let self else { return }
                 try await restartWithHardwareKeyboard(enabled)
@@ -443,6 +455,7 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
             screenHeight: options.screenHeight,
         )
         server.virtualMachine = vm
+        server.menuController = menuController
         hostAutomationServer = server
     }
 

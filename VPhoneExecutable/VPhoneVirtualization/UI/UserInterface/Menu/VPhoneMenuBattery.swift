@@ -80,6 +80,21 @@ extension VPhoneMenuController {
         print("[battery] set \(Int(charge))%, connectivity=\(sender.tag)")
     }
 
+    func applyManualBattery(charge: Double, connectivity: Int) {
+        stopBatteryMonitoring()
+        batterySyncStatusItem?.isHidden = true
+        batteryLevelMenuItems.forEach { mi in
+            mi.isEnabled = true
+            mi.state = Double(mi.tag) == charge ? .on : .off
+        }
+        batteryConnectivityMenuItems.forEach { mi in
+            mi.isEnabled = true
+            mi.state = mi.tag == connectivity ? .on : .off
+        }
+        vm?.setBattery(charge: charge, connectivity: connectivity)
+        print("[battery] manual set \(Int(charge))%, connectivity=\(connectivity)")
+    }
+
     // MARK: - Host Sync
 
     /// Release the run-loop context before replacing this VM's controllers.
