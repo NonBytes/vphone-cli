@@ -217,10 +217,17 @@ technical details.
   (`verify-https`), bounded App Logs & Crash Viewer log streaming/filtering,
   private `0600` App Inspector JSON exports, and clean PCAP stop-flush status
   clearing.
+- **Photos & Media Browser** — Dedicated media browser accessible via **Data → Photos**
+  in the VM window or **Pentest Tools → Photos & Media Browser…** to browse, search,
+  and filter DCIM camera captures, screenshots, and videos; inline preview with metadata
+  (dimensions, file size, date); direct "Copy Image" to Mac clipboard, "Save…", "Open in Preview.app",
+  and batch "Export Selected…" / "Export All…" to Mac with collision-free toolbar layout.
 - **Firmware, CFW & Build** — Extended firmware catalog through iOS 27.2.1
   (plus `scripts/check-firmware-catalog.zsh`), `frida.plist` vs `standard.plist`
   drift guard in `ValidateBundle.sh` and tests, unmount retry for transient
   `"Resource busy"` errors during `cfw install` / `cfw update-environment`,
+  suppression of benign Campo missing-entitlement warnings on iOS 27.2+,
+  elimination of background-process terminal hangs during package notice staging in `stage-package-notices.zsh`,
   consolidated shared Pentest core into `VPhoneKit/VPhonePentestKit`
   (`scripts/build-pentest-kit.zsh` and `pentest-kit-parity-tests.zsh`), and
   aligned workspace package pins for `VPhoneLaunchpad`.

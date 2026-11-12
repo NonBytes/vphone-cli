@@ -128,6 +128,13 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   flush"` after stopping finishes.** Stopping a capture only displays the
   flush message while `state.active` remains `true`, and `reloadCapture()`
   clears it as soon as polling sees `!state.active`.
+- **Photos & Media Browser for DCIM captures, screenshots, and videos.**
+  Available via **Data → Photos** in the VM window and **Pentest Tools → Photos & Media Browser…**
+  in Launchpad. Supports real-time DCIM scanning, filtering by media type
+  (All, Photos, Screenshots, Videos), live search, metadata display, one-click
+  copy to clipboard, saving locally, opening in Preview.app, and batch exports.
+  The toolbar layout uses `.fixedSize()` and independent cluster spacing to guarantee
+  that search and filter controls never collide.
 
 ## Firmware, CFW & Build
 
@@ -162,6 +169,14 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   `VPhoneKit.xcodeproj` declares the native `VPhonePentestKit` target, and
   `scripts/tests/pentest-kit-parity-tests.zsh` prevents duplicate files from
   reappearing.
+- **`stage-package-notices.zsh` terminal hang eliminated during Xcode bundle builds.**
+  Replacing interactive terminal read descriptors (`SHTTY` via `tcsetattr`) and
+  process substitution with standard stream pipelines (`git ls-tree | while read`)
+  prevents `SIGTTOU`/`SIGTTIN` process suspension when Xcode executes build phases in the background.
+- **Benign `Campo absent` warning suppressed on iOS 27.2+.**
+  Apple removed `Campo.app` on iOS 27.2+, which previously triggered an entitlement
+  patch warning badge (`[!]`) during `cfw update-environment`. The installer now logs
+  this as an informational note (`[·]`) and Launchpad maintenance progress ignores it.
 - **Bundle validation and catalog tests guard against `frida.plist` drifting
   from `standard.plist`.** `ValidateBundle.sh` now checks on every `VPhone`
   build that `frida.plist` uses `Block` selection and differs from
