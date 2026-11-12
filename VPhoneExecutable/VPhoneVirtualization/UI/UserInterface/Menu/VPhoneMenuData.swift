@@ -85,6 +85,12 @@ extension VPhoneMenuController {
         menu.addItem(clipSet)
 
         menu.addItem(makeItem(
+            "Pasteboard Inspector & Fuzzer…",
+            action: #selector(showPasteboardInspector),
+            symbol: "doc.on.clipboard.fill"
+        ))
+
+        menu.addItem(makeItem(
             "Type ASCII from Mac Clipboard",
             action: #selector(typeFromClipboard),
             symbol: "keyboard",
@@ -130,6 +136,7 @@ extension VPhoneMenuController {
         onKeychainPressed?()
     }
     @objc func showKeychainInspector() { keychainInspectorWindowController.show() }
+    @objc func showPasteboardInspector() { pasteboardInspectorWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 
