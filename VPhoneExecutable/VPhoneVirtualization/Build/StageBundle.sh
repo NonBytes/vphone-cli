@@ -122,7 +122,7 @@ done
 /usr/bin/xcrun --sdk iphoneos swiftc -swift-version 6 -target arm64-apple-ios17.0 \
     -sdk "$(/usr/bin/xcrun --sdk iphoneos --show-sdk-path)" -O \
     "$root/VPhoneExecutable/VPhoneVirtualization/Proxy/Certificates/main.swift" \
-    "$root/VPhoneExecutable/VPhoneVirtualization/UI/GuestCommunication/VPhoneCACertificate.swift" \
+    "$root/VPhoneKit/VPhonePentestKit/VPhoneCACertificate.swift" \
     "$root/VPhoneKit/VPhonePentestKit/VPhoneProxyConfiguration.swift" \
     -o "$guest/vphone-guest-ca" -framework Foundation -framework Security -framework CryptoKit
 /usr/bin/codesign --force --sign - \

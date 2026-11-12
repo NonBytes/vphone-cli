@@ -19,6 +19,8 @@ final class VPhoneProxyModel {
     var certificates: [VPhoneCACertificate] = []
     var caError: String?
     var caLoaded = false
+    var detectedProxies: [VPhoneDetectedProxy] = []
+    var isScanning = false
 
     init(control: VPhoneGuestControl) { self.control = control }
 
@@ -49,6 +51,30 @@ final class VPhoneProxyModel {
             caLoaded = true
             caError = nil
         } catch { caError = error.localizedDescription }
+        Task { await scanProxies() }
+    }
+
+    func scanProxies() async {
+        guard !isScanning else { return }
+        isScanning = true
+        defer { isScanning = false }
+        let reachable = VPhoneProxyAssistant.defaultReachableHost(guestIP: control.guestIPAddress)
+        let fingerprints = Set(certificates.map(\.sha256))
+        detectedProxies = await VPhoneProxyAssistant.scanProxies(reachableHost: reachable, trustedFingerprints: fingerprints)
+    }
+
+    func autoConfigure(proxy: VPhoneDetectedProxy) async {
+        guard !busy else { return }
+        busy = true
+        error = nil
+        defer { busy = false }
+        do {
+            _ = try await VPhoneProxyAssistant.autoConfigure(proxy: proxy, control: control)
+            applied = true
+            await load()
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 
     func importCertificate() {
@@ -124,6 +150,37 @@ private struct VPhoneProxyView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if !model.detectedProxies.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(VPhoneLocalization.text("Detected Intercepting Proxies on Host:"))
+                        .font(.caption.weight(.semibold))
+                    ForEach(model.detectedProxies) { proxy in
+                        HStack(spacing: 8) {
+                            Image(systemName: proxy.name.contains("Burp") ? "flame.fill" : "shield.fill")
+                                .foregroundStyle(proxy.name.contains("Burp") ? .orange : .blue)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("\(proxy.name) (:\(proxy.port))").font(.caption.weight(.medium))
+                                if let ca = proxy.caCertificateName {
+                                    Text(proxy.isTrustedInGuest ? "CA Trusted: \(ca)" : "CA Available: \(ca)")
+                                        .font(.caption2).foregroundStyle(proxy.isTrustedInGuest ? .green : .secondary)
+                                }
+                            }
+                            Spacer()
+                            Button(VPhoneLocalization.text("⚡ 1-Click Setup & Trust")) {
+                                Task { await model.autoConfigure(proxy: proxy) }
+                            }
+                            .controlSize(.small)
+                            .buttonStyle(.borderedProminent)
+                            .disabled(model.busy)
+                        }
+                        .padding(8)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(6)
+                    }
+                }
+                Divider()
+            }
+
             Form {
                 Toggle(VPhoneLocalization.text("Enable Proxy"), isOn: $model.enabled)
                 TextField(VPhoneLocalization.text("Server"), text: $model.host)

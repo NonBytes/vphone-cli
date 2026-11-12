@@ -22,6 +22,6 @@ sed 's/CA:true/CA:false/; s/keyCertSign,cRLSign/digitalSignature/' "$work/openss
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -config "$work/leaf.cnf" -subj /CN=Leaf -keyout "$work/leaf-key.pem" -out "$work/leaf.pem" 2>/dev/null
 xcrun --sdk macosx swiftc -swift-version 6 -parse-as-library \
     "$kit/VPhoneProxyConfiguration.swift" \
-    "$root/UI/GuestCommunication/VPhoneCACertificate.swift" \
+    "$kit/VPhoneCACertificate.swift" \
     "${0:a:h}/CACertificateTests.swift" -o "$work/ca-tests" -framework Security -framework CryptoKit
 "$work/ca-tests" "$work"
