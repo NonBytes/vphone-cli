@@ -103,7 +103,7 @@ vphone-launchpad-cli vm create rt-e --block system-debugserver-cfw-install
 | `--device <product-type>` | Make another device; see [Other devices](#other-devices) |
 | `--preset <preset>` | A preset name, or the path of a preset plist (2.14), which the machine keeps a copy of |
 | `--block <patch>`, `--allow <patch>` | Turn one patch of the preset off or on; repeatable. See [Patch overrides](#patch-overrides) |
-| `--no-template` | Restore the machine on its own instead of cloning a template |
+| `--no-template` | Restore the machine on its own instead of cloning a template. Of the slimming switches only `--slim` applies: `on` (the default) gives the machine a setup boot of its own, which skips Setup Assistant; `off` starts it at Setup Assistant |
 | `--slim on\|off`, `--trim …`, `--keep-languages …`, `--service-profile …`, `--remove-apps …`, `--keep-apps …` | The slimming switches of `vphone-cli vm create`. Apple Account goes with the trimmed service profile, as in New Machine |
 | `--accounts-off` | Accepted, and changes nothing |
 | `--ipsw <path>` | Optional. Passed only to a 2.12.0 bundle, which stages the kernelcache mix with it, as New Machine's ipsw field does. A 2.12.1 bundle extracts natively |
@@ -125,7 +125,7 @@ The result names the template, whether this creation built it, and the patches i
 
 Two more cases run steps as root through the helper:
 
-- `--preset minimal` (Minimal: a stock boot chain, kernel and TXM, with the system customized before the restore) is also restored on its own without slimming, and its `fw patch` runs as root through the helper. Its Userspace debugging box (`userspace-debugging` under Features in `vphone-cli fw patches`) is an `--allow` for each patch it lists.
+- `--preset minimal` (Minimal: a stock boot chain, kernel and TXM, with the system customized before the restore) is also restored on its own without slimming, and its `fw patch` runs as root through the helper. Its Userspace debugging box (`userspace-debugging` under Features in `vphone-cli fw patches`) is an `--allow` for each patch it lists. Its Trusted darwinOS environment box (`trusted-darwinos`, which is `--allow filesystem-exp-trusted_darwinos`) restores an iPhone or iPad as trusted darwinOS with cloudOS's cryptexctl, so a cryptex can be installed while it runs (Apps › Install Cryptex… in the VM window; see [Cryptexes](../machines/cryptexes.md)), and the box's summary says what it changes. The guest then enforces Restricted Execution Mode, and a research-board guest (cloudOS 26.5 to 26.7) cannot turn on Developer Mode, and changing the box takes effect only with a new restore.
 - For a machine whose cloudOS has no vphone600 components (its release's own cloudOS, a watch, an iOS 18 guest), the kernelcache mix is staged with `fw kernelcache` and linked by the helper as root.
 
 ### Patch overrides

@@ -1321,6 +1321,8 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
 
     /// Per-read and per-write socket timeout.
     private static let socketTimeout: Duration = .seconds(120)
+    /// How long a new connection waits before its request is written.
+    private static let firstWriteDelayMicroseconds: useconds_t = 2000
 
     init(
         connection: VZVirtioSocketConnection,
@@ -1372,6 +1374,13 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         try source?.seek(toOffset: 0)
         let headers =
             "\(method) \(path) HTTP/1.1\r\nHost: vphoned\r\nConnection: close\r\nContent-Type: \(contentType)\r\nContent-Length: \(bodyLength)\r\n\r\n"
+        // A request written as soon as the connection is made is sometimes
+        // lost: the guest ends the connection within a millisecond with no
+        // reply, before vphoned sees it, and the call reports a guest that is
+        // not connected. On an iOS 27 guest that was 5 to 11 calls in 100 at
+        // one call a second; with this pause, none in 200, and VPhoneAPIProxy,
+        // which writes after a few event-loop hops, almost never saw it.
+        usleep(Self.firstWriteDelayMicroseconds)
         try write(fd, data: Data(headers.utf8))
         if let source {
             var sent: Int64 = 0
@@ -1496,6 +1505,9 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         repeat {
             count = Darwin.read(fd, &bytes, bytes.count)
         } while count < 0 && errno == EINTR
+        if count < 0, errno == EAGAIN || errno == EWOULDBLOCK {
+            throw VPhoneGuestControl.ControlError.protocolError("HTTP response timed out")
+        }
         guard count > 0 else {
             throw VPhoneGuestControl.ControlError.connectionLost(
                 count == 0 ? "guest closed the connection" : "read failed, errno \(errno)",

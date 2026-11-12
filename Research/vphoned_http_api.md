@@ -53,7 +53,9 @@ proxy removes the `Authorization` header and the `token` query item, so
 `/v1/events?token=…` reaches vphoned as `/v1/events`. It forwards every other
 byte unchanged. The token covers the whole TCP connection. vphoned closes
 each HTTP connection after one reply, and a WebSocket stays on the connection
-it was admitted on. A listen address other than loopback prints a warning.
+it was admitted on. If the guest closes the connection before sending any
+reply byte, the proxy answers `502 Bad Gateway` with error code
+`guest_closed` and closes; a reply already under way is never altered. A listen address other than loopback prints a warning.
 The proxy then sends `Host: localhost` in place of the client's value, so
 vphoned's Host check still passes. `VPhoneAPIClient` sends the token as a
 bearer header on HTTP and as the `token` query item on WebSocket. It takes
@@ -107,9 +109,28 @@ Since icli 0.8.4 a native-resolution screenshot taken while SpringBoard is
 not running (the boot logo, the respring spinner) is captured through the
 render server at its real size; UIKit's capture came out magnified by the
 screen scale.
+Point input (`input.tap`, `input.double_tap`, `input.long_press`, `input.swipe`,
+`input.drag`, and unnormalized `input.touch` or `input.touch_sequence`) uses one
+validated, oriented default-main FrontBoard geometry snapshot when available.
+For a unique available default-main monitor with numeric interface orientation
+`0` and Boolean `geometry_available: false` at both levels, the whole operation
+instead retains IcliKit's existing screen metrics and coordinate conversion.
+`device.screen` and nested screen state use that same selection. This fallback
+does not use FrontBoard dimensions, guess an orientation, or establish active
+display accuracy beyond the existing IcliKit behavior. Malformed metadata,
+contradictory flags, ambiguous display identity and an unknown orientation that
+claims valid geometry remain refused. Active overrides also require bounds that
+match the reported cardinal orientation. On refusal, nested screen state in
+`device.info` and `device.state` reports `available: false` without geometry;
+independent lock metadata remains available when it can be read.
+Normalized touch, edge/multitouch and pointer input retain their existing spaces.
+AX handlers are unchanged; this point-input adapter does not verify their
+foreground-scene ownership or coordinate space.
+tvOS retains its existing behavior and refuses point input.
+
 Screenshot sizing: `screen.screenshot {max_dimension?, quality?, region?}` lets a
 caller ask for a smaller image. `region` (`{x, y, width, height}`, points, the
-space `input.*` takes) crops first; `max_dimension` (integer, 1 or more) scales
+capture's point space) crops first; `max_dimension` (integer, 1 or more) scales
 the longer side down to it, never up; `quality` (0.1 to 1.0) is the JPEG quality,
 0.8 when another param re-encodes. Any one of the three re-encodes in the
 daemon, so only the final image crosses vsock; with none, the capture is sent
@@ -122,6 +143,23 @@ non-numeric field, width or height of 0 or less, negative x or y, outside the
 screen, under one pixel), `quality` or `max_dimension` fails with
 `invalid_operation` naming the param, the value and the valid range; nothing
 is clamped.
+
+`display.capture_active {}` returns a raw PNG in `base64`, with `source` and
+`source_after` describing the active default-main display. Its binding normally
+requires matching nonzero hardware UUIDs and a unique display ID and render name.
+Some cover displays expose no UUID on either side. Both getters must have a
+verified object ABI and return nil; unreadable or malformed UUIDs are reported
+as null and refused. These UUID-less displays also require matching
+FrontBoard and CoreAnimation render names, equal point scales, and native pixel
+bounds equal to the FrontBoard reference bounds times that scale. A UUID present
+on only one side, an invalid UUID, an ambiguous or capped inventory, or changed
+metadata is refused. `identity_binding` identifies the evidence used; absent UUIDs
+are omitted rather than synthesized. The PNG is neither rotated nor resized, and
+orientation, color-profile and rendered-content verification remain false.
+
+Capture, OCR and screen descriptions remain outside the point-input geometry
+scope. Their coordinates are not implicitly interchangeable with active input
+points, and this adapter does not select or verify a capture display.
 `apps.install` accepts IPA and TIPA archives. IcliKit 0.6.8 validates and
 extracts the archive, then calls vphone's signer on the temporary app bundle
 before IcliKit copies it into a container, registers it, and owns rollback.
@@ -541,6 +579,7 @@ request carries `"force": true`.
 | Apps | `apps.list`, `search`, `refresh`, `launch`, `terminate`, `foreground`, `open_url`, `install`, `info`, `binary`, `data_dir`, `url_schemes`, `handlers`, `registration`, `register`, `network_policy {repair?}`; `apps.uninstall`, `unregister`, `unregister_dir` **force**; `apps.removed_system`, `apps.remove_system {bundle_ids, backup?, respring?}` **force**, `apps.restore_system {bundle_ids?, respring?}` **force** (removable system apps, see below) |
 | OTA Apple app programs | `ota.apps.status`, `ota.apps.apply {force:true, removed_bundle_ids?:[]}` (capability `ota_system_apps`; reconciles removed Apple app registrations including placeholders against valid removal backups, then updates retained programs from the installed 24A446 payload; no caller-selected paths or third-party IDs; an omitted baseline infers only absent/placeholder apps, never installed apps; preserves user-data/group containers and original removal backups; see [the OTA runbook](Restore/data_preserving_full_ota.md#preserve-removed-system-apps-2026-10-25)) |
 | System | `system.uicache`, `system.system_apps {visible?}`, `system.respring` **force**, `system.reboot {userspace?}` **force**, `system.shutdown` **force**, `developer_mode.status`, `developer_mode.enable`, `power.low_power_mode`, `time.timezone {identifier?, automatic?}`, `time.clock {time?, automatic?}` (see below), `diagnostics.self_test` |
+| Cryptexes | `cryptex.list`, `cryptex.install {path, variant, persist?}`, `cryptex.uninstall {identifier}` (capability `cryptex`; only a guest restored as trusted darwinOS has `/usr/bin/cryptexctl`, see "Cryptexes" below) |
 | Files | `files.list`, `mkdir`, `remove`, `rename`, `read {binary?, limit?}`, `write`, `find`, `copy`, `symlink`, `chmod`, `chown`, `plist`, `plist_set {value \| remove}` |
 | APFS snapshots | `apfs.snapshots {mount?}`, `apfs.snapshot.delete {mount?, name? \| prefix?}` **force** (only `orig-fs.disabled.rn-*`, see below) |
 | Preferences, clipboard, location | `settings.get/set/delete`, `clipboard.get/set/clear`, `location.set/clear/current/services {enabled?}` |
@@ -718,6 +757,26 @@ after `ended`, so a client that wants a trackpad's momentum sends it as more
 and do not move the view (about 15 points on iPadOS 26). Both answer with
 IcliKit's error, `unavailable` or `failed`, when the device cannot be made or
 is not ready yet.
+
+`cryptex.install` (capability `cryptex`) takes a `.cxbd` directory the host
+has uploaded under `/var/mobile/Documents/vphone-cryptexes` and the variant it
+was created with. It runs cloudOS's `cryptexctl personalize --host-identity`,
+which asks Apple's signing server for this guest's ticket (the guest needs
+network), into `<name>.personalized/` beside it, then `cryptexctl install
+--print-info` on the result; `output` is what install printed and
+`personalized` the path it installed. With `persist: true` vphoned keeps the
+cryptex under `/var/db/vphoned/cryptexes/<identifier>` and installs it again
+when it starts after a reboot, with the kept ticket or, if cryptexd refuses
+that, personalized again. It never passes cryptexctl's `--persist`: cryptexd's
+own reinstalls at boot run in parallel and can panic TXM. All cryptexctl runs
+take turns. `cryptex.list` is `cryptexctl list`, with `persisted` the
+identifiers vphoned keeps; `cryptex.uninstall {identifier}` is `cryptexctl
+uninstall` and forgets a kept cryptex.
+Each refuses with `operation_failed` on a guest without `/usr/bin/cryptexctl`,
+which only `filesystem-exp-trusted_darwinos` adds; cryptexctl's own output is
+in the message when it fails. The VM window's Apps › Install Cryptex… builds
+the cryptex from a folder, uploads and installs it; see
+[the trusted darwinOS note](Firmware/trusted_darwinos_cryptexes.md).
 
 `time.timezone` (capability `timezone`; REST `GET/PUT /v1/timezone`) returns
 `{identifier, automatic, seconds_from_gmt}`: the Olson name
@@ -943,7 +1002,9 @@ keeps its own validation and error messages.
 
 Each object also carries `result`, a list of `{name, type, required, open}`
 for the keys the method's reply holds, sorted by name; hidden keys are
-omitted, and `open: true` marks an open key. `methods.list` is the authority for result shapes, and the
+omitted, and `open: true` marks an open key. The `result` column of
+`VPhoneDaemon/Tests/methods-catalog.tsv` is written by
+`run-methods-tests.sh --write-results`, not by hand. `methods.list` is the authority for result shapes, and the
 rest of this document does not restate them.
 
 `force` is `"never"`, `"always"`, or `"when:<key>"` (`"when:kill"`), meaning
@@ -966,7 +1027,10 @@ listed keys.
 To add a method, add a case to its area's `<Area>Method` enum
 (`GuestAPI+<Area>.swift`) with its `spec`, handle it in that area's switch, and
 add its row to `VPhoneDaemon/Tests/methods-catalog.tsv`;
-`zsh VPhoneDaemon/Tests/run-methods-tests.sh` fails until all three agree.
+`zsh VPhoneDaemon/Tests/run-methods-tests.sh` fails until all three agree. The
+`result` column is generated: after declaring `result:`, run
+`zsh VPhoneDaemon/Tests/run-methods-tests.sh --write-results`, which compiles
+`MethodsHarness.swift` over the method enums and rewrites only that column.
 
 ## Removable system apps and APFS snapshots
 

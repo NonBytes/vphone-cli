@@ -103,7 +103,7 @@ vphone-launchpad-cli vm create rt-e --block system-debugserver-cfw-install
 | `--device <product-type>` | 別のデバイスを作成します。下記の「その他のデバイス」をご覧ください |
 | `--preset <preset>` | プリセットの名前、またはプリセットの plist のパス（2.14）。マシンはそのコピーを保持します |
 | `--block <patch>`、`--allow <patch>` | プリセットのパッチを 1 つオフまたはオンにします。繰り返し指定できます。下記の「パッチの上書き設定」をご覧ください |
-| `--no-template` | テンプレートを複製せず、マシンを単独で復元します |
+| `--no-template` | テンプレートを複製せず、マシンを単独で復元します。軽量化のスイッチのうち `--slim` だけが使えます。`on`（標準）ではマシン自身が初回セットアップ起動を行い、設定アシスタントを省略します。`off` では設定アシスタントから始まります |
 | `--slim on\|off`、`--trim …`、`--keep-languages …`、`--service-profile …`、`--remove-apps …`、`--keep-apps …` | `vphone-cli vm create` の軽量化のスイッチ。New Machine と同じく、Apple アカウントは trimmed のサービスプロファイルに従います |
 | `--accounts-off` | 受け付けますが、何も変わりません |
 | `--ipsw <path>` | 省略可能。2.12.0 のバンドルにだけ渡され、New Machine の ipsw 欄と同じく、kernelcache ミックスの準備に使われます。2.12.1 のバンドルはネイティブで展開します |
@@ -125,7 +125,7 @@ vphone-launchpad-cli vm create rt-e --block system-debugserver-cfw-install
 
 さらに 2 つの場合では、ヘルパーを通じて root として手順が実行されます。
 
-- `--preset minimal`（Minimal：未変更のブートチェーン、カーネル、TXM を使い、復元前にシステムをカスタマイズします）も軽量化なしで単独で復元され、その `fw patch` はヘルパーを通じて root として実行されます。Userspace debugging のボックス（`vphone-cli fw patches` の Features にある `userspace-debugging`）は、そこに記載された各パッチに対する `--allow` です。
+- `--preset minimal`（Minimal：未変更のブートチェーン、カーネル、TXM を使い、復元前にシステムをカスタマイズします）も軽量化なしで単独で復元され、その `fw patch` はヘルパーを通じて root として実行されます。Userspace debugging のボックス（`vphone-cli fw patches` の Features にある `userspace-debugging`）は、そこに記載された各パッチに対する `--allow` です。Trusted darwinOS environment のボックス（`trusted-darwinos`、つまり `--allow filesystem-exp-trusted_darwinos`）は、iPhone または iPad を trusted darwinOS として復元し、cloudOS の cryptexctl を追加します。これにより、ゲストの実行中に cryptex をインストールできます（VM ウインドウの Apps › Install Cryptex…。[Cryptex](../machines/cryptexes.md) を参照）。ボックスの説明に、その影響が記載されています。ゲストでは Restricted Execution Mode が強制され、リサーチボードのゲスト（cloudOS 26.5〜26.7）ではデベロッパモードをオンにできません。ボックスの変更は、復元をやり直したときにのみ反映されます。
 - cloudOS に vphone600 のコンポーネントがないマシン（そのリリース自身の cloudOS、Watch、iOS 18 ゲスト）では、kernelcache ミックスを `fw kernelcache` で準備し、ヘルパーが root としてリンクします。
 
 ### パッチの上書き設定

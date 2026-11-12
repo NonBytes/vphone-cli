@@ -3,7 +3,12 @@ import VPhoneCoreKit
 import VPhoneRestore
 
 /// Restores the selected cloudOS firmware with this project's own VM and
-/// idevicerestore backend when Apple's public AEA key is unavailable.
+/// idevicerestore backend when Apple's public AEA key is unavailable, and
+/// takes what the guest needs from cloudOS off the restored System volume:
+/// the GPU driver, and cryptexctl for a trusted darwinOS guest. The restored
+/// device obtains the OS image key itself, the way pccvre's VMs do; WKMS
+/// refuses the public one for cloudOS images at times (403 on 2026-11-10 and
+/// 11, while it served iOS 26.5's).
 enum VPhonePCCGPURecovery {
     enum Error: Swift.Error, LocalizedError {
         case identityTimedOut
@@ -26,6 +31,7 @@ enum VPhonePCCGPURecovery {
         cloudOSDirectory: URL,
         into restoreDirectory: URL,
         expectedPlatformVersion: String,
+        gpuDriver: Bool = true,
     ) throws {
         let fm = FileManager.default
         let temporaryLibrary = restoreDirectory.deletingLastPathComponent()
@@ -39,7 +45,7 @@ enum VPhonePCCGPURecovery {
         // and OpenSEP have not been tried with.
         let vm = try VPhoneBundleOperations.create(.init(
             name: name,
-            cpuCount: 8,
+            cpuCount: restoreCPUCount(platformVersion: expectedPlatformVersion),
             memoryMB: 8192,
             diskSizeGB: 64,
             romSource: VPhoneBootROM.appleSource,
@@ -103,8 +109,19 @@ enum VPhonePCCGPURecovery {
         try stageFromSystemDisk(
             vm.url.appending(path: "Disk.img"),
             into: restoreDirectory, expectedPlatformVersion: expectedPlatformVersion,
+            gpuDriver: gpuDriver,
             diskMayBeAttached: &diskMayBeAttached,
         )
+    }
+
+    /// vCPUs of the temporary VM. cloudOS 18's restore kernel with several
+    /// vCPUs stops Virtualization.framework 308 (macOS 27.2) with a trap on a
+    /// vCPU thread right after it is sent, so the device never enters restore
+    /// mode (issue #901: cloudOS 18.6 failed 2 of 2 with 8 vCPUs and passed 2
+    /// of 2 with 1). cloudOS 26 restores with 8.
+    static func restoreCPUCount(platformVersion: String) -> UInt {
+        guard let major = Int(platformVersion.prefix { $0 != "." }), major < 26 else { return 8 }
+        return 1
     }
 
     /// The temporary VM reports iPhone99,11, which cloudOS releases after the
@@ -127,6 +144,7 @@ enum VPhonePCCGPURecovery {
         _ diskImage: URL,
         into restoreDirectory: URL,
         expectedPlatformVersion: String,
+        gpuDriver: Bool,
         diskMayBeAttached: inout Bool,
     ) throws {
         let fm = FileManager.default
@@ -209,14 +227,24 @@ enum VPhonePCCGPURecovery {
         mounted = true
         try run("/sbin/mount_apfs", ["-o", "rdonly", "/dev/\(container)s1", mount.path])
 
-        let source = mount.appending(
-            path: "System/Library/Extensions/\(VPhonePCCGPUDriver.name)",
-        )
-        try VPhonePCCGPUDriver.stage(
-            from: source,
-            into: restoreDirectory,
-            expectedPlatformVersion: expectedPlatformVersion,
-        )
+        if gpuDriver {
+            let source = mount.appending(
+                path: "System/Library/Extensions/\(VPhonePCCGPUDriver.name)",
+            )
+            try VPhonePCCGPUDriver.stage(
+                from: source,
+                into: restoreDirectory,
+                expectedPlatformVersion: expectedPlatformVersion,
+            )
+        }
+        // Taken whenever the system has it: a restore costs minutes, and the
+        // preparer caches it for a later trusted darwinOS guest.
+        let cryptexctl = mount.appending(path: VPhonePCCCryptexctl.guestPath)
+        if fm.fileExists(atPath: cryptexctl.path) {
+            try VPhonePCCCryptexctl.stage(file: cryptexctl, into: restoreDirectory)
+        } else if !gpuDriver {
+            throw VPhonePCCCryptexctl.Error.notFound(mount)
+        }
         do {
             try run("/sbin/umount", [mount.path])
         } catch {
@@ -231,7 +259,7 @@ enum VPhonePCCGPURecovery {
         }
         diskAttached = false
         diskMayBeAttached = false
-        print("[+] GPU driver staged from cloudOS restored by vphone-cli")
+        print(gpuDriver ? "[+] GPU driver staged from cloudOS restored by vphone-cli" : "[+] cryptexctl staged from cloudOS restored by vphone-cli")
     }
 
     @discardableResult

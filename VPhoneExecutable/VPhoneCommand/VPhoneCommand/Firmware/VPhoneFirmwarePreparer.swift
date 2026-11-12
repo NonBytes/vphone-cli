@@ -142,6 +142,12 @@ enum VPhoneFirmwarePreparer {
         guard let plan = try pipeline.resolvePlan(iOSBase: VPhoneVersion(ota?.version ?? phone.version), cloudOS: VPhoneVersion(cloud.version)) else {
             throw ValidationError("Patch preset '\(selection.presetIdentifier)' did not resolve.")
         }
+        if plan.isEnabled(FirmwareRestoreImagePatchSet.trustedDarwinOS),
+           device.family == .iPhone || device.family == .iPad,
+           let refusal = FirmwareRestoreImagePatchSet.trustedDarwinOSRefusal(iOSVersion: phone.version)
+        {
+            throw ValidationError(refusal)
+        }
 
         let name = restored.restoreTreeName(version: phone.version, build: phone.build)
         let destination = bundle.url.appendingPathComponent(name)
@@ -255,6 +261,57 @@ enum VPhoneFirmwarePreparer {
                 version: phone.version,
                 into: phoneTree.appendingPathComponent(".tools"),
             )
+        }
+        // A trusted darwinOS guest gets cloudOS's cryptexctl in the merged
+        // system. Tried for every restore image, so a box turned on after
+        // this step usually finds it, but only a guest with the patch on
+        // already (Launchpad records the build's overrides before this step)
+        // needs it to succeed, and only for one does a failed key fetch cost
+        // a cloudOS restore in a temporary VM.
+        if plan.isEnabled(FirmwareRestoreImagePatchSet.cryptexMerge),
+           device.family == .iPhone || device.family == .iPad
+        {
+            let required = plan.isEnabled(FirmwareRestoreImagePatchSet.trustedDarwinOS)
+            let staged = VPhonePCCCryptexctl.staged(in: phoneTree)
+            // Kept beside this cloudOS build's GPU driver, since its key comes
+            // from Apple's WKMS, which refuses cloudOS keys at times.
+            let cached = cachedGPUDriver(for: cloud).deletingLastPathComponent()
+                .appendingPathComponent(VPhonePCCCryptexctl.name)
+            do {
+                if fm.isExecutableFile(atPath: staged.path) {
+                    print("[+] cryptexctl staged from cloudOS restored for its GPU driver")
+                } else if fm.isExecutableFile(atPath: cached.path) {
+                    try VPhonePCCCryptexctl.stage(file: cached, into: phoneTree)
+                    print("[+] cryptexctl reused from cloudOS \(cloud.version) (\(cloud.build)) cache")
+                } else {
+                    print("[*] Staging cryptexctl from cloudOS \(cloud.version) for trusted darwinOS...")
+                    do {
+                        try VPhonePCCCryptexctl.stage(cloudOSDirectory: cloudTree, into: phoneTree)
+                    } catch where required {
+                        print("[*] \(error.localizedDescription)")
+                        print("[*] Restoring cloudOS in a temporary vphone VM to take its cryptexctl...")
+                        try VPhonePCCGPURecovery.stage(
+                            cloudOSDirectory: cloudTree,
+                            into: phoneTree,
+                            expectedPlatformVersion: cloud.version,
+                            gpuDriver: false,
+                        )
+                    }
+                }
+                // Every later machine on this cloudOS build skips the key.
+                if !fm.isExecutableFile(atPath: cached.path) {
+                    do {
+                        try fm.createDirectory(at: cached.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try? fm.removeItem(at: cached)
+                        try fm.copyItem(at: staged, to: cached)
+                        try VPhoneHostFilePermissions.makeAccessible(at: cached)
+                    } catch {
+                        fputs("warning: could not cache cryptexctl at \(cached.path): \(error.localizedDescription)\n", stderr)
+                    }
+                }
+            } catch where !required {
+                print("[*] cryptexctl not staged (\(error.localizedDescription)). Only the trusted darwinOS environment needs it; a restore tree prepared with it turned on gets it from a cloudOS restore.")
+            }
         }
 
         // The destination did not exist at entry and the staging directory is
@@ -487,8 +544,14 @@ enum VPhoneFirmwarePreparer {
         let tree = staging.appendingPathComponent("cloudOS-\(release)", isDirectory: true)
         try fm.createDirectory(at: tree, withIntermediateDirectories: false)
         try VPhoneArchiveExtractor.extract(archive.file, into: tree, options: .intoHostDirectory)
-        print("[*] Restoring \(option.name) in a temporary vphone VM to extract its GPU driver...")
-        try VPhonePCCGPURecovery.stage(cloudOSDirectory: tree, into: phoneTree, expectedPlatformVersion: archive.version)
+        let image = tree.appending(path: try FirmwarePipeline.manifestComponentPath("OS", in: tree))
+        print("[*] Trying the \(option.name) OS image for its GPU driver...")
+        if try VPhonePCCGPUDriver.stage(fromSystemImage: image, into: phoneTree, expectedPlatformVersion: archive.version) {
+            print("[+] GPU driver extracted from the PCC OS image without a temporary restore")
+        } else {
+            print("[*] Restoring \(option.name) in a temporary vphone VM to extract its GPU driver...")
+            try VPhonePCCGPURecovery.stage(cloudOSDirectory: tree, into: phoneTree, expectedPlatformVersion: archive.version)
+        }
         let cached = cachedGPUDriver(for: archive, in: cacheDirectory)
         do {
             try storeGPUDriver(VPhonePCCGPUDriver.stagedBundle(in: phoneTree), at: cached)

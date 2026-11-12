@@ -1,5 +1,19 @@
 # Patch Comparison: Regular / Development / Jailbreak / Experimental
 
+> **SE 3 iOS 18.6.2 pairing and driver extraction (2026-11-12).** The SE
+> catalog uses cloudOS 26.1 and the existing iOS 18.6 GPU transport. Fresh
+> preparation can take the 18.6 driver directly from the PCC OS image when
+> its AEA metadata supplies a valid embedded key, with read-only mounting
+> and platform validation. No GPU ABI rule or patch gate changed. See
+> [fresh creation, Metal readbacks and remaining limits](Guest/iphone_se3_ios18.md).
+
+> **iPhone SE 3 (2026-11-12).** `iPhone14,6` / D49AP uses its own
+> 750×1334 panel at 2x and existing board-presentation and LLB scale patches.
+> `devicetree-cfw-home_button_type` copies the concrete D49AP Home button
+> value into the installed SE tree only; restore trees and other devices keep
+> their existing bytes. No new patch identifier or preset. See
+> [bring-up and validation](Guest/iphone_se3_bringup.md).
+
 > **TXM missing-profile compatibility (2026-11-10).**
 > `txm-cfw-executable_remap` includes `.missing_profile` whenever
 > `kernel-boot-amfi_trustcache` is enabled, as in standard. The correction
@@ -7101,6 +7115,8 @@ step.
 `system-remotepairingdeviced-cfw-local_connections` permits pairing control and
 tunnel connections originating on the device itself, so apps inside the guest
 can connect. It is enabled in `standard` and is not boot-essential.
+The declaration covers iOS 17, 18, 26 and 27; the guest installer follows
+that declaration when applying or reverting the patch.
 
 On 24A446 and 24C5037i, the daemon's local-path predicate calls
 `nw_connection_copy_current_path`, `nw_path_is_local`, and
@@ -7115,9 +7131,34 @@ references and branches identify its three callers. Replacing those callers'
 `bl <local-path predicate>` with `mov w0, #0` bypasses the local-connection
 rejections.
 
-Offline validation on 24A446 and 24C5037i changes exactly 12 bytes before
-signing, and a second application is a no-op. Other builds have not been
-tested and may need different matching.
+On iOS 18.6.2 (22G100) and 26.6.2 (23G90), the predicate and its three
+callers have the same shape. On iOS 17.7 (21H16), the same predicate has
+four callers: a control callback and three tunnel callbacks. That build
+uses `adr` for its rejection messages, tests the control result directly
+with `tbz w0`, and loads each tunnel's local-connection override with a
+direct `ldrb` rather than a runtime field offset. The matcher accepts both
+layouts and still requires every caller to correspond to a rejection
+message and its branch. An unknown caller or ambiguous gate is refused
+before the file is written.
+
+Offline validation on 2026-11-12 used the CLI against the original Apple
+binaries from 21H16, 22G100, 23G90, 24A446, 24B5110a and 24C5037i. The 17.7
+image changes 16 bytes at four sites; the other five change 12 bytes at
+three sites. All changes are confined to the reported call instructions.
+Dry runs and repeated application leave the input unchanged; partially
+applied inputs converge to the same output. Corrupting a rejection message
+or a gate instruction causes failure without writing the input. Other
+builds may need different matching.
+
+Live validation on 22G100 used iPhone17,3 userland over cloudOS 26.1
+(23B85), with a 2.16.1 bundle containing this change. Without the patch,
+same-device control connections were reset and the daemon logged its local
+machine rejection. After `cfw update-environment`, the three installed
+instructions were `mov w0, #0`; pairing verification, TLS, CDTunnel and RSD
+discovery succeeded. Turning the patch off restored all three original
+calls from the backup. The guest's Personalized DDI failed to mount at
+`/System/Developer`, so this run does not establish Accessibility or screen
+capture through CoreDevice.
 
 The iPhone19,4 builds of 27.1 (24A94425) and 27.2 (24B91020) are `arm64e.x1`:
 their functions open with `pacibsppc`, so function bounds also accept the
@@ -7328,3 +7369,55 @@ the patch off restored all 82 cache files and the undo log byte for byte,
 removed the added files, folders and journal, and brought back the original
 failure; turning it on again reproduced the same cache bytes. Other builds
 have not been tested and may need different matching.
+
+## 2026-11-10: standalone debug-library X1 lowering
+
+An LLDB launch selecting `/usr/lib/system/introspection/libdispatch.dylib` on
+iOS 27.1 `24A94425` stopped at `libdispatch_init`'s `pacibsppc` before app entry.
+Standalone debugger, view-hierarchy and GPU libraries are outside the shared
+cache, and an attached debugger can intercept their X1 faults before the
+inherited handler. The existing task-exception preservation does not cover
+remote-task debugger registrations.
+
+The Guest System set now declares twelve independently selectable debug images,
+including introspection dispatch and the FramePacing dependency
+`libMetalMetricsInterpose.dylib`. Selection is checked against actual Mach-O
+content across OS versions. Missing and ordinary arm64/arm64e images remain
+byte-identical and receive `NotApplicable` receipts. Complete conversion and
+native signing precede guest writes; a pristine backup supports deselection,
+and failed bundle sealing restores the prior executable, backup and seal.
+Shared CodeResources protection is reused. Unvalidated OS presets leave these
+images off by default.
+
+Measurements, source paths, no-op iOS 26 results and the remaining live-debugger
+validation boundary are in [debug_library_x1.md](Guest/debug_library_x1.md).
+
+## The trusted darwinOS environment and runtime cryptexes on `minimal` (2026-11-10)
+
+`filesystem-exp-trusted_darwinos` (feature `trusted-darwinos`, restore image
+set, off in `minimal`; skipped on a watch) restores an iPhone or iPad guest in
+the trusted darwinOS environment and adds cloudOS's `/usr/bin/cryptexctl`, so
+cryptexes can be installed at runtime. Details and the REM flag table:
+[Firmware/trusted_darwinos_cryptexes.md](Firmware/trusted_darwinos_cryptexes.md).
+
+| Where | Off (every preset until now) | On |
+| --- | --- | --- |
+| Hybrid build identity | `Ap,OSEnvironment` dropped by `FirmwareManifest.buildEraseIdentity` | `0x06` written back by the merge's manifest rewrite |
+| AP TSS request | no environment (libtatsu 1.0.5 does not copy the tag) | `Ap,OSEnvironment = 6`, sent by `vphone_tss_add_os_environment` whenever the identity has it |
+| Device tree at boot | default environment | iBoot applies `/osenvironments/trusted-darwinos`: `/chosen/darwinos-security-environment = 6` |
+| Static trust cache | cryptexctl's: scanned entries `0xC0`, base entries copied as they are (`0x00`), so some CDHashes twice | one entry per CDHash and hash type, every one `0xC0` (`TrustCache.allowingBothRestrictedExecutionPhases`) |
+| System volume | — | `/usr/bin/cryptexctl` from the cloudOS OS image, staged by `fw prepare` (`VPhonePCCCryptexctl`) |
+| `launchd.plist` | as the vphoned step leaves it | also without `com.apple.mobile.NRDUpdated`, whose update-brain trust cache panics TXM in environment 6 (`0xF3 \| 4`) |
+
+No kernel, TXM or boot chain byte changes. A `standard` guest restored with the
+tag and Apple's stock trust cache panics in launchd ("not allowed for
+Restricted Execution Mode state"), which is why the patch belongs to the restore
+image, whose trust cache is rebuilt anyway. The temporary cloudOS restore that
+recovers the GPU driver now also sends cloudOS's own `Ap,OSEnvironment`.
+In environment 6 AMFI enables Developer Mode only in its research build; the
+research-board kernel mix takes AMFI from the release kernel, so a research-board
+guest has none (the note has the disassembly).
+
+iOS 27 does not boot in environment 6: dyld cannot mount the OS cryptex and
+launchd panics on libSystem (27.0.1 with cloudOS 26.4, 2026-11-12). `fw prepare`
+and the patcher refuse the box for iOS 27 and later (`trustedDarwinOSRefusal`).

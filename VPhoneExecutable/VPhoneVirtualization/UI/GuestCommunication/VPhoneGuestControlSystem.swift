@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 #if canImport(VPhonePentestKit)
 import VPhonePentestKit
@@ -111,7 +112,10 @@ extension VPhoneGuestControl {
     private func waitForLockScreen(until deadline: ContinuousClock.Instant) async throws -> Bool {
         while ContinuousClock.now < deadline {
             try await Task.sleep(for: .seconds(1))
-            if try await call("device.screen")["locked"] as? Bool == true {
+            let snapshot = try await call("device.snapshot")
+            if let lock = snapshot["lock"] as? [String: Any],
+               let locked = lock["locked"] as? NSNumber,
+               CFGetTypeID(locked) == CFBooleanGetTypeID(), locked.boolValue {
                 return true
             }
         }
