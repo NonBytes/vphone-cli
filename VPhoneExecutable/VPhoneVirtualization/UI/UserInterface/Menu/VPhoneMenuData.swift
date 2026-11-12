@@ -43,6 +43,7 @@ extension VPhoneMenuController {
         connectKeychainBrowserItem = keychainBrowser
         menu.addItem(keychainBrowser)
         menu.addItem(makeItem("Keychain Inspector…", action: #selector(showKeychainInspector)))
+        menu.addItem(makeItem("Device & Hardware Mocking Hub…", action: #selector(showDeviceMockingHub), symbol: "slider.horizontal.3"))
 
         menu.addItem(NSMenuItem.separator())
 
@@ -137,6 +138,7 @@ extension VPhoneMenuController {
     }
     @objc func showKeychainInspector() { keychainInspectorWindowController.show() }
     @objc func showPasteboardInspector() { pasteboardInspectorWindowController.show() }
+    @objc func showDeviceMockingHub() { deviceMockingWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 
