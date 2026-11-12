@@ -28,6 +28,8 @@ enum MemoryScannerTests {
             model.selectedPattern = .all
             let matches = model.scanBuffer(text: testBuffer)
             precondition(!matches.isEmpty, "Scanner must detect secrets in sample buffer")
+            model.matches = matches
+            model.selectedMatchID = matches.first?.id
 
             let foundTypes = Set(matches.map(\.patternType))
             precondition(foundTypes.contains(.jwt), "Must detect JWT")
