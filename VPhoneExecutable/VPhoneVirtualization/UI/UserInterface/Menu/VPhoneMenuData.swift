@@ -45,6 +45,7 @@ extension VPhoneMenuController {
         menu.addItem(makeItem("Keychain Inspector…", action: #selector(showKeychainInspector)))
         menu.addItem(makeItem("Device & Hardware Mocking Hub…", action: #selector(showDeviceMockingHub), symbol: "slider.horizontal.3"))
         menu.addItem(makeItem("Runtime Class & Method Inspector…", action: #selector(showRuntimeInspector), symbol: "curlybraces"))
+        menu.addItem(makeItem("App Memory Search & Scanner…", action: #selector(showMemoryScanner), symbol: "memorychip"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
@@ -142,6 +143,7 @@ extension VPhoneMenuController {
     @objc func showPasteboardInspector() { pasteboardInspectorWindowController.show() }
     @objc func showDeviceMockingHub() { deviceMockingWindowController.show() }
     @objc func showRuntimeInspector() { runtimeInspectorWindowController.show() }
+    @objc func showMemoryScanner() { memoryScannerWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 

@@ -47,6 +47,7 @@ class VPhoneMenuController {
     lazy var pasteboardInspectorWindowController = VPhonePasteboardWindowController(control: control)
     lazy var deviceMockingWindowController = VPhoneDeviceMockingWindowController(control: control)
     lazy var runtimeInspectorWindowController = VPhoneRuntimeInspectorWindowController(control: control)
+    lazy var memoryScannerWindowController = VPhoneMemoryScannerWindowController(control: control)
     /// Launchpad's Pentest Tools helper, opened directly from this VM's own
     /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
     var pentestToolsApp: NSRunningApplication?
