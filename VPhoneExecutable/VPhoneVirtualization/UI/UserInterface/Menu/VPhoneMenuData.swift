@@ -48,6 +48,8 @@ extension VPhoneMenuController {
         menu.addItem(makeItem("App Memory Search & Scanner…", action: #selector(showMemoryScanner), symbol: "memorychip"))
         menu.addItem(makeItem("In-App Network & API Flow Inspector…", action: #selector(showNetworkFlowInspector), symbol: "point.3.connected.trianglepath.dotted"))
         menu.addItem(makeItem("SSL Pinning & Jailbreak Bypass Studio…", action: #selector(showBypassStudio), symbol: "bolt.shield.fill"))
+        menu.addItem(makeItem("Dynamic Crypto Tracer & Key Sniffer…", action: #selector(showCryptoTracer), symbol: "key.horizontal.fill"))
+        menu.addItem(makeItem("Mach-O & Entitlements Visualizer…", action: #selector(showMachOVisualizer), symbol: "doc.badge.gearshape"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
@@ -148,6 +150,8 @@ extension VPhoneMenuController {
     @objc func showMemoryScanner() { memoryScannerWindowController.show() }
     @objc func showNetworkFlowInspector() { networkFlowInspectorWindowController.show() }
     @objc func showBypassStudio() { bypassStudioWindowController.show() }
+    @objc func showCryptoTracer() { cryptoTracerWindowController.show() }
+    @objc func showMachOVisualizer() { machOVisualizerWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 

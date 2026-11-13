@@ -73,6 +73,18 @@ struct StorageInspectorTests {
         )
         precondition(dbHits.contains { $0.category == "Unencrypted SQLite Database" })
 
-        print("Storage Inspector checks passed: XML/binary plist, SQLite3 table & row inspection, encrypted DB detection, and secret/permission scanner.")
+        // 6. Custom SQL query execution & table mutation
+        let selectRes = try VPhoneStorageParser.executeSQLite(data: dbData, sql: "SELECT user FROM tokens WHERE id = 1;")
+        precondition(selectRes.isQuery && selectRes.rows.count == 1 && selectRes.rows[0][0] == "alice")
+
+        let updateRes = try VPhoneStorageParser.executeSQLite(data: dbData, sql: "UPDATE tokens SET user = 'bob' WHERE id = 1;")
+        precondition(!updateRes.isQuery && updateRes.rowsAffected == 1 && updateRes.modifiedData != nil)
+
+        if let mutatedData = updateRes.modifiedData {
+            let reCheck = try VPhoneStorageParser.readSQLiteRows(data: mutatedData, table: "tokens")
+            precondition(reCheck.rows[0][1] == "bob")
+        }
+
+        print("Storage Inspector checks passed: XML/binary plist, SQLite3 table & row inspection, encrypted DB detection, secret/permission scanner, and custom SQL query runner.")
     }
 }
