@@ -43,7 +43,8 @@ Unknown `t`, or missing fields, give `{"ok":false,"error":"…"}`.
 `shell` is the one request with no single reply: the connection becomes the
 terminal. Every byte sent after the command line is input, everything the
 session writes comes back as it arrives, and one JSON line at the end says how
-it finished — `{"ok":true,"exit":0}`, `{"ok":true,"signal":2}`, or
+it finished, always starting on a line of its own (a newline comes first when
+the session's output did not end in one, such as an unfinished prompt) — `{"ok":true,"exit":0}`, `{"ok":true,"signal":2}`, or
 `{"ok":false,"error":"…"}` when no session could be opened.
 
 When the client's input ends, the terminal gets a `^D`, the way a keyboard
@@ -94,7 +95,7 @@ Success is `{"ok":true}`, with `result` for `rpc`, `path` for `screenshot`, and
 
 The socket's `tap` and `swipe` take **pixel coordinates of the screen**, the
 `screen.screenshot` size (1179×2556 on a new iPhone17,3; origin top left).
-The vphoned methods `input.tap`, `input.swipe` and
+The vphoned methods `input.tap`, `input.swipe` (`from`/`to` `[x,y]` pairs) and
 friends take **screen points**, as `device.screen` reports. Do not mix the two
 in one script. When you do not know where a control is, do not guess: call
 `ui.tree` or `ui.ocr`, which return positions, or use `ui.tap_element` with a

@@ -1570,10 +1570,11 @@ struct VPhoneCustomFirmwareInstaller {
             )
         }
 
-        // Debuggers can receive these standalone libraries' X1 faults before
-        // the inherited translator. Inspect the actual image after cryptex
-        // installation; older arm64e libraries must not be backed up or re-signed.
-        for image in FirmwareGuestSystemPatchSet.arm64eX1DebugImages {
+        // Debuggers and app crash reporters can receive standalone debug and
+        // accessibility images' X1 faults before the inherited translator.
+        // Inspect the actual image after cryptex installation; older arm64e
+        // libraries must not be backed up or re-signed.
+        for image in FirmwareGuestSystemPatchSet.arm64eX1OptionalImages {
             let enabled = plan == nil ? guestDevice.family == .iPhone : on(image.identifier)
             do {
                 let outcome = try CustomFirmwareArm64eX1Installation.update(
@@ -2035,6 +2036,7 @@ struct VPhoneCustomFirmwareInstaller {
                 (FirmwareGuestSystemPatchSet.arm64eX1CacheBootstrap, "patch-arm64e-x1-bootstrap-cache", [dsc]),
                 (FirmwareGuestSystemPatchSet.arm64eX1CacheRemaining, "patch-arm64e-x1-cache", [dsc]),
                 ("dyld-boot-iomfb_force_kern", "patch-iomfb-force-kern", [dsc]),
+                (FirmwareGuestDisplayPatchSet.quartzCoreUnrotatedFramebuffer, "patch-quartzcore-unrotated-framebuffer", [dsc]),
                 ("dyld-boot-maxslide", "patch-dsc-maxslide", [dsc]),
                 ("dyld-boot-lsd_embedded_reg", "patch-lsd-embedded-reg", [dsc]),
                 ("dyld-boot-xpc_lwcr", "patch-xpc-lwcr", [dsc]),

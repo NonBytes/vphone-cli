@@ -145,7 +145,7 @@ enum GuestAPI {
     }
 
     static func execute(method: String, params: [String: Any]) throws -> [String: Any] {
-        try GuestMethodArea.dispatch(areas, method: method, params: params)
+        try GuestMethodArea.dispatch(areas, method: method, params: params, observer: { try liveObservation() })
     }
 
     /// `screen.screenshot`. Without options the capture is base64-encoded as it
@@ -310,7 +310,7 @@ enum GuestAPI {
         case .bootstrapInstall:
             let layout = try string(params, "layout")
             if GuestRuntimePlatform.isVisionOS, layout != "rootless" {
-                throw GuestAPIError.invalidRequest("visionOS currently supports the rootless Irisin layout only")
+                throw GuestAPIError.invalidRequest("visionOS currently supports the rootless Irisin layout only", hint: "Pass layout: rootless")
             }
             return try GuestIrisinInstaller.install(
                 jailbreak: jailbreakInfo(),
@@ -386,7 +386,7 @@ enum GuestAPI {
                           let down = params["down"] as? NSNumber, CFGetTypeID(down) == CFBooleanGetTypeID()
                     else { throw GuestAPIError.invalidRequest("long_press requires a boolean down and 16-bit page and usage") }
                     guard vp_hid_keyboard_hold(UInt16(page), UInt16(usage), down.boolValue) else {
-                        throw GuestAPIError.operationFailed("HID long-press injection is unavailable")
+                        throw GuestAPIError.unavailable("HID long-press injection is unavailable")
                     }
                     return ["page": page, "usage": usage, "action": down.boolValue ? "down" : "up", "long_press": true]
                 }
@@ -409,8 +409,12 @@ enum GuestAPI {
         case .locationClear:
             return try clearSimulatedLocation()
         case .locationCurrent:
+            let timeout = number(params, "timeout_ms", default: 10000)
+            guard timeout.isFinite, timeout > 0, timeout <= 300_000 else {
+                throw GuestAPIError.invalidRequest("timeout_ms must be more than 0 and at most 300000")
+            }
             guard CLLocationManager.locationServicesEnabled() else { throw GuestAPIError.locationServicesOff }
-            return try currentLocation(timeout: number(params, "timeout", default: 10))
+            return try currentLocation(timeout: timeout / 1000)
         case .developerModeStatus:
             return try developerModeStatus()
         case .developerModeEnable:
@@ -431,10 +435,10 @@ enum GuestAPI {
             return try setClipboard(string(params, "text"))
         case .clipboardClear:
             #if os(tvOS)
-            throw GuestAPIError.operationFailed("tvOS has no system clipboard")
+            throw GuestAPIError.unavailable("tvOS has no system clipboard")
             #else
             guard let pasteboard = UIPasteboard(name: .general, create: false) else {
-                throw GuestAPIError.operationFailed("The system clipboard is unavailable")
+                throw GuestAPIError.unavailable("The system clipboard is unavailable")
             }
             pasteboard.items = []
             return try clipboardInfo()
@@ -485,7 +489,7 @@ enum GuestAPI {
             let next = cache + ".next"
             let data = try Data(contentsOf: URL(fileURLWithPath: next), options: .mappedIfSafe)
             let actual = sha256Hex(data)
-            guard actual == expected else { throw GuestAPIError.invalidRequest("The update is damaged. Try again.") }
+            guard actual == expected else { throw GuestAPIError.invalidRequest("The update is damaged. Try again.", hint: "Upload the update again, then repeat with its SHA-256") }
             guard chmod(next, 0o755) == 0 else {
                 throw GuestAPIError.operationFailed("Could not make update executable")
             }
@@ -600,7 +604,7 @@ enum GuestAPI {
 
     static func string(_ params: [String: Any], _ key: String) throws -> String {
         guard let value = params[key] as? String, !value.isEmpty else {
-            throw GuestAPIError.invalidRequest("\(key) is required")
+            throw GuestAPIError.invalidRequest("\(key) is required", hint: "Pass \(key) as a non-empty string")
         }
         return value
     }

@@ -28,8 +28,13 @@ extension GuestAPI {
             let seconds = number(params, "seconds", default: 1)
             return try withActivePointGeometry { try longPress(x: x, y: y, seconds: seconds) }
         case .inputSwipe:
-            let x1 = try requiredNumber(params, "x1"), y1 = try requiredNumber(params, "y1")
-            let x2 = try requiredNumber(params, "x2"), y2 = try requiredNumber(params, "y2")
+            guard let from = params["from"] as? [NSNumber], from.count == 2,
+                  let to = params["to"] as? [NSNumber], to.count == 2
+            else {
+                throw GuestAPIError.invalidRequest("from and to must be [x, y] pairs")
+            }
+            let x1 = from[0].doubleValue, y1 = from[1].doubleValue
+            let x2 = to[0].doubleValue, y2 = to[1].doubleValue
             let seconds = number(params, "seconds", default: 0.3)
             let steps = (params["steps"] as? NSNumber)?.intValue ?? 20
             return try withActivePointGeometry { try swipe(x1: x1, y1: y1, x2: x2, y2: y2, seconds: seconds, steps: steps) }
@@ -42,7 +47,9 @@ extension GuestAPI {
             let points = rows.map { ($0[0].doubleValue, $0[1].doubleValue) }
             let seconds = number(params, "seconds", default: 0.5), hold = number(params, "hold", default: 0.5)
             let steps = (params["steps"] as? NSNumber)?.intValue ?? 20
-            return try withActivePointGeometry { try drag(points: points, seconds: seconds, hold: hold, steps: steps) }
+            _ = try withActivePointGeometry { try drag(points: points, seconds: seconds, hold: hold, steps: steps) }
+            // `points` is the name of this count before `count`; kept for older clients.
+            return ["count": rows.count, "points": rows.count]
         case .inputTouchSequence:
             guard let events = params["events"] as? [[String: Any]] else {
                 throw GuestAPIError.invalidRequest("events must be an array of {phase, x, y, delay_ms}")
@@ -57,6 +64,14 @@ extension GuestAPI {
 
     // MARK: - Accessibility and OCR
 
+    /// `observed` for `input.*` calls with `observe: true`. `executeInterface` takes `interfaceLock` itself.
+    static func liveObservation(
+        frontmost: () throws -> [String: Any] = { frontmostApp() },
+        tree: () throws -> [String: Any] = { try executeInterface(.uiTree, ["visible_only": true, "max_elements": 500]) },
+    ) throws -> [String: Any] {
+        try GuestMethodArea.observation(frontmost: frontmost, tree: tree)
+    }
+
     static func executeInterface(_ m: InterfaceMethod, _ params: [String: Any]) throws -> [String: Any] {
         interfaceLock.lock()
         defer { interfaceLock.unlock() }
@@ -64,7 +79,7 @@ extension GuestAPI {
         case .uiTree, .accessibilityTree:
             if let value = params["nested"] {
                 guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else {
-                    throw GuestAPIError.invalidRequest("nested must be a boolean")
+                    throw GuestAPIError.invalidRequest("nested must be a boolean", hint: "true or false")
                 }
             }
             if bool(params, "nested") {
@@ -81,11 +96,13 @@ extension GuestAPI {
         case .uiTapElement:
             return try tapElement(selector(params))
         case .uiWait, .uiWaitGone:
-            return try waitForElement(
-                selector(params),
-                appear: m == .uiWait,
-                timeout: number(params, "timeout", default: 10),
-            )
+            // Checked here so the refusal names timeout_ms in milliseconds;
+            // IcliKit's own check speaks in seconds.
+            let timeout = number(params, "timeout_ms", default: 10000)
+            guard timeout.isFinite, (0 ... 60000).contains(timeout) else {
+                throw GuestAPIError.invalidRequest("timeout_ms must be 0–60000")
+            }
+            return try waitForElement(selector(params), appear: m == .uiWait, timeout: timeout / 1000)
         case .uiOcr:
             try requireTextRecognition()
             return try recognizeScreen(
@@ -102,7 +119,7 @@ extension GuestAPI {
     /// it weakly, so its classes are nil on a watch.
     private static func requireTextRecognition() throws {
         guard NSClassFromString("VNRecognizeTextRequest") != nil else {
-            throw GuestAPIError.operationFailed("Text recognition needs Vision, which this guest does not have")
+            throw GuestAPIError.unavailable("Text recognition needs Vision, which this guest does not have")
         }
     }
 

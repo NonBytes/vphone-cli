@@ -75,6 +75,10 @@ public enum FirmwarePatchSetCatalog {
             .union([FirmwareGuestSystemPatchSet.visionOSUXMIPC, FirmwareGuestSystemPatchSet.visionOSSkipBuddy, FirmwareGuestSystemPatchSet.visionOSEnvironments, FirmwareGuestSystemPatchSet.visionOSFramePacing])
             .union(FirmwareGuestSystemPatchSet.visionOSDisplayIPCPatches)
             .union([FirmwareKernelCustomFirmwarePatchSet.tvTPROPagers, misTrustAuthPatch, FirmwareGuestSystemPatchSet.settingsRootRows, FirmwareGuestSystemPatchSet.settingsSoftwareUpdate, FirmwareGuestSystemPatchSet.tvTPRO, FirmwareGuestSystemPatchSet.tvOTAUserland, FirmwareGuestSystemPatchSet.tvSetupDisplayLookup, FirmwareGuestSystemPatchSet.tvSetupFocus, FirmwareGuestSystemPatchSet.tvLocalActivation, FirmwareGuestSystemPatchSet.tvLegacySetup])
+            // Legacy TXM force-admit, off by default; standard uses native
+            // classification (txm-cfw-executable_remap). Selected per VM when the
+            // guest injects CS_ADHOC code (ellekit/roothide). See TXMDevPatcher.
+            .union([TXMDevPatcher.precheckAdmissionID])
 
     /// ProMotion: the 120 Hz timing for the paravirtual display.
     ///
@@ -265,7 +269,9 @@ public enum FirmwarePatchSetCatalog {
     /// validated port of: display, camera, audio, sensors, the GPU driver (a
     /// plain-arm64 HD cannot load it), debugserver, the environment hooks, and
     /// the iPhone 19 ARM64E_X1 boot path.
-    public static let tvOSBlockedPatches: Set<String> = [
+    /// The standalone X1 images join from their table, so a new entry is blocked
+    /// here without a second list.
+    public static let tvOSBlockedPatches: Set<String> = Set<String>([
         FirmwareGuestSystemPatchSet.glesDepthClip,
         FirmwareGuestSystemPatchSet.metalCacheReuseKey,
         FirmwareGuestSystemPatchSet.glesPointDraw,
@@ -278,18 +284,6 @@ public enum FirmwarePatchSetCatalog {
         FirmwareGuestSystemPatchSet.arm64eX1CacheRemaining,
         FirmwareGuestSystemPatchSet.arm64eX1CIBarcode,
         FirmwareGuestSystemPatchSet.arm64eX1HomePopAccessibility,
-        "system-libdispatch-cfw-arm64e_x1_introspection",
-        "system-libbacktracerecording-cfw-arm64e_x1",
-        "system-libmainthreadchecker-cfw-arm64e_x1",
-        "system-librpac-cfw-arm64e_x1",
-        "system-libviewdebuggersupport-cfw-arm64e_x1",
-        "system-liblogredirect-cfw-arm64e_x1",
-        "system-libmtlhud-cfw-arm64e_x1",
-        "system-libglinterpose-cfw-arm64e_x1",
-        "system-libmetalmetricsinterpose-cfw-arm64e_x1",
-        "system-debughierarchyfoundation-cfw-arm64e_x1",
-        "system-gputoolscapture-cfw-arm64e_x1",
-        "system-gputoolsdiagnostics-cfw-arm64e_x1",
         "dyld-boot-iomfb_force_kern",
         "dyld-boot-iomfb_swapend",
         "dyld-boot-lockdown_mode",
@@ -297,6 +291,7 @@ public enum FirmwarePatchSetCatalog {
         "dyld-boot-maxslide",
         "dyld-boot-xpc_lwcr",
         "dyld-cfw-camera",
+        FirmwareGuestDisplayPatchSet.quartzCoreUnrotatedFramebuffer,
         "kernel-boot-arm64e_x1",
         FirmwareKernelCustomFirmwarePatchSet.cssc,
         "preboot-cfw-devicetree_board_audio",
@@ -347,7 +342,7 @@ public enum FirmwarePatchSetCatalog {
         "system-virtualaudio-cfw-speaker_raw_chains",
         "system-virtualaudio-cfw-speaker_route_throws",
         "system-virtualaudio-cfw-volume_mode_precondition",
-    ]
+    ]).union(FirmwareGuestSystemPatchSet.arm64eX1OptionalImages.map(\.identifier))
 
     /// The iOS 27 shared-cache patches a 27 userland needs on the 26.4 kernel,
     /// the display swap through the kernel among them. The Apple TV 4K keeps
@@ -443,7 +438,8 @@ public enum FirmwarePatchSetCatalog {
     /// once (iOS 26.6.2 23G90 on cloudOS 26.4 23E5207q and watchOS 26.4 23T240
     /// on cloudOS 26.4 23E244, 2026-11-03), even with every BuildManifest
     /// digest rehashed; with these patches both boot at 4096 MB. AVPBooter,
-    /// iBSS, TXM and the restore ramdisk stay stock.
+    /// iBSS, TXM and the restore ramdisk stay stock. SPTM takes one patch, on
+    /// cloudOS 18 only: without it a second vCPU stops the virtual machine.
     public static let minimalBootChainPatches: Set<String> = [
         "ibec-cfw-serial_label",
         "ibec-boot-image4_callback",
@@ -455,6 +451,7 @@ public enum FirmwarePatchSetCatalog {
         "llb-boot-rootfs",
         "llb-boot-panic_bypass",
         "llb-cfw-display_scale",
+        SPTMSecondaryCPUPatcher.patchIdentifier,
     ]
 
     /// A guest on a stock kernel and TXM, with only iBEC and LLB patched

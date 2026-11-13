@@ -91,7 +91,7 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
 
     /// The guest interface orientation: the one the window last read, or the
     /// one a menu rotation turned it to. Nil until one is known, and again
-    /// after a disconnect.
+    /// once a disconnect has lasted `orientationHold`.
     var interfaceOrientation: VPhoneDisplayOrientation? {
         didSet {
             guard interfaceOrientation != oldValue else { return }
@@ -107,6 +107,21 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
     /// front or the rotation lock keeps the interface from following. Nil
     /// when the guest publishes none (no gravity provider, an older vphoned).
     @ObservationIgnored var deviceOrientation: VPhoneDisplayOrientation?
+
+    /// How long the orientation outlives a disconnect. A lost probe or a
+    /// restarted vphoned is back within a second or two with the guest turned
+    /// as it was, and a window that forgot the orientation would turn upright
+    /// and back. A guest that restarts stays away longer and shows its boot
+    /// screen unturned.
+    private static let orientationHold: Duration = .seconds(5)
+    @ObservationIgnored private var orientationExpiry: Task<Void, Never>?
+
+    private func forgetOrientation() {
+        orientationExpiry?.cancel()
+        orientationExpiry = nil
+        interfaceOrientation = nil
+        deviceOrientation = nil
+    }
 
     /// Takes the interface and device orientation from a `display.orientation`
     /// reply. A null interface reading (SpringBoard not answering) leaves the
@@ -292,6 +307,7 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
         orderedLocation = nil
         device = nil
         setDisconnected()
+        forgetOrientation()
     }
 
     /// A connection that was healthy can drop a single health check to a
@@ -316,7 +332,17 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
     }
 
     private func attemptProbe() async throws {
-        let response = try await http(method: "GET", path: "/v1/health")
+        let response: VPhoneHTTPResponse
+        do {
+            response = try await http(method: "GET", path: "/v1/health")
+        } catch where isConnected {
+            // The vphoned of 2.16.0 and 2.16.1 refuses a connection whose
+            // request arrives while it checks its send buffer, about one
+            // in ten, until this probe has replaced it. Try once more
+            // before the guest counts as gone, which refuses every call
+            // until the next probe.
+            response = try await http(method: "GET", path: "/v1/health")
+        }
         guard response.status == 200,
               let info = try JSONSerialization.jsonObject(with: response.body) as? [String: Any],
               info["api_version"] as? Int == 1
@@ -356,6 +382,8 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
         }
         if !isConnected {
             isConnected = true
+            orientationExpiry?.cancel()
+            orientationExpiry = nil
             print("[control] connected to vphoned HTTP API (iOS \(guestIOSVersion ?? "?"))")
             onConnect?(guestCapabilities)
             let instance = info["instance"] as? String
@@ -395,8 +423,12 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
         guestIPAddress = nil
         onGuestIPAddressChange?(nil)
         guestIOSVersion = nil
-        interfaceOrientation = nil
-        deviceOrientation = nil
+        orientationExpiry?.cancel()
+        orientationExpiry = Task { [weak self] in
+            try? await Task.sleep(for: Self.orientationHold)
+            guard !Task.isCancelled, let self, !isConnected else { return }
+            forgetOrientation()
+        }
         foldAngle = nil
         foldPosition = nil
         foldSweepSeconds = 0
@@ -670,6 +702,8 @@ final class VPhoneGuestControl: VPhoneGuestControlling {
     /// enforces the executable and argument limits; this wrapper keeps the
     /// response typed enough for process discovery without hiding raw output.
     func spawnDiagnostic(executable: String, arguments: [String] = [], timeout: Double = 3) async throws -> [String: Any] {
+        // The names from before the renames, which every vphoned answers:
+        // a machine keeps its older vphoned until it is redeployed.
         try await call("process.spawn", params: [
             "executable": executable,
             "arguments": arguments,
@@ -1341,8 +1375,6 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
 
     /// Per-read and per-write socket timeout.
     private static let socketTimeout: Duration = .seconds(120)
-    /// How long a new connection waits before its request is written.
-    private static let firstWriteDelayMicroseconds: useconds_t = 2000
 
     init(
         connection: VZVirtioSocketConnection,
@@ -1394,13 +1426,6 @@ private final class VPhoneHTTPTransaction: @unchecked Sendable {
         try source?.seek(toOffset: 0)
         let headers =
             "\(method) \(path) HTTP/1.1\r\nHost: vphoned\r\nConnection: close\r\nContent-Type: \(contentType)\r\nContent-Length: \(bodyLength)\r\n\r\n"
-        // A request written as soon as the connection is made is sometimes
-        // lost: the guest ends the connection within a millisecond with no
-        // reply, before vphoned sees it, and the call reports a guest that is
-        // not connected. On an iOS 27 guest that was 5 to 11 calls in 100 at
-        // one call a second; with this pause, none in 200, and VPhoneAPIProxy,
-        // which writes after a few event-loop hops, almost never saw it.
-        usleep(Self.firstWriteDelayMicroseconds)
         try write(fd, data: Data(headers.utf8))
         if let source {
             var sent: Int64 = 0

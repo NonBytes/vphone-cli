@@ -141,7 +141,7 @@ pixel `(px, py)` is the point `(region.x + px / coordinate_scale,
 region.y + py / coordinate_scale)`, within one pixel. A bad region (missing or
 non-numeric field, width or height of 0 or less, negative x or y, outside the
 screen, under one pixel), `quality` or `max_dimension` fails with
-`invalid_operation` naming the param, the value and the valid range; nothing
+`invalid_param` naming the param, the value and the valid range; nothing
 is clamped.
 
 `display.capture_active {}` returns a raw PNG in `base64`, with `source` and
@@ -247,7 +247,7 @@ choose Rootless or RootHide in the confirmation sheet. The item is enabled
 when vphoned advertises `bootstrap_install`. Its sheet polls
 `GET /v1/bootstrap/status` (RPC `bootstrap.status`) while installation runs.
 The status reports `phase` and, during download, `downloaded_bytes` and
-`total_bytes` when the server provides a length. The sheet shows the download
+`total_bytes` when the server provides a length. A failed installation reports `phase: failed` and its failure text as `message`. The sheet shows the download
 progress, then the installation result without closing.
 
 `GET /v1/bootstrap/inspect` (RPC `bootstrap.inspect`) reports `roots`, the
@@ -376,14 +376,14 @@ which is the one thing a script cannot work around: methods that depend on
 state the worker set up at startup, such as the virtual camera or the
 preloaded HID symbols, are not available through a session's `api()`.
 
-`POST /v1/rpc` with `script.eval` takes `{source, timeout?}` and answers
-`{ok, result, output, crashed}`, or `{ok: false, error, output, crashed}`. A
+`POST /v1/rpc` with `script.eval` takes `{source, timeout_ms?}` and answers
+`{ok, result, output, crashed}`, or `{ok: false, message, output, crashed}`. A
 script that throws is an answer rather than a failed request, so its output
 comes back either way; `result` is the value described as text and `output`
-is everything the script printed. `timeout` defaults to 30 seconds and is
-clamped to 1 through 600; a script that outruns it is killed with its group
+is everything the script printed. `timeout_ms` defaults to 30000 and is
+clamped to 1000 through 600000; a script that outruns it is killed with its group
 and the request fails. `crashed` is true when the session died before it
-could answer, and `error` then names the signal. `script.info` reports
+could answer, and `message` then names the signal. `script.info` reports
 `available`, `engine`, the globals below, and which of `bash`, `sh` and `zsh`
 this guest's bootstrap actually has.
 
@@ -567,21 +567,21 @@ request carries `"force": true`.
 | --- | --- |
 | Discovery | `methods.list` (capability `methods`, see "Method discovery") |
 | Device | `device.snapshot`, `device.info` (snapshot plus network, screen, rotation, brightness, volume, low power, Developer Mode (the last answer amfid gave, refreshed in the background every 30 s; `{}` until it answers, and always on the tvOS 26.6 and HomePod 27.0 guests checked, whose amfid does not; `developer_mode.status` asks amfid directly and waits up to 10 s), agent, `device_name`), `device.screen`, `device.network`, `device.displays` (a flat IOService probe of every display-ish object with its small properties — what the display stack bound; built for the foldable display work: `AppleParavirtGPU` `DisplayPortCount`, and each `AppleParavirtDisplay` width/height/`primary`), `device.ioreg {plane}`, `device.environment`, `device.basebin {archive?}` |
-| Display, audio | `display.pose` (read-only SpringBoard pose snapshot: orientation, device_orientation, hinge, tabletop; reports unavailable for an unsupported ABI), `display.modes` (read-only CoreAnimation display bounds, native size, current/available modes, and virtual-mode selector availability; availability does not prove a mode change is supported), `display.brightness {value?}`, `display.rotation {orientation?}`, `display.posture {hinge, orientation?, tabletop?}` (a foldable guest's pose through SpringBoard's test-automation override, see below; capability `device_pose`), `display.orientation` (SpringBoard's interface orientation without a screen capture, for polling; `degrees` is null while SpringBoard has no answer; `device_degrees`, present while the gravity provider runs, is the way the device is held in the interface degrees that match it, which differs from `degrees` while the app in front or the rotation lock keeps the interface from following; on a foldable `fold_angle` is the virtual hinge's angle, so a host can follow folds it did not ask for, and `screen_off` whether the panel is dark, so a host can keep the panel's frame from before off its window as it comes on (SpringBoard has the screen off and FoldDisplay saw the panel go off since it was last lit; the always-on Lock Screen keeps the panel on and is not dark); capability `display_orientation`), `display.rotation_lock {locked}`, `display.auto_lock`, `display.auto_lock.set {seconds}` (writes the mobile UserSettings input through cfprefsd and posts profiled's effective-settings notification, and returns an immediate readback; the caller must verify the effective value), `screen.unlock {passcode?, timeout?}` (the display on and the Lock Screen passed, see below; capability `screen_unlock`), `audio.volume {value?, category?}`, `audio.state` |
-| Input | `input.touch`, `input.hid {page, usage, down?, long_press?}`, `input.button {name}`, `input.key {name}`, `input.type {text, delay_ms?}`, `input.paste {text}`, `input.tap`, `input.double_tap`, `input.long_press`, `input.swipe`, `input.drag {points}`, `input.touch_sequence {events}` — gesture coordinates are screen points; `input.pointer {x, y, seq?, buttons?}`, `input.scroll {phase, dx?, dy?, x?, y?}` (capabilities `pointer_scroll` and `pointer_buttons`, see below) |
+| Display, audio | `display.pose` (read-only SpringBoard pose snapshot: orientation, device_orientation, hinge, tabletop; reports unavailable for an unsupported ABI), `display.modes` (read-only CoreAnimation display bounds, native size, current/available modes, and virtual-mode selector availability; availability does not prove a mode change is supported), `display.brightness {value?}`, `display.rotation {orientation?}`, `display.posture {hinge, orientation?, tabletop?}` (a foldable guest's pose through SpringBoard's test-automation override, see below; capability `device_pose`), `display.orientation` (SpringBoard's interface orientation without a screen capture, for polling; `degrees` is null while SpringBoard has no answer; `device_degrees`, present while the gravity provider runs, is the way the device is held in the interface degrees that match it, which differs from `degrees` while the app in front or the rotation lock keeps the interface from following; on a foldable `fold_angle` is the virtual hinge's angle, so a host can follow folds it did not ask for, and `screen_off` whether the panel is dark, so a host can keep the panel's frame from before off its window as it comes on (SpringBoard has the screen off and FoldDisplay saw the panel go off since it was last lit; the always-on Lock Screen keeps the panel on and is not dark); capability `display_orientation`), `display.rotation_lock {locked}`, `display.auto_lock`, `display.auto_lock.set {seconds}` (writes the mobile UserSettings input through cfprefsd and posts profiled's effective-settings notification, and returns an immediate readback; the caller must verify the effective value), `screen.unlock {passcode?, timeout_ms?}` (the display on and the Lock Screen passed, see below; capability `screen_unlock`), `audio.volume {value?, category?}`, `audio.state` |
+| Input | `input.touch`, `input.hid {page, usage, down?, long_press?}`, `input.button {name}`, `input.key {name}`, `input.type {text, delay_ms?}`, `input.paste {text}`, `input.tap`, `input.double_tap`, `input.long_press`, `input.swipe {from: [x, y], to: [x, y], seconds?, steps?}`, `input.drag {points}` (answers `count`), `input.touch_sequence {events}` — gesture coordinates are screen points; `input.pointer {x, y, seq?, buttons?}`, `input.scroll {phase, dx?, dy?, x?, y?}` (capabilities `pointer_scroll` and `pointer_buttons`, see below) |
 | UI | `ui.tree` (alias `accessibility.tree`), `ui.element_at`, `ui.tap_element`, `ui.wait`, `ui.wait_gone`, `ui.ocr {languages?, min_confidence?}`, `ui.describe`, `screen.screenshot {max_dimension?, quality?, region?}` |
-| Processes | `processes.list {filter?}`, `processes.kill {pid, signal?}` **force**, `process.spawn {executable, arguments?, timeout_seconds?}`, `memory.jetsam`, `memory.pressure` (only the three kernel memory sysctls, for polling) |
-| launchd | `services.list`, `status`, `print`, `dump`, `disabled`, `start`, `enable`, `load`, `profile` (see below), `kickstart {label, kill?}` (`launchctl kickstart`, capability `service_kickstart`, see below); `services.stop`, `disable`, `remove`, `signal`, `unload`, `profile.apply {profile, groups?, allow?}` **force**, and `kickstart` with `kill` **force**; `launchd.getenv`, `setenv`, `unsetenv`. On tvOS, which never enables user sessions, they read the system domain alone; before icli 0.8.6 the foreground-user lookup trapped there and killed vphoned |
-| Logs | `logs.syslog {seconds, process?, level?, max_lines?, subsystem?, category?, message_contains?}` (a bounded capture of at most 60 s; filters apply before the line cap), `logs.crashes {bundle_id?}`, `logs.crash {path}` |
+| Processes | `processes.list {filter?, limit?, cursor?}`, `processes.kill {pid, signal?}` **force**, `processes.spawn {executable, arguments?, timeout_ms?, max_output_bytes?, max_capture_bytes?}`, `processes.output {output_id, stream, offset?, limit?, binary?}`, `processes.output_release {output_id}`, `memory.jetsam`, `memory.pressure` (only the three kernel memory sysctls, for polling) |
+| launchd | `services.list {limit?, cursor?}`, `status`, `print`, `dump {limit?, cursor?}`, `disabled`, `start`, `enable`, `load`, `profile` (see below), `kickstart {label, kill?}` (`launchctl kickstart`, capability `service_kickstart`, see below); `services.stop`, `disable`, `remove`, `signal`, `unload`, `profile.apply {profile, groups?, allow?}` **force**, and `kickstart` with `kill` **force**; `launchd.getenv`, `setenv`, `unsetenv`. On tvOS, which never enables user sessions, they read the system domain alone; before icli 0.8.6 the foreground-user lookup trapped there and killed vphoned |
+| Logs | `logs.syslog {seconds, process?, level?, max_lines?, subsystem?, category?, message_contains?}` (a bounded capture of at most 60 s; filters apply before the line cap), `logs.crashes {bundle_id?, limit?, cursor?}`, `logs.crash {path}` |
 | HomeView distance | `homeview.distance.get`, `homeview.distance.set {mode, reset_environment?}` (capability `homeview_distance`; near/standard/far map to native detail2/1/0; automatic requires `reset_environment:true` and clears persona, display-style, detail and backlight overrides together). Unknown ownership is `mode:"unknown"`, `override_active:null`; readback does not prove a rendered UI change. |
 | Darwin notifications | `notify.post {name, state?}` (`postDarwinNotification`; `state` is a UInt64, as a number or a decimal string, stored before the post), `notify.state {name}` (`darwinNotificationState`) |
 | Network, security | `network.capture {seconds, interface?, filter?}` (writes a pcap in the guest scratch directory), `network.ipv4.get {interface?}`, `network.ipv4.set {interface?, method, address?, subnet_mask?, router?, dns?}`, `network.hostname.get`, `network.hostname.set {local_host_name?}`, `device.name.get`, `device.name.set {name}` (see below), `network.static_names.get`, `network.static_names.set {entries}`, `network.resolve {host, family?, port?, first_only?, timeout_ms?}` (see below), `security.ssl_killswitch` |
-| Apps | `apps.list`, `search`, `refresh`, `launch`, `terminate`, `foreground`, `open_url`, `install`, `info`, `binary`, `data_dir`, `url_schemes`, `handlers`, `registration`, `register`, `network_policy {repair?}`; `apps.uninstall`, `unregister`, `unregister_dir` **force**; `apps.removed_system`, `apps.remove_system {bundle_ids, backup?, respring?}` **force**, `apps.restore_system {bundle_ids?, respring?}` **force** (removable system apps, see below) |
+| Apps | `apps.list {filter?, limit?, cursor?}`, `search`, `refresh`, `launch`, `terminate`, `foreground`, `open_url`, `install`, `info`, `binary`, `data_dir`, `url_schemes`, `handlers`, `registration`, `register`, `network_policy {repair?}`; `apps.uninstall`, `unregister`, `unregister_dir` **force**; `apps.removed_system`, `apps.remove_system {bundle_ids, backup?, respring?}` **force**, `apps.restore_system {bundle_ids?, respring?}` **force** (removable system apps, see below) |
 | OTA Apple app programs | `ota.apps.status`, `ota.apps.apply {force:true, removed_bundle_ids?:[]}` (capability `ota_system_apps`; reconciles removed Apple app registrations including placeholders against valid removal backups, then updates retained programs from the installed 24A446 payload; no caller-selected paths or third-party IDs; an omitted baseline infers only absent/placeholder apps, never installed apps; preserves user-data/group containers and original removal backups; see [the OTA runbook](Restore/data_preserving_full_ota.md#preserve-removed-system-apps-2026-10-25)) |
 | System | `system.uicache`, `system.system_apps {visible?}`, `system.respring` **force**, `system.reboot {userspace?}` **force**, `system.shutdown` **force**, `developer_mode.status`, `developer_mode.enable`, `power.low_power_mode`, `time.timezone {identifier?, automatic?}`, `time.clock {time?, automatic?}` (see below), `diagnostics.self_test` |
 | Cryptexes | `cryptex.list`, `cryptex.install {path, variant, persist?}`, `cryptex.uninstall {identifier}` (capability `cryptex`; only a guest restored as trusted darwinOS has `/usr/bin/cryptexctl`, see "Cryptexes" below) |
-| Files | `files.list`, `mkdir`, `remove`, `rename`, `read {binary?, limit?}`, `write`, `find`, `copy`, `symlink`, `chmod`, `chown`, `plist`, `plist_set {value \| remove}` |
-| APFS snapshots | `apfs.snapshots {mount?}`, `apfs.snapshot.delete {mount?, name? \| prefix?}` **force** (only `orig-fs.disabled.rn-*`, see below) |
+| Files | `files.list {limit?, cursor?}`, `mkdir`, `remove`, `rename`, `read {binary?, limit?, offset?}`, `write`, `find {limit?, cursor?}`, `copy`, `symlink`, `chmod`, `chown`, `plist`, `plist_set {value \| remove}` |
+| APFS snapshots | `apfs.snapshots {mount?, limit?, cursor?}`, `apfs.snapshot.delete {mount?, name? \| prefix?}` **force** (only `orig-fs.disabled.rn-*`, see below) |
 | Preferences, clipboard, location | `settings.get/set/delete`, `clipboard.get/set/clear`, `location.set/clear/current/services {enabled?}` |
 | Motion | `motion.gyroscope.get`, `motion.gyroscope.set {x,y,z,enabled?}`, `motion.gyroscope.clear` (capability `motion_gyroscope`; finite JSON numbers in [-1000,1000] rad/s, all axes required; `enabled` defaults to true and must be a JSON Boolean; capability `motion_gyroscope_toggle` supports disabling while retaining configured axes; HID provider status is not proof of CoreMotion app delivery) |
 | Keychain | `keychain.list {class?}`, `add`, `delete`, `get`, `update`, `database` |
@@ -590,8 +590,20 @@ request carries `"force": true`.
 | Bootstrap | `bootstrap.install {layout}`, `bootstrap.status`, `bootstrap.inspect`, `bootstrap.uninstall {jbroot, force}`, `bootstrap.firmware` (see above) |
 | Environment | `environment.status`, `environment.install {libraries: [{name, sha256}]}` (see below) |
 | Profile UDID | `udid.get`, `udid.set {udid}`, `udid.clear` (see below) |
-| Scripting | `script.eval {source, timeout?}` (evaluated in a session process, capability `script_js`), `script.info` — the interactive form is the `/v1/shell` WebSocket, see "Scripting sessions" |
-| Setup Assistant | `setup.status`, `setup.skip` **force** (sets `SetupDone`, `SetupFinishedAllSteps` and `SetupVersion` in `com.apple.purplebuddy`, restarts SpringBoard; while the first boot's data migration is still running it does not restart SpringBoard, which reads the keys when migration ends, and `respring` is `{restarted: false, reason: "data_migration_pending"}`; a restart FrontBoard ignored is refused with `reason: busy`, `retryable: true`, the keys already written); `setup.settle {timeout_s?, poll_s?, stable_polls?}` (read-only wait for first-boot work, see below); `/v1/health` carries `setup_pending` — see `Research/Guest/setup_assistant_skip.md` |
+| Scripting | `script.eval {source, timeout_ms?}` (evaluated in a session process, capability `script_js`), `script.info` — the interactive form is the `/v1/shell` WebSocket, see "Scripting sessions" |
+| Setup Assistant | `setup.status`, `setup.skip` **force** (sets `SetupDone`, `SetupFinishedAllSteps` and `SetupVersion` in `com.apple.purplebuddy`, restarts SpringBoard; while the first boot's data migration is still running it does not restart SpringBoard, which reads the keys when migration ends, and `respring` is `{restarted: false, reason: "data_migration_pending"}`; a restart FrontBoard ignored is refused with `reason: busy`, `retryable: true`, the keys already written); `setup.settle {timeout_ms?, poll_ms?, stable_polls?}` (read-only wait for first-boot work, see below); `/v1/health` carries `setup_pending` — see `Research/Guest/setup_assistant_skip.md` |
+
+Every `input.*` method accepts optional `observe` (JSON boolean, default false)
+and `observe_delay_ms` (JSON integer 0 to 5000, default 300; validated whenever
+present). A value of another type fails with the invalid-request error (`invalid_param`) before
+the action runs. With `observe: true`, after the action succeeds the daemon
+waits `observe_delay_ms` and adds `observed` to the reply:
+`{frontmost_bundle_id, frontmost_verified, ui_element_count}`. The foreground
+state comes from the source `apps.launch` uses for `frontmost_verified`
+(`frontmost_verified: false` when it is unconfirmed); `ui_element_count` is the
+count of visible elements `ui.tree` reports, capped at 500 (500 means 500 or
+more). An observe failure never fails the action: the reply carries
+`observed: {observe_error}` instead. Without `observe`, replies are unchanged.
 
 `input.hid` sends a keyboard/consumer usage with 16-bit `page` and `usage`.
 Omitting `down` sends a 100 ms press; a Boolean `down` sends one transition.
@@ -688,8 +700,8 @@ passcode gets the passcode pad, into which `passcode` is typed
 (`VPhoneDaemon/Daemon/GuestScreenUnlock.swift`). A lit, unlocked guest returns
 at once; a dark but unlocked one is only woken. A guest with a passcode needs
 `passcode`, entered once and never retried; without it the call fails before
-any key is sent. It needs no private entitlement. `timeout` is 1–60 seconds,
-10 by default. Measurements: `Research/Guest/screen_unlock.md`.
+any key is sent. It needs no private entitlement. `timeout_ms` is 1000–60000,
+10000 by default. Measurements: `Research/Guest/screen_unlock.md`.
 
 A machine with `unlocksAtStartup` in its `config.plist` (`vphone-cli vm config
 <name> --unlock-at-startup on`, Device > Unlock at Startup in the VM window, or
@@ -772,9 +784,9 @@ own reinstalls at boot run in parallel and can panic TXM. All cryptexctl runs
 take turns. `cryptex.list` is `cryptexctl list`, with `persisted` the
 identifiers vphoned keeps; `cryptex.uninstall {identifier}` is `cryptexctl
 uninstall` and forgets a kept cryptex.
-Each refuses with `operation_failed` on a guest without `/usr/bin/cryptexctl`,
-which only `filesystem-exp-trusted_darwinos` adds; cryptexctl's own output is
-in the message when it fails. The VM window's Apps › Install Cryptex… builds
+Each refuses with `unavailable` on a guest without `/usr/bin/cryptexctl`,
+which only `filesystem-exp-trusted_darwinos` adds; when cryptexctl fails the
+error is `invalid_operation` with cryptexctl's own output in the message. The VM window's Apps › Install Cryptex… builds
 the cryptex from a folder, uploads and installs it; see
 [the trusted darwinOS note](Firmware/trusted_darwinos_cryptexes.md).
 
@@ -921,8 +933,8 @@ See `Research/Guest/service_trimming.md`.
 `setup.settle` (capability `setup_settle`) waits until the guest's first-boot
 work has settled and returns, without changing anything
 (`VPhoneDaemon/Daemon/GuestAPI+FirstBoot.swift`, conditions in
-`GuestFirstBootSettle.swift`). It polls every `poll_s` seconds (default 5,
-1–30) and is settled when, over the last `stable_polls` polls (default 3,
+`GuestFirstBootSettle.swift`). It polls every `poll_ms` milliseconds (default 5000,
+1000–30000, fractions of a second kept) and is settled when, over the last `stable_polls` polls (default 3,
 2–20), `/private/var/staged_system_apps` is empty or absent (installd expands
 the removable system apps from it on the first boot), the number of
 registered apps did not change, installd used less than 0.2 s of CPU
@@ -931,8 +943,8 @@ not running: `com.apple.migration` for user mobile records
 `kern.osversion` as `LastSystemVersion` or as `DMLastMigrationResults`'s
 `buildVersion`, or, with neither recorded, DataMigrator's XPC service
 (`com.apple.datamigrator`) is not running. The domain is empty until a fresh
-restore's first migration ends. `timeout_s` defaults to 90 and is capped at
-110, because the host waits at most 120 s for one answer; a caller that needs
+restore's first migration ends. `timeout_ms` defaults to 90000 and is capped at
+110000 (the reply echoes the effective `timeout_ms`, `poll_ms` and `stable_polls`, with `polls` and `elapsed_ms`), because the host waits at most 120 s for one answer; a caller that needs
 longer calls again. A timeout is not an error: it returns with `settled:
 false` and `reasons` naming the conditions still unmet; `signals` holds
 `staged_system_apps` (entries, null when unreadable), `app_count`,
@@ -957,20 +969,67 @@ saves them and registers them again when it starts; `get` lists them.
 
 `network.resolve` runs `getaddrinfo` in the guest (`family` `ipv4`, `ipv6` or
 any) and returns the addresses in the
-resolver's order. With `port`, each address is also connected to for up to two
+resolver's order; a failed lookup is `status: error` with the resolver text as `message`. With `port`, each address is also connected to for up to two
 seconds and reports `connect`, `connect_ms` and the `local` address used, which
 names the interface the connection left from; `first_only` connects to the
 first address only, as a client that does not fall back would.
 
-`process.spawn` is a bounded diagnostic escape hatch for guest-internal
+`processes.spawn` (route `POST /v1/processes/spawn`) is a bounded diagnostic escape hatch for guest-internal
 investigation. `executable` is a logical name mapped to a fixed path (`ps`,
 `launchctl`, or `log`); arguments are passed directly without a shell and are
-limited to 16 items, 256 bytes per item, and 2048 bytes total. The timeout is
-between 0.1 and 10 seconds (default 3), and each output stream is capped at
-64 KiB. The reply includes the child PID, timeout flag, exit code or signal,
-and UTF-8 stdout/stderr. It is intentionally insufficient for arbitrary code
-execution; future poster-extension tracing must stay within this allowlist or
-use a separately reviewed diagnostic binary.
+limited to 16 items, 256 bytes per item, and 2048 bytes total. `timeout_ms` is
+between 100 and 10000 (default 3000). The reply includes the child PID, timeout
+flag, exit code or signal, and UTF-8 stdout/stderr. It is intentionally insufficient for
+arbitrary code execution; future poster-extension tracing must stay within this
+allowlist or use a separately reviewed diagnostic binary.
+
+**Spooled spawn output.** vphoned writes each of stdout and stderr to a file
+under `/var/root/Library/Caches/vphoned-spool/<output_id>/` while the child runs,
+so memory stays bounded and the child never blocks on a full pipe. The reply
+carries an inline first page per stream of at most `max_output_bytes` raw bytes
+(integer 1 to 65536, default 65536), cut at a UTF-8 character boundary; invalid
+bytes decode to U+FFFD, so the text is at most 3 times that. `stdout_total` /
+`stderr_total` are the bytes captured, `stdout_truncated` / `stderr_truncated`
+(always present) say the inline page is shorter than the capture, and
+`capture_truncated` (always present) is true when a stream hit
+`max_capture_bytes` (integer 1 to 16777216 per stream, default 2097152): past it
+the rest is read and discarded, and the child still runs to exit. When either
+stream is truncated the reply also has `output_id` and `output_dir`
+(`/var/root/Library/Caches/vphoned-spool/<output_id>`, files `stdout` and
+`stderr`); a timed-out spawn drops its spool and has neither. Read the rest with
+`processes.output {output_id, stream: "stdout"|"stderr", offset?, limit?, binary?}`
+(`offset` raw bytes 0 to 1099511627776, `limit` 1 to 65536 default 65536): the
+reply is `data` (the slice as UTF-8 with the end cut on a character boundary, or
+the base64 of exactly the raw bytes with `binary: true`), `total` (raw bytes
+captured) and `next_offset` (offset plus raw bytes returned) only when more
+remains; an offset past the end returns empty `data`. `files.read` on
+`<output_dir>/stdout` with `offset` (raw bytes, 0 to 1099511627776, default 0)
+reads the same bytes and keeps its text/`binary` and `limit` behavior (default
+cap 512 KiB, `size` is the whole file). Whenever `files.read` gets `offset` or
+`limit`, its reply also has `total` (the file's raw bytes) and, only while
+`truncated`, `next_offset` (offset plus raw bytes returned), so it pages like
+`processes.output`. `processes.output_release {output_id}`
+removes the spool and returns `{released: true}`. A spool lives 10 minutes, the
+spool dir is capped at 64 MiB and the oldest spools are evicted first; a spawn
+that cannot fit fails with code `unavailable` ("spool full"). A released,
+expired or evicted `output_id` fails with code `not_found`; repeat
+`processes.spawn`. A malformed `output_id`, `stream`, `offset`, `limit`,
+`max_output_bytes` or `max_capture_bytes` fails with code `invalid_param`. The spool dir
+is private (daemon-owned 0700) and vphoned removes every spool when it starts.
+
+**Bounded list replies.** `apps.list`, `processes.list`, `services.list`,
+`services.dump`, `files.list`, `files.find`, `apfs.snapshots` and `logs.crashes`
+take `limit` (integer 1 to 1000, default 200) and `cursor` (string) and return
+at most `limit` entries from the cursor in their existing array key, plus
+`total` (entries before paging) and `truncated`. When `truncated` is true the
+reply also has `next_cursor`; pass it as `cursor` for the next page. The last
+page has `truncated: false` and no `next_cursor`. An existing `count` is the
+number of entries returned. A bad `limit` or `cursor` fails with code
+`invalid_param`. A cursor is an offset into a fresh listing, so guest
+changes between calls can shift entries. `processes.list` is sorted by `pid`,
+`apps.list` by `bundle_id` then `path` and `files.find` by path before paging.
+The paging runs in vphoned after the listing is built, so `services.dump` still
+does its full dump; `files.find` pages over icli's 500-match ceiling.
 
 `processes.list` joins icli's kernel process list with `proc_pid_rusage`
 footprint, resident size and CPU time (`VPhoneDaemon/Native/vphoned_process.m`),
@@ -983,6 +1042,25 @@ lists the new areas in `capabilities` (`device_info`, `display`, `audio`, `input
 panels an older agent cannot serve. icli failures reach the caller with
 icli's own error `code` (`failed`, `unavailable`, `device_locked`, …) and
 message.
+
+## Names from before the renames
+
+Methods and params follow one set of rules: failure text is `message`, every
+timeout is `timeout_ms` in milliseconds, `input.swipe` takes `from` and `to`.
+The names they had before still work, so older clients keep working;
+`methods.list` and this document name only today's (`GuestLegacyNames` in
+`GuestMethodSpec.swift` translates them before a request is admitted). An old
+name is dropped once it is translated, and when the request also sends the new
+name, so it is never refused as an unknown param.
+
+| Before | Today |
+| --- | --- |
+| `process.spawn`, `POST /v1/process/spawn` | `processes.spawn`, `POST /v1/processes/spawn` |
+| `timeout_seconds` (`processes.spawn`), `timeout` (`location.current`, `screen.unlock`, `script.eval`, `ui.wait`, `ui.wait_gone`), `timeout_s` and `poll_s` (`setup.settle`), all in seconds | `timeout_ms`, `poll_ms` in milliseconds; a request that sends both uses the new one |
+| `input.swipe {x1, y1, x2, y2}` | `input.swipe {from: [x, y], to: [x, y]}` |
+| result `error` of `bootstrap.status`, `homepod.display.state`, `network.resolve`, `script.eval` | `message`; `error` is still sent with the same text |
+| result `elapsed_s`, `poll_s`, `timeout_s` of `setup.settle` | `elapsed_ms`, `poll_ms`, `timeout_ms`; the seconds are still sent |
+| result `points` of `input.drag` | `count`; `points` is still sent |
 
 ## Method discovery
 
@@ -1010,7 +1088,7 @@ rest of this document does not restate them.
 `force` is `"never"`, `"always"`, or `"when:<key>"` (`"when:kill"`), meaning
 the method needs `"force": true` only when that param is true. `force` itself
 is never listed as a param. The dispatcher enforces it before the method runs
-and refuses with the same `Pass force: true to ...` message as before.
+and refuses with `force_required` and the same `Pass force: true to ...` message as before.
 
 `description` (method and param) is one-line prose. `force_action` is the
 phrase that completes "Pass force: true to ...", with `<...>` placeholders for
@@ -1020,9 +1098,37 @@ declares it; `minimum` and `maximum` are metadata and are not enforced.
 `methods.list` is the authority for per-param prose, and this document does not
 restate it.
 
-From this version vphoned drops every `params` key a method does not list
-before the method runs. A client that relied on an extra key must send only
-listed keys.
+**BREAKING:** a request with a param the method does not list now fails with
+`invalid_param` (earlier versions dropped it silently). A client that sent extra
+keys must send only listed keys. `force` is always admitted.
+
+### Error object
+
+`error` is `{code, message, hint?}`. BREAKING: `code` strings changed; callers
+that matched `invalid_operation` or `invalid_request` must match the codes below.
+
+| Code | Meaning |
+| --- | --- |
+| `invalid_param` | A param is missing, malformed, out of range, or not declared by the method. |
+| `not_found` | The named target (file, app, process, service) or the method does not exist. |
+| `unavailable` | The platform, OS or a component cannot do this. |
+| `force_required` | A destructive call came without `"force": true`. |
+| `permission` | The OS refused for lack of entitlement or access. |
+| `invalid_operation` | Any other operation failure. |
+| `already_done`, `location_services_off` | Existing codes, unchanged. |
+
+`hint` is one line naming the fix, present only when the error has one (the key
+is absent, never null). An unknown param fails with message `Unknown param: a, b`
+(at most five names, then ` and N more`) and a hint such as
+``Did you mean `x`? Valid params: p, q``; a method with no params says
+`This method takes no params`. A missing `force: true` fails with `force_required`,
+the usual `Pass force: true to ...` message, and hint
+`Confirm with the user, then repeat the call with force: true`. An unknown method
+fails with `not_found`, and its hint names the closest method when one is near.
+Out-of-range and missing params are `invalid_param` and name the valid values or
+range in the message or hint. A handler that used to answer success with a
+whole-call `error` key (`device.ioreg`, `display.external.diagnostics`,
+`display.external.status`) now throws a coded error.
 
 To add a method, add a case to its area's `<Area>Method` enum
 (`GuestAPI+<Area>.swift`) with its `spec`, handle it in that area's switch, and
@@ -1269,7 +1375,7 @@ simulation and returns `unavailable` (`no location within 5 s`, or `locationd
 did not apply the simulated location`). The reply is `simulating: true` plus
 the fix that was read back. `location.clear` stops the simulation and polls for
 up to 6 s until locationd stops reporting a fresh simulated fix.
-`location.current` reads the same way with the caller's timeout and reports
+`location.current` reads the same way with the caller's `timeout_ms` (default 10000; above 0, at most 300000) and reports
 `fresh` and `simulated` as CoreLocation gives them. The read-back needs
 locationd to deliver a fused fix. The 2.0.4 guest in
 `Research/Guest/location_simulation_26_4_failure.md` never got one; that build
@@ -1518,7 +1624,10 @@ not persisted. It forwards relative mouse movement, buttons and native scroll
 only after explicit menu activation. Control–Option–M or Device → Release
 Mouse releases it, as does losing window focus or closing the window. The
 Mac cursor is re-associated on release and any held guest pointer buttons are
-released. Trackpad-to-touch replay remains a separate setting.
+released. Trackpad-to-touch replay remains a separate setting. Outside
+capture, an iPad's pointer follows the mouse in Device → Mouse Over Display →
+Guest Pointer (the default); an opted-in iPhone's does not. See
+`Research/Guest/trackpad_gesture_mapping.md`.
 This only advertises/forwards input; it does not enable AssistiveTouch or
 promise iOS will show a pointer. The inner Duo display's pointer mapping is
 not established by this opt-in.
