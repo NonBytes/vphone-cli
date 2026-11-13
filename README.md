@@ -188,56 +188,14 @@ in the running VM's window so the guest stays listed as online.
 
 ## Host-side fixes in this fork
 
-Beyond the upstream sync, this fork carries host-side and workflow fixes
-found while running the fork day to day. Build a fresh Core Bundle and
-Launchpad (see [Install the fork](#install-the-fork)) to pick them up. See
-[Host-side fork fixes](Research/Host/fork_fixes.md) for the full list and
-technical details.
+Beyond the upstream sync, this fork carries host-side and workflow fixes found while running the fork day to day:
 
-- **Frida Tools & Built-in Scripts** — Unified **Frida Tools** window
-  (Server + Session tabs), searchable **Choose App…** picker, **Multi-Script Composer**
-  with Quick Presets and 7 Frida 17-safe built-in scripts (**SSL Pinning Bypass**,
-  **Jailbreak Detection Bypass**, **App Keychain Dump**, **Biometric Bypass**,
-  **Crypto API Tracer**, **HTTP Request Logger**, **Pasteboard Monitor**), Frida 17
-  compatibility fixes (`Module.findExportByName` removal, `libobjc.A.dylib`
-  fallback, and external-script global `ObjC` preflight warnings), and fixed-port
-  Frida Server local forwarding (`27042`) over USB / guest channel.
-- **Storage Inspector, Binary Scanner, Deep Link Fuzzer & MASVS Findings** — Added
-  **Storage Inspector** (container & App Group enumeration, XML/binary Plist &
-  read-only SQLite3 table/row inspection, encrypted DB check, and secret/permission
-  scanner), arm64 **Static Binary & Manifest Security Scanner** (`MH_PIE`, canary,
-  ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`, ATS)
-  in App Inspector & JSON reports, **Deep Link Payload Fuzzer** (`applinks:`
-  Associated Domains, 5 payload categories, filtered History Matrix), and shared
-  **MASVS Findings & Report Builder** (`findings-report.md` and XSS-escaped
-  `findings-report.html` inside Evidence Export).
-- **Guest Connection & VSOCK Transport** — Eliminated transient `"The guest
-  agent is not connected"` errors on back-to-back requests (single-threaded
-  `vphoned` VSOCK EventLoop + `connectionLost` retry), prevented UI disconnect
-  flapping on single health-check hiccups, and surfaced real localized errors
-  for guest shell/port-relay failures.
-- **Launchpad, Network & App Logs** — Direct **Features → Pentest Tools…**
-  menu in the VM window, real File Browser transfer progress, large-preset
-  support in the Patches inspector (including `frida`), one-step preset
-  switching, **Preset** and active Core Bundle controls on the **New Machine**
-  basic page, **Verify HTTPS Proxy + CA Trust** probe in Network Diagnostics
-  (`verify-https`), bounded App Logs & Crash Viewer log streaming/filtering,
-  private `0600` App Inspector JSON exports, and clean PCAP stop-flush status
-  clearing.
-- **Photos & Media Browser** — Dedicated media browser accessible via **Data → Photos**
-  in the VM window or **Pentest Tools → Photos & Media Browser…** to browse, search,
-  and filter DCIM camera captures, screenshots, and videos; inline preview with metadata
-  (dimensions, file size, date); direct "Copy Image" to Mac clipboard, "Save…", "Open in Preview.app",
-  and batch "Export Selected…" / "Export All…" to Mac with collision-free toolbar layout.
-- **Firmware, CFW & Build** — Extended firmware catalog through iOS 27.2.1
-  (plus `scripts/check-firmware-catalog.zsh`), `frida.plist` vs `standard.plist`
-  drift guard in `ValidateBundle.sh` and tests, unmount retry for transient
-  `"Resource busy"` errors during `cfw install` / `cfw update-environment`,
-  suppression of benign Campo missing-entitlement warnings on iOS 27.2+,
-  elimination of background-process terminal hangs during package notice staging in `stage-package-notices.zsh`,
-  consolidated shared Pentest core into `VPhoneKit/VPhonePentestKit`
-  (`scripts/build-pentest-kit.zsh` and `pentest-kit-parity-tests.zsh`), and
-  aligned workspace package pins for `VPhoneLaunchpad`.
+- **Pentest & Frida Tools** — Unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
+- **Guest Stability & VSOCK** — Resolved transient disconnection blips, single-threaded VSOCK event loop, and localized error reporting.
+- **Workflow & Launchpad** — Direct Pentest menu in VM window, real transfer progress, preset switching, HTTPS proxy verification, and bounded log streaming.
+- **Firmware & Build** — Extended catalog through iOS 27.2.1, unmount retry handling, and consolidated pure-Swift `VPhonePentestKit`.
+
+See [Host-side fork fixes](Research/Host/fork_fixes.md) for the complete list and technical breakdown.
 
 ## Set up with an AI agent
 
