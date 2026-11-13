@@ -134,7 +134,11 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | Feature | What it provides |
 | --- | --- |
 | [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS, sandbox paths, **Static Binary & Manifest Security Scanner** (`MH_PIE`, stack canary, ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`), and **Add to MASVS Findings** |
-| **Storage Inspector** | Browse app data & App Group containers (`files.list`), preview XML/binary Plists, inspect unencrypted/encrypted SQLite 3 databases & table rows read-only, view JSON/UTF-8/Hex, scan for secrets/JWT/PEM/world-writable permissions, and **Add to MASVS Findings** |
+| **Storage Inspector** | Browse app data & App Group containers (`files.list`), preview XML/binary Plists, interactive SQLite 3 database & table row browser, live in-app SQL query runner with mutations and commit back to guest (`files.write`), selectable & 1-click copyable container paths, scan for secrets/JWT/PEM/world-writable permissions, and **Add to MASVS Findings** |
+| **In-App Network & API Flow Inspector** | Real-time HTTP/HTTPS transaction capture (`NSURLSession` / `CFNetwork`), status/method filtering, formatted request/response headers and body viewers, 1-click cURL generator, and HAR 1.2 export for Postman/Proxyman |
+| **SSL Pinning & Jailbreak Bypass Studio** | Multi-engine runtime evasion studio with real-time toggleable modules: SecTrustEvaluate / TrustKit SSL unpinning, Jailbreak & Root detection cloaking (file checks, dyld hooks, fork/syscall, C-API stat bypass), dynamic Frida script synthesis, and event log telemetry |
+| **Dynamic Crypto Tracer & Key Sniffer** | Dynamic cryptanalysis engine hooking CommonCrypto (`CCCrypt`, `CCHmac`, `CC_MD5`, `CC_SHA*`), SecKey, and Apple CryptoKit; detects insecure ECB modes, hardcoded/static IVs, weak keys, and deprecated hashes in real time, with MASVS-CRYPTO finding export |
+| **Mach-O & Entitlements Security Visualizer** | Interactive 64-bit Mach-O binary inspector: visual hardening status grid (PIE, Stack Canary, ARC, W^X stack, FairPlay cryptid), search & danger rating for sensitive entitlements, dynamic library & RPATH search paths, load commands viewer, and raw XML export |
 | [Frida Tools](Research/Guest/frida_server.md) | Server and Session in one window as two tabs: official/custom server installation, version checks, authentication and Start/Stop; **Multi-Script Composer** + Quick Presets combining 7 built-in Frida 17 scripts (**SSL Pinning Bypass**, **Jailbreak Detection Bypass**, **App Keychain Dump**, **Biometric Bypass**, **Crypto API Tracer**, **HTTP Request Logger**, **Pasteboard Monitor**) or local scripts, console, private log export and Detach; explicit Keychain profiles scoped by VM/endpoint |
 | [Sandbox Diff](Research/Guest/sandbox_diff.md) | Bounded before/after file hashes and metadata; unreadable or unstable paths remain uncertain |
 | [Network Diagnostics + PCAP](Research/Guest/network_diagnostics.md) | Reachability checks and interface-wide packet capture with Stop/export for Wireshark |
@@ -164,8 +168,10 @@ with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/e
   **Export Installed IPA…** to save its bundle. Use **Install App Package** in App
   Browser to install a test IPA or TIPA.
 - **Storage Inspector** — open from the Pentest Hub or App Inspector, choose an app and
-  data/App Group root, inspect XML/binary Plists or SQLite tables & rows, run **Scan for Secrets**,
+  data/App Group root, click any row in the file table to immediately inspect XML/binary Plists or SQLite databases & rows, run custom SQL queries and commit changes back to the guest, copy file paths with 1-click or text drag, run **Scan for Secrets**,
   and add findings directly to the MASVS store.
+- **Network Flow Inspector & Bypass Studio** — capture live HTTP/HTTPS traffic from any running guest app without proxy setup; toggle jailbreak and SSL pinning bypass modules on the fly with live Frida instrumentation.
+- **Crypto Tracer & Mach-O Visualizer** — trace CommonCrypto and CryptoKit calls in real time to catch static IVs and weak ciphers; analyze Mach-O binary headers, exploit mitigations, and sensitive entitlements with risk ratings.
 - **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
   capture a baseline, run your test, then select **Scan & Compare**.
 - **Frida Tools** — open **Frida Tools**, choose a release on the **Server**
