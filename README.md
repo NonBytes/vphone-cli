@@ -75,19 +75,19 @@ research guests and choose an APFS volume for the VM library.
    from the build path above to **Applications** in Finder. Open it and
    complete **Host Setup**. [Host setup guide](Documents/en/get-started/host-setup.md)
 
-5. Pair this fork's **Launchpad 2.16.1** with a **2.16.x Core Bundle** in
+5. Pair this fork's **Launchpad 2.17.1** with a **2.17.x Core Bundle** in
    Launchpad, then create or select a test VM and start it. For this fork's camera and
    proxy/CA tools, build and install the fork's Core separately and select it
    using **Actions → Change Core Bundle…** while the VM is stopped.
    [Core version matching](Documents/en/get-started/downloads.md) · [Build and install Core](Research/Host/fork_build.md#optional-core-bundle-build) · [Core Bundles and local builds](Documents/en/launchpad/core-bundles.md)
 
-### Upgrade an existing VM from 2.15
+### Upgrade an existing VM from 2.16
 
-Install the 2.16 Launchpad and Core together. Stop the VM and select its new
+Install the 2.17 Launchpad and Core together. Stop the VM and select its new
 Core with **Actions → Change Core Bundle…**. To bring its guest agent and
 guest components up to date, run **Actions → Maintenance → Update Guest
 Environment** on the stopped VM before starting it again. Core selection and the guest
-environment update are separate steps. [Upstream upgrade notes](https://github.com/Lakr233/vphone-cli/releases/tag/2.16.1)
+environment update are separate steps. [Upstream upgrade notes](https://github.com/Lakr233/vphone-cli/releases/tag/2.17.1)
 
 ## Pentest tools in this fork
 
