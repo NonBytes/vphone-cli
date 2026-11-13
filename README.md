@@ -19,7 +19,7 @@ no Xcode, Python, or Homebrew at runtime. See the
 [Host Setup](Documents/en/get-started/host-setup.md), and
 [manual](Documents/en/README.md) for the base project's requirements and VM setup.
 The fork-specific workflows below are documented in this repository.
-Already cloned the fork? Use the [AI agent setup prompt](#set-up-with-an-ai-agent).
+Already cloned the fork? Use the [AI agent quick setup](#quick-setup-with-an-ai-agent-recommended).
 
 ## Prepare your Mac
 
@@ -44,7 +44,41 @@ research guests and choose an APFS volume for the VM library.
    and verify the APFS library. The helper handles the `vphone-vm` allowlist
    when needed. [Launchpad host setup](Documents/en/get-started/host-setup.md#with-launchpad)
 
-## Install the fork
+## Quick setup with an AI agent (Recommended)
+
+The easiest way to install and configure this fork: clone the repository, open the `vphone-cli` folder as your agent's workspace (Antigravity, Claude Code, Cursor, Codex, etc.), and paste the prompt below. The agent will inspect your Mac environment, configure local code-signing identities, build Launchpad, install it to `/Applications`, and guide you through Host Setup automatically.
+
+```sh
+git clone https://github.com/NonBytes/vphone-cli.git
+cd vphone-cli
+```
+
+Paste this prompt into your AI agent:
+
+```text
+Build and install this fork's VPhone Launchpad from the current checkout.
+Use the Prepare your Mac and Manual installation sections of README.md.
+Read AGENTS.md, Skills/vphone-guest-control/SKILL.md and its relevant local
+references, plus Research/Host/fork_build.md for fork-specific signing.
+
+Check macOS, Apple Silicon, Xcode's iPhoneOS SDK, available disk space,
+the local signing identity and any existing Launchpad installation.
+Build and sign Launchpad with the matching local identity, then verify
+the signature. Install the signed app in Applications and open Host Setup.
+Ask before replacing an existing app, creating a VM or changing its Core.
+Let me handle Recovery settings, administrator prompts and credential entry.
+Keep passwords and private signing keys in macOS Keychain or the system prompt.
+
+Use vphone-launchpad-cli status and vm list to verify Host Setup and find a
+compatible Core Bundle. Install a compatible Core if one is needed.
+Start the existing test VM <vm-name>, wait for the guest connection, and open
+its Pentest Tools with vphone-launchpad-cli vm pentest <vm-name>.
+Report the installed app path, Core version and where to open the tools.
+```
+
+Replace `<vm-name>` with the name of an existing test VM, or omit the sentence starting with “Start the existing test VM” to finish after setup checks.
+
+## Manual installation
 
 1. Install Xcode with the iPhoneOS SDK and clone the fork.
 
@@ -196,35 +230,6 @@ Beyond the upstream sync, this fork carries host-side and workflow fixes found w
 - **Firmware & Build** — Extended catalog through iOS 27.2.1, unmount retry handling, and consolidated pure-Swift `VPhonePentestKit`.
 
 See [Host-side fork fixes](Research/Host/fork_fixes.md) for the complete list and technical breakdown.
-
-## Set up with an AI agent
-
-After cloning, open the `vphone-cli` folder as your agent's workspace on the
-Mac that will run the VM. For a terminal-based agent, start it from the
-checkout directory. Paste the prompt below. Replace `<vm-name>` with the name
-of an existing test VM, or omit the sentence starting with “Start the existing
-test VM” to finish after the setup checks.
-
-```text
-Build and install this fork's VPhone Launchpad from the current checkout.
-Use the Prepare your Mac and Install the fork sections of README.md.
-Read AGENTS.md, Skills/vphone-guest-control/SKILL.md and its relevant local
-references, plus Research/Host/fork_build.md for fork-specific signing.
-
-Check macOS, Apple Silicon, Xcode's iPhoneOS SDK, available disk space,
-the local signing identity and any existing Launchpad installation.
-Build and sign Launchpad with the matching local identity, then verify
-the signature. Install the signed app in Applications and open Host Setup.
-Ask before replacing an existing app, creating a VM or changing its Core.
-Let me handle Recovery settings, administrator prompts and credential entry.
-Keep passwords and private signing keys in macOS Keychain or the system prompt.
-
-Use vphone-launchpad-cli status and vm list to verify Host Setup and find a
-compatible Core Bundle. Install a compatible Core if one is needed.
-Start the existing test VM <vm-name>, wait for the guest connection, and open
-its Pentest Tools with vphone-launchpad-cli vm pentest <vm-name>.
-Report the installed app path, Core version and where to open the tools.
-```
 
 For fork-specific features, [open an issue here](https://github.com/NonBytes/vphone-cli/issues).
 For the original project, see [upstream issues](https://github.com/Lakr233/vphone-cli/issues).
