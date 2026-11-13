@@ -47,6 +47,7 @@ extension VPhoneMenuController {
         menu.addItem(makeItem("Runtime Class & Method Inspector…", action: #selector(showRuntimeInspector), symbol: "curlybraces"))
         menu.addItem(makeItem("App Memory Search & Scanner…", action: #selector(showMemoryScanner), symbol: "memorychip"))
         menu.addItem(makeItem("In-App Network & API Flow Inspector…", action: #selector(showNetworkFlowInspector), symbol: "point.3.connected.trianglepath.dotted"))
+        menu.addItem(makeItem("SSL Pinning & Jailbreak Bypass Studio…", action: #selector(showBypassStudio), symbol: "bolt.shield.fill"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
@@ -146,6 +147,7 @@ extension VPhoneMenuController {
     @objc func showRuntimeInspector() { runtimeInspectorWindowController.show() }
     @objc func showMemoryScanner() { memoryScannerWindowController.show() }
     @objc func showNetworkFlowInspector() { networkFlowInspectorWindowController.show() }
+    @objc func showBypassStudio() { bypassStudioWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 
