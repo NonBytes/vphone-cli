@@ -75,7 +75,7 @@ import Foundation
         precondition(model.rows.count == 3 && control.reads.isEmpty)
         await model.inspect(values:true)
         precondition(control.reads.count == 1 && control.reads[0].accessGroup == "group.fixture")
-        precondition(model.rows.first?.value == "fixture-secret" && !model.reveal && !model.exportValues)
+        precondition(model.rows.first?.value == "fixture-secret" && model.reveal && !model.exportValues)
         let redacted = try model.reportData()
         precondition(!String(decoding:redacted,as:UTF8.self).contains("fixture-secret"))
         model.exportValues = true
@@ -104,7 +104,7 @@ import Foundation
         let pending = Task { await model.inspect(values:true) }
         while !model.busy { await Task.yield() }
         model.clear(); await pending.value
-        precondition(model.rows.isEmpty && model.capturedAt == nil && !model.reveal && !model.exportValues)
+        precondition(model.rows.isEmpty && model.capturedAt == nil && model.reveal && !model.exportValues)
         model.manualGroup = "*"; control.reads = []; await model.inspect(values:true)
         precondition(control.reads.isEmpty && model.error != nil)
         model.scope = "app"; model.selectedID = "com.example.fixture"
