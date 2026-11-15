@@ -85,6 +85,13 @@ struct StorageInspectorTests {
             precondition(reCheck.rows[0][1] == "bob")
         }
 
+        // 7. Atomic export to local Mac destination URL
+        let exportDest = tmpDir.appendingPathComponent("exported_tokens.sqlite")
+        try dbData.write(to: exportDest, options: .atomic)
+        precondition(FileManager.default.fileExists(atPath: exportDest.path))
+        let exportedPreview = try VPhoneStorageParser.inspectSQLite(data: try Data(contentsOf: exportDest))
+        precondition(!exportedPreview.encryptedOrUnreadable && exportedPreview.tables.count == 1)
+
         print("Storage Inspector checks passed: XML/binary plist, SQLite3 table & row inspection, encrypted DB detection, secret/permission scanner, and custom SQL query runner.")
     }
 }
