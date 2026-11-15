@@ -105,7 +105,7 @@ input.touch	never	phase:string!,x:number,y:number,edge:integer,normalized:boolea
 input.touch2	never	phase:string!,x1:number,y1:number,x2:number,y2:number,normalized:boolean	-	fingers:integer,phase:string	mutating
 input.touch_sequence	never	events:array!,normalized:boolean	-	duration_ms:integer,events:integer,finger_down:boolean,normalized:boolean	mutating
 input.type	never	text:string!,delay_ms:number	-	method:string,sent:integer	mutating
-keychain.add	never	account:string!,service:string!,password:string!	-	ok:boolean,status:integer	mutating
+keychain.add	never	account:string!,service:string!,password:string!,group:string	-	group:string?,ok:boolean,status:integer	mutating
 keychain.database	never	class:string	-	count:integer,counts:object,items:array,source:string	read
 keychain.delete	never	class:string,account:string,service:string,server:string,group:string,accessGroup:string	-	ok:boolean,removed:boolean	mutating
 keychain.get	never	class:string,account:string,service:string,server:string,group:string,accessGroup:string	-	ok:boolean,value:string*	excluded:needs a keychain item

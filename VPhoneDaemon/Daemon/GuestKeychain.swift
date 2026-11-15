@@ -48,18 +48,19 @@ enum GuestKeychain {
         return ["items": items, "count": items.count, "diag": diagnostics]
     }
 
-    static func add(account: String, service: String, password: String) throws -> [String: Any] {
-        // IcliKit returns item data on add; only status crosses the VM boundary.
-        _ = try addKeychain(
+    static func add(account: String, service: String, password: String, group: String?) throws -> [String: Any] {
+        let item = try addKeychain(
             className: "generic_password",
             service: service,
             account: account,
             server: nil,
             label: "\(service) (\(account))",
-            group: nil,
+            group: group,
             data: password,
         )
-        return ["ok": true, "status": 0]
+        var result: [String: Any] = ["ok": true, "status": 0]
+        result["group"] = item["group"] as? String
+        return result
     }
 
     /// Reads one item's value. Only the Security.framework side holds data, so

@@ -350,7 +350,8 @@ enum CoreMethod: String, GuestMethod {
             MethodSpec(.required("account", .string, "Account name of the item"),
                        .required("service", .string, "Service name of the item"),
                        .required("password", .string, "Password to store"),
-                       summary: "Add a generic password item to the keychain.", result: [.required("ok", .boolean), .required("status", .integer)])
+                       .optional("group", .string, "Access group attribute"),
+                       summary: "Add a generic password item to the keychain.", result: [.required("ok", .boolean), .required("status", .integer), .optional("group", .string)])
         case .keychainGet:
             MethodSpec(.optional("class", .string, "Keychain item class", values: ["genp", "inet", "cert", "keys", "idnt"], default: "genp"),
                        .optional("account", .string, "Account attribute; one of account, service, or server is required"),

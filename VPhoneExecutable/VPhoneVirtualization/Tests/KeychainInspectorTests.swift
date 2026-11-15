@@ -10,7 +10,7 @@ import Foundation
     var reads: [KeychainIdentity] = []
     var updates: [(KeychainIdentity, String)] = []
     var deletes: [KeychainIdentity] = []
-    var adds: [(String, String, String)] = []
+    var adds: [(String, String, String, String)] = []
     var value = "fixture-secret"
     var slow = false
     var denied = false
@@ -18,8 +18,8 @@ import Foundation
         if let type = request["t"] as? String {
             if type == "keychain_add" {
                 if denied { throw VPhoneProxyError("fixture add refusal") }
-                adds.append((request["account"] as? String ?? "", request["service"] as? String ?? "", request["password"] as? String ?? ""))
-                return (["ok": true], nil)
+                adds.append((request["account"] as? String ?? "", request["service"] as? String ?? "", request["password"] as? String ?? "", request["group"] as? String ?? ""))
+                return (["ok": true, "group": request["group"] as? String ?? "agent.default"], nil)
             } else if type == "keychain_update" {
                 if denied { throw VPhoneProxyError("fixture update refusal") }
                 let ident = KeychainIdentity(itemClass: request["class"] as? String ?? "genp", account: request["account"] as? String ?? "", service: request["service"] as? String ?? "", server: request["server"] as? String ?? "", accessGroup: request["group"] as? String ?? "")
@@ -59,10 +59,6 @@ import Foundation
         if denied { throw VPhoneProxyError("fixture delete refusal") }
         deletes.append(identity)
         return true
-    }
-    func addKeychainItem(account: String, service: String, password: String) async throws {
-        if denied { throw VPhoneProxyError("fixture add refusal") }
-        adds.append((account, service, password))
     }
 }
 @main struct KeychainInspectorTests {
@@ -122,7 +118,7 @@ import Foundation
 
         // Mutating Keychain Operations & Frida Script Synthesis Tests
         try await model.addItem(account: "injected_user", service: "auth_svc", password: "pwned_password", accessGroup: "group.fixture")
-        precondition(control.adds.count == 1 && control.adds[0].0 == "injected_user" && control.adds[0].2 == "pwned_password")
+        precondition(control.adds.count == 1 && control.adds[0].0 == "injected_user" && control.adds[0].2 == "pwned_password" && control.adds[0].3 == "group.fixture")
         precondition(model.rows.count == 1 && model.rows[0].account == "injected_user" && model.rows[0].value == "pwned_password")
         precondition(model.lastActionMessage?.contains("Added") == true)
 

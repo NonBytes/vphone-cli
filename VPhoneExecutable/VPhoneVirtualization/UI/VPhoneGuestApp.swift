@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 import VPhoneCoreKit
 
@@ -16,6 +17,18 @@ public enum VPhoneGuestApp {
     /// isolation was implicit, and moving the code into a function loses it.
     @MainActor
     public static func run(_ boot: VPhoneBootCommand) -> Never {
+        // Hold a shared lock for the lifetime of the guest. Pentest snapshots
+        // take the exclusive lock before inspecting or replacing VM state.
+        let directory = boot.config.deletingLastPathComponent()
+        let lock = open(directory.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+        guard lock >= 0 else {
+            FileHandle.standardError.write(Data("Could not open machine directory: errno \(errno).\n".utf8))
+            exit(EXIT_FAILURE)
+        }
+        guard flock(lock, LOCK_SH | LOCK_NB) == 0 else {
+            FileHandle.standardError.write(Data("Could not lock machine directory: errno \(errno).\n".utf8))
+            exit(EXIT_FAILURE)
+        }
         // The first `shared` call picks the class, so this must come first.
         let app = VPhoneApplication.shared
         let delegate = VPhoneVirtualMachineAppDelegate(command: boot)

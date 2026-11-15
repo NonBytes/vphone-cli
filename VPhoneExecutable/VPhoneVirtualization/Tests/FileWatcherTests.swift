@@ -122,6 +122,19 @@ enum FileWatcherTests {
         model.clearEvents()
         precondition(model.events.isEmpty, "Events must be empty after clear")
 
+        model.selectedApp = VPhoneAppRecord(json: ["bundle_id": "fixture.app", "pid": 42])
+        mock.documents = [["name": "removed.txt", "type": "file", "size": 10]]
+        await model.startLiveCapture()
+        defer { model.stopLiveCapture() }
+        await model.pollContainer()
+        precondition(model.events.isEmpty, "The initial scan is a baseline")
+
+        mock.documents = [["name": "added.txt", "type": "file", "size": 20]]
+        await model.pollContainer()
+        precondition(model.events.count == 2)
+        precondition(model.events.contains { $0.operation == .create && $0.relativePath == "Documents/added.txt" })
+        precondition(model.events.contains { $0.operation == .delete && $0.relativePath == "Documents/removed.txt" })
+
         print("File Watcher checks passed: operation tracking, category resolution, plaintext secret / unencrypted DB risk heuristics, MASVS finding dispatch, and JSON/CSV timeline export.")
     }
 }
@@ -134,7 +147,16 @@ private final class MockFileWatcherGuestControl: VPhoneGuestControlling {
     var guestIPAddress: String? { nil }
     var sandboxMachineScope: String { "" }
 
-    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] { [:] }
+    var documents: [[String: Any]] = []
+
+    func call(_ method: String, params: [String: Any]) async throws -> [String: Any] {
+        switch (method, params["path"] as? String) {
+        case ("apps.info", _): return ["data_path": "/fixture"]
+        case ("files.list", "/fixture"): return ["entries": [["name": "Documents", "type": "dir"]]]
+        case ("files.list", "/fixture/Documents"): return ["entries": documents]
+        default: return [:]
+        }
+    }
     func sendRequest(_ request: [String: Any]) async throws -> ([String: Any], Data?) { ([:], nil) }
     func uploadFile(path: String, data: Data, permissions: String) async throws {}
     func downloadFile(path: String) async throws -> Data { Data() }

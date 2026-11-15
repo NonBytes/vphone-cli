@@ -476,6 +476,7 @@ enum GuestAPI {
                 account: string(params, "account"),
                 service: string(params, "service"),
                 password: string(params, "password"),
+                group: params["group"] as? String,
             )
         case .keychainGet:
             return try GuestKeychain.get(GuestKeychain.Identity(params))
@@ -543,7 +544,7 @@ enum GuestAPI {
             }
             enriched["size"] = metadata.st_size
             enriched["perm"] = String(metadata.st_mode & 0o777, radix: 8)
-            enriched["mtime"] = Double(metadata.st_mtimespec.tv_sec)
+            enriched["mtime"] = Double(metadata.st_mtimespec.tv_sec) + Double(metadata.st_mtimespec.tv_nsec) / 1_000_000_000
             return enriched
         }
         return result

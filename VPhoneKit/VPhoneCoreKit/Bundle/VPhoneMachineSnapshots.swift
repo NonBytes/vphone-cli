@@ -104,6 +104,20 @@ public enum VPhoneMachineSnapshots {
         bundle.url.appendingPathComponent(directoryName, isDirectory: true)
     }
 
+    private static func lockMachineDirectory(_ bundle: VPhoneBundle, mode: Int32 = LOCK_EX) throws -> Int32 {
+        let path = bundle.url.path
+        let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+        guard descriptor >= 0 else {
+            throw VPhoneMachineSnapshotError.failed(path: path, reason: currentErrorText())
+        }
+        guard flock(descriptor, mode | LOCK_NB) == 0 else {
+            let reason = currentErrorText()
+            close(descriptor)
+            throw VPhoneMachineSnapshotError.failed(path: path, reason: reason)
+        }
+        return descriptor
+    }
+
     // MARK: Names
 
     /// The same rules as a machine name (the staging directories are hidden,
@@ -159,6 +173,8 @@ public enum VPhoneMachineSnapshots {
         now: Date = Date(),
     ) throws -> VPhoneMachineSnapshot {
         try requireValidName(name)
+        let lock = try lockMachineDirectory(bundle)
+        defer { close(lock) }
         let root = directory(of: bundle)
         let destination = root.appendingPathComponent(name, isDirectory: true)
         if FileManager.default.fileExists(atPath: destination.path) {
@@ -236,6 +252,8 @@ public enum VPhoneMachineSnapshots {
     /// one or the snapshot's, never a mix.
     @discardableResult
     public static func revert(to name: String, of bundle: VPhoneBundle) throws -> VPhoneMachineSnapshot {
+        let lock = try lockMachineDirectory(bundle)
+        defer { close(lock) }
         let snapshot = try snapshot(named: name, of: bundle)
         let source = directory(of: bundle).appendingPathComponent(name, isDirectory: true)
         try requireValidFileLists(of: snapshot, bundle: bundle)
@@ -244,7 +262,8 @@ public enum VPhoneMachineSnapshots {
         let fm = FileManager.default
         let staging = bundle.url.appendingPathComponent(".snapshot-revert-\(UUID().uuidString)", isDirectory: true)
         try fm.createDirectory(at: staging, withIntermediateDirectories: false)
-        defer { try? fm.removeItem(at: staging) }
+        var keepStaging = false
+        defer { if !keepStaging { try? fm.removeItem(at: staging) } }
 
         for file in snapshot.files {
             let from = source.appendingPathComponent(file)
@@ -261,7 +280,14 @@ public enum VPhoneMachineSnapshots {
         // Checked again just before the live files change: the clones above
         // take a moment, and nothing may open the machine meanwhile.
         try VPhoneBundleActivity.requireStopped(bundle)
-        try replaceLiveFiles(with: snapshot, staged: staging, in: bundle)
+        do {
+            try replaceLiveFiles(with: snapshot, staged: staging, in: bundle)
+        } catch VPhoneMachineSnapshotError.revertIncomplete(let machine, let reason, let files) {
+            keepStaging = true
+            throw VPhoneMachineSnapshotError.revertIncomplete(
+                machine: machine, reason: "\(reason) Recovery files: \(staging.path).", files: files,
+            )
+        }
         return snapshot
     }
 
@@ -335,6 +361,8 @@ public enum VPhoneMachineSnapshots {
     /// Removes the snapshot directory and everything in it. The live state is
     /// not touched, so a running machine does not prevent it.
     public static func delete(_ name: String, of bundle: VPhoneBundle) throws {
+        let lock = try lockMachineDirectory(bundle, mode: LOCK_SH)
+        defer { close(lock) }
         try FileManager.default.removeItem(at: folder(named: name, of: bundle))
         removeIfEmpty(directory(of: bundle))
     }

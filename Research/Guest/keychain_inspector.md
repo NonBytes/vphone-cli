@@ -91,3 +91,98 @@ test-vm remains running on that bundle. The other running VM and both
 guest environments were left unchanged. Host build, bundle admission and
 model fixtures passed; live secret retrieval remains unverified/unavailable
 on these tested guest agents.
+
+### Source-level root cause of `keychain add did not persist` (2026-11-15, iOS 27.2.1)
+
+Reproduced again on iOS 27.2.1 through `keychain.add`, including with an
+explicit `group` (the updated, not-yet-committed `GuestKeychain.add` passes
+`group` through to `addKeychain`; see `VPhoneDaemon/Daemon/GuestKeychain.swift`).
+Creating and deleting the same item via the in-app Frida script synthesizer
+(`VPhoneKeychainInspectorModel.swift`, `BuiltInScript.add`/`.delete`) inside
+the *target app's own process* still succeeds.
+
+The error string is emitted by vendored `IcliKit` (`owngoal-dev/icli`, pinned
+in `VPhone.xcworkspace/.../Package.resolved`), not by anything in this repo:
+`addKeychain` in `Host/Host.swift` calls `SecItemAdd` with
+`kSecReturnAttributes`/`kSecReturnPersistentRef` and throws
+`"keychain add did not persist"` only when `SecItemAdd` returns `errSecSuccess`
+(so `throwIfKeychain` does not throw) yet hands back a `nil` result — and the
+guest's own `keychain.list` independently reports 0 Security-accessible rows
+for `vphoned`, so this is not a read-back-only glitch: the item is never
+written.
+
+`vphoned`'s entitlements (`VPhoneDaemon/VPhoneDaemon.entitlements`) already
+carry `keychain-access-groups: ["*", "apple", "com.82flex.TrollVNCApp",
+"GXZ23M5TP2.com.82flex.TrollVNCApp"]` plus
+`com.apple.private.system-keychain` and
+`com.apple.private.security.storage.Keychains`. On earlier iOS this
+unentitled-daemon-plus-wildcard-group combination was enough for `securityd`
+to accept an unentitled process's `SecItemAdd`/`SecItemCopyMatching`. The
+2026-11-05 and 2026-11-15 runs together indicate `securityd` on 27.2.1 no
+longer honors it for `vphoned`'s own process identity, for both read
+(`keychain.list` sees only encrypted metadata rows, never Security-accessible
+ones) and write (`keychain.add` reports success but never persists) — while
+the same `SecItemAdd`/`SecItemDelete` calls succeed when executed by Frida
+inside the target app's process, which carries that app's own real
+entitlements/code identity rather than vphoned's ad hoc one. This reads as a
+securityd-side entitlement/identity check that hardened between the guest
+builds this project has tested against and 27.2.1, not a bug in
+`GuestKeychain.swift`, `GuestAPI.swift`, or the `IcliKit` call parameters.
+
+Not yet tried: whether any `kSecAttrAccessGroup` value lets vphoned's own
+process write at all on 27.2.1 (e.g. an empty/omitted group so the item lands
+in vphoned's own default group, rather than one from the wildcard list), and
+whether `security_cf`/`securityd` logs on the guest (via `log stream` or a
+sysdiagnose) name the specific entitlement or identity check that is
+rejecting the write. Until one of those is run, keep `keychain.add`/`.update`
+documented as unreliable on 27.2.1 and point users needing a guaranteed write
+at the in-app Frida script path, which does not depend on vphoned's own
+keychain identity.
+
+### Live confirmation (2026-11-15, fresh `codex-pentest-smoke-1115`, iOS 27.2.1 24B156)
+
+Booted a brand-new, never-before-tested VM (`vphone-cli vm launch
+codex-pentest-smoke-1115`) specifically to rule out VM-specific corruption,
+then drove the Keychain Inspector's "Add / Inject Item…" dialog (Data menu)
+by hand against the running guest:
+
+| Attempt | Account | Access Group | Result |
+| --- | --- | --- | --- |
+| 1 | `canary-nogroup-1115` | *(none)* | `keychain add did not persist` |
+| 2 | `canary-applegroup-1115b` | `apple` (one of vphoned's own `keychain-access-groups` entries) | `keychain add did not persist` |
+
+Both failures were fresh (the account name was changed between attempts and
+the dialog still re-showed the error), ruling out a missing or wrong `group`
+parameter as the cause — passing a group vphoned is actually entitled to
+makes no difference.
+
+Checked whether either attempt silently wrote anything vphoned itself cannot
+read back: "Scan Metadata" with Scope = "All guest-visible groups" (the
+widest the inspector offers) found **58/58 rows**, searching for "canary"
+matched **0 rows**, and expanding "Diagnostics / query coverage" read
+`Security: 0 accessible items` / `Database: 58 protected metadata rows` —
+both counts unchanged from before the add attempts and identical in shape to
+the `58 protected database metadata rows` / `0 Security-accessible rows`
+recorded on 2026-11-05 against a different guest. All 58 rows are
+pre-existing system items (`com.apple.bluetooth`, `com.apple.cloudd`,
+`com.apple.continuity`, `com.apple.cfnetwork`, `com.apple.security.*`,
+`ichat`, `lockdown-identities`); nothing from either add attempt appears
+among them. So neither attempt persisted anywhere vphoned can see, on a
+guest with no other activity on it — this is not a race with some other
+process and not scope/filter noise.
+
+This also lets one part of the above analysis be corrected rather than left
+as a hypothesis: the guest's serial console log was captured across both add
+attempts (`vphone-cli vm launch` output), and line counts were diffed
+immediately before/after each click of "Commit to Guest" — **zero new kernel
+lines appeared at the moment of either attempt**. In particular, the
+`"AppleSEPKeyStore":pid:63,:13253: operation failed (sel: 57 ret: e00002c2)`
+/ `pid:36,:13253: operation failed (sel: 135 ret: e00002e6)` lines seen
+earlier in this same boot are boot-time noise (they recur every ~20s during
+normal boot, unrelated to any keychain RPC) and are **not** the mechanism
+behind `keychain add did not persist` — do not cite them as the cause in any
+follow-up; whatever rejects the write happens inside securityd and leaves no
+trace on the kernel serial console, so finding it needs `log stream`/syslog
+access inside the guest (not yet available on an un-bootstrapped VM — see
+`Documents/en/machines/package-environment.md` for installing `openssh-server`
+first) or a sysdiagnose.
