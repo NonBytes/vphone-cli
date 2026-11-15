@@ -46,37 +46,15 @@ research guests and choose an APFS volume for the VM library.
 
 ## Quick setup with an AI agent (Recommended)
 
-The easiest way to install and configure this fork: clone the repository, open the `vphone-cli` folder as your agent's workspace (Antigravity, Claude Code, Cursor, Codex, etc.), and paste the prompt below. The agent will inspect your Mac environment, configure local code-signing identities, build Launchpad, install it to `/Applications`, and guide you through Host Setup automatically.
-
-```sh
-git clone https://github.com/NonBytes/vphone-cli.git
-cd vphone-cli
-```
-
-Paste this prompt into your AI agent:
+Clone the repo, open the `vphone-cli` workspace in your AI agent (Antigravity, Claude Code, Cursor, Codex), and paste:
 
 ```text
-Build and install this fork's VPhone Launchpad from the current checkout.
-Use the Prepare your Mac and Manual installation sections of README.md.
-Read AGENTS.md, Skills/vphone-guest-control/SKILL.md and its relevant local
-references, plus Research/Host/fork_build.md for fork-specific signing.
-
-Check macOS, Apple Silicon, Xcode's iPhoneOS SDK, available disk space,
-the local signing identity and any existing Launchpad installation.
-Build and sign Launchpad with the matching local identity, then verify
-the signature. Install the signed app in Applications and open Host Setup.
-Ask before replacing an existing app, creating a VM or changing its Core.
-Let me handle Recovery settings, administrator prompts and credential entry.
-Keep passwords and private signing keys in macOS Keychain or the system prompt.
-
-Use vphone-launchpad-cli status and vm list to verify Host Setup and find a
-compatible Core Bundle. Install a compatible Core if one is needed.
-Start the existing test VM <vm-name>, wait for the guest connection, and open
-its Pentest Tools with vphone-launchpad-cli vm pentest <vm-name>.
-Report the installed app path, Core version and where to open the tools.
+Build and install VPhone Launchpad from this repository following README.md and Research/Host/fork_build.md:
+1. Check macOS, Apple Silicon, Xcode (iPhoneOS SDK), and local code-signing identity.
+2. Build, sign with the local identity, verify, and install to /Applications.
+3. Launch the app and verify Host Setup via vphone-launchpad-cli status.
+4. If a VM name is provided (<vm-name>), start it and open Pentest Tools via vphone-launchpad-cli vm pentest <vm-name>.
 ```
-
-Replace `<vm-name>` with the name of an existing test VM, or omit the sentence starting with “Start the existing test VM” to finish after setup checks.
 
 ## Manual installation
 
@@ -159,38 +137,16 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Install → Launch → Gadget Session](Research/Host/gadget_deployment.md) | Verify the patched IPA hash, select a VM, install/launch explicitly, and transfer endpoint/token through a temporary USB loopback tunnel |
 
 Start the VM for guest operations, then open tools from **Actions → Pentest Tools…** or via CLI:
+
 ```sh
 vphone-launchpad-cli vm pentest <name>
 ```
 
-### Workflows
+Additional VM controls (Mac camera pass-through, per-VM HTTP/HTTPS proxy & CA, developer tunnel) are available in Launchpad menus when paired with the fork's Core Bundle.
 
-- **App & Storage Analysis** — Select an app in App Browser to run **Run Security Scan** (detects frameworks, DexProtector/iXGuard/Promon RASP, and binary hardening), or inspect files via **Storage Inspector** (live SQLite/Plist editor) and **File Browser** (double-click navigation, upload/download, and 1-click **Show in Files** from App Inspector).
-- **Runtime Instrumentation & Evasion** — Open **Frida Tools** with `--preset pentest` (enables kernel relaxations and keychain eligibility out of the box). Capture HTTP/HTTPS traffic in **Network Flow Inspector** with request tampering/replay, or toggle SSL unpinning and jailbreak cloaking in **Bypass Studio**.
-- **Mocking & Biometrics** — Simulate battery states, thermal levels, and mock Face ID / Touch ID authentication via `LocalAuthentication` hooks. *(SEP hardware-bound private keys remain inside the Secure Enclave).*
-- **Audit, Diffing & Evidence** — Run 1-click **Automated MASVS Compliance** checks, capture zero-copy **APFS Snapshots** for instant rollback, detect regressions in **Binary Diff**, and compile redacted reports in **Evidence Export**.
-- **IPA Tools & Gadget Injection** — Embed Frida Gadget in unencrypted IPAs via **Local IPA Tools → Patch IPA with Frida Gadget…**, or export installed app bundles via **Export Installed IPA…**.
+## Fork Details & Issues
 
-### VM Integrations (Core Bundle)
-
-- **Photos & Media**: Open **Data → Photos** (or **Photos & Media Browser…**) to preview and export guest DCIM media to Mac.
-- **Mac Camera**: Stream host camera input into the VM via **Features → Source: Mac Camera…**.
-- **Proxy & CA**: Configure upstream proxies and install root CAs in **Network → Proxy…**.
-- **Developer Tunnel**: Enable **Diagnostics → Keep Developer Tunnel Open** for Xcode/Instruments connectivity.
-
-## Host-side fixes in this fork
-
-Beyond the upstream sync, this fork carries host-side and workflow fixes found while running the fork day to day:
-
-- **Pentest Preset, Tech Stack Engine & Frida Tools** — Shipped `pentest` preset (renamed from `frida`) enabling Frida kernel relaxations plus `securityd` keychain eligibility out of the box, automatic App Framework & Commercial Protector (DexProtector/iXGuard/Promon/Talsec) detection engine with tailored reverse engineering guidance, unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
-- **Guest Stability & VSOCK** — Resolved transient disconnection blips, single-threaded VSOCK event loop, and localized error reporting.
-- **Workflow & Launchpad** — Direct Pentest menu in VM window, real transfer progress, preset switching, HTTPS proxy verification, and bounded log streaming.
-- **Firmware & Build** — Extended catalog through iOS 27.2.1, unmount retry handling, and consolidated pure-Swift `VPhonePentestKit`.
-
-See [Host-side fork fixes](Research/Host/fork_fixes.md) for the complete list and technical breakdown.
-
-For fork-specific features, [open an issue here](https://github.com/NonBytes/vphone-cli/issues).
-For the original project, see [upstream issues](https://github.com/Lakr233/vphone-cli/issues).
+See [Host-side fork fixes](Research/Host/fork_fixes.md) for changes beyond upstream, and [open an issue here](https://github.com/NonBytes/vphone-cli/issues) for fork-specific bugs (or [upstream issues](https://github.com/Lakr233/vphone-cli/issues) for the original project).
 
 ## Acknowledgements
 
