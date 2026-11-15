@@ -186,3 +186,65 @@ trace on the kernel serial console, so finding it needs `log stream`/syslog
 access inside the guest (not yet available on an un-bootstrapped VM — see
 `Documents/en/machines/package-environment.md` for installing `openssh-server`
 first) or a sysdiagnose.
+
+### Root cause found: `securityd` rejects vphoned as "not eligible" (2026-11-15)
+
+No guest shell or bootstrap needed in the end — `vphoned`'s own `logs.syslog`
+RPC (`VPhoneDaemon/Daemon/GuestAPILogMethods.swift`) reads the unified log
+directly, and the automation API exposes it over plain HTTP with no
+websocket client required:
+
+```sh
+vphone-cli vm launch codex-pentest-smoke-1115 --api-listen 127.0.0.1:8765
+# VPHONE_API_TOKEN set before launch, or read the printed "[api] token:" line
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"logs.syslog","params":{"process":"securityd","seconds":10}}' \
+  http://127.0.0.1:8765/v1/rpc &
+sleep 2
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"keychain.add","params":{"account":"canary","service":"com.vphone.research","password":"x"}}' \
+  http://127.0.0.1:8765/v1/rpc
+```
+
+Run twice against a freshly booted `codex-pentest-smoke-1115` (iOS 27.2.1),
+both times capturing exactly these two lines at the moment of the failed
+`keychain.add`:
+
+```
+com.apple.securityd/thread-local-client-debug  vphoned  notice  SecSecurityClientGet new thread!
+com.apple.securityd/SecError  securityd  notice  serverxpc: client vphoned-555549448c19fbdc96533b0da89428957827ba60 is not eligible
+```
+
+That `"<name>-<hex>" is not eligible` message is logged by
+`SecTaskIsEligiblePlatformBinary` in Apple's `Security` project
+(`OSX/sec/ipc/server_security_helpers.m` —
+[source mirror](https://git.saurik.com/apple/security.git/blob/HEAD:/OSX/sec/ipc/server_security_helpers.m)),
+the gate `securityd`'s serverxpc layer runs before honoring a client's
+keychain request. It checks the calling process's signing identifier against
+an allow-list and, separately, whether its code signature carries the
+platform-binary flag; debug/RC builds of securityd skip the check, release
+builds do not. `vphoned` is ad hoc signed (per `AGENTS.md`, "the bundle and
+CLI have no private entitlements" beyond what's in
+`VPhoneDaemon.entitlements`) and is therefore not a platform binary in the
+code-signature sense, regardless of which entitlements its plist claims
+(`platform-application`, `keychain-access-groups: ["*", ...]`,
+`com.apple.private.system-keychain` are all present and all irrelevant to
+this specific check). This is why an explicit, genuinely-entitled access
+group (`apple`, tested above) makes no difference, and why `keychain.list`
+sees 0 Security-accessible items too: every `vphoned`-initiated keychain
+operation hits this same gate before reaching `SecItemAdd`/
+`SecItemCopyMatching`'s own logic, independent of the parameters passed in.
+
+This reframes the limitation: it is not a parameter problem, not a missing
+access group, not an OpenSEP/AppleSEPKeyStore issue (ruled out above), and
+not something `GuestKeychain.swift`/`IcliKit` can route around with a
+different query. It is `securityd` refusing `vphoned`'s code identity itself.
+A real fix would need `vphoned` to carry the platform-binary code-signature
+flag (not just an entitlement claiming to be one) — likely an AMFI-level
+allowlist addition akin to the existing `vphone-escalator` cdhash allowlist
+for `vphone-vm`, but for `vphoned`'s own cdhash, or building/signing
+`vphoned` so it legitimately carries `CS_PLATFORM_BINARY`. Neither is
+attempted here; this section only establishes the mechanism. Frida's
+`SecItemAdd`/`SecItemDelete` calls succeed because they run inside the
+*target app's* process, whose own code identity is whatever securityd
+already trusts for that app, not vphoned's.
