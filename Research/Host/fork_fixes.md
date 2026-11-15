@@ -131,6 +131,19 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   heuristics, renders distinct UI badges and table rows in App Info, and injects a
   dedicated **Pentest & Reverse Engineering Guidance** advice panel detailing target-specific
   Frida hooks, bytecode extraction techniques, and evasion tips.
+- **Framework-Specific Deep Tooling: Flutter SSL Unpinning & Hermes Bundle Extractor.**
+  When Flutter or React Native is identified, App Inspector exposes dedicated deep tooling:
+  - **Flutter BoringSSL Unpinning Assistant** (`VPhoneFlutterTools`): Generates a multi-strategy
+    Frida 17 script with ARM64 in-memory pattern scanning (`Memory.scanSync`) and export hooks
+    to neutralize BoringSSL certificate verification in `Flutter.framework`.
+  - **Hermes Bundle Inspector & Secret Miner** (`VPhoneHermesMiner`): Extracts `main.jsbundle`
+    or `index.bundle`, parses Hermes Bytecode headers (magic `0x1F20_17C0` and HBC version),
+    and mines for hardcoded credentials (Google/Firebase, AWS, Stripe, JWTs, and internal API endpoints).
+- **Automated Dynamic MASVS Test Runner in Compliance & Audit Hub.**
+  `VPhoneMASVSAuditModel` now supports 1-click **Dynamic MASVS Audits** alongside static binary
+  checks. Spawns the guest process and verifies live UIPasteboard isolation, in-memory heap secret
+  retention, biometric authentication policy binding (`LAContext` vs Secure Enclave), and sandbox
+  data protection, rendering visual `[Dynamic]` badges and updated compliance scorecards.
 - **Standalone App Inspector JSON reports now use private `0600` permissions.**
   `saveInspectorReport()` in both `VPhonePentest` and the VM window previously
   wrote `app-inspector.json` with default `0644` permissions; both now route

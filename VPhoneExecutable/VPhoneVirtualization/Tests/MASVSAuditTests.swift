@@ -72,6 +72,12 @@ enum MASVSAuditTests {
                     let added = model.exportFindingsToStore()
                     precondition(added > 0, "Must export failed checks to store")
                 }
+
+                await model.runDynamicAudit(bundleID: "com.test.mockbank")
+                precondition(model.lastReport != nil, "Dynamic audit must produce report")
+                if let dynReport = model.lastReport {
+                    precondition(dynReport.checks.contains(where: { $0.isDynamic }), "Dynamic audit must include dynamic checks")
+                }
             }
         }
 
