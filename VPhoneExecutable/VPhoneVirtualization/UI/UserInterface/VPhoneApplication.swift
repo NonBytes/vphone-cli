@@ -19,6 +19,9 @@ final class VPhoneApplication: NSApplication {
     /// the guest never sees a release without a press.
     private var menuKeyCodes = Set<UInt16>()
 
+    /// Keys whose key-down was an intercepted host screenshot hotkey (Cmd+Shift+3/4/5/6).
+    private var screenshotKeyCodes = Set<UInt16>()
+
     /// Keys whose key-down went to the guest through vphoned, with the usage
     /// sent, so their key-up goes the same way even after 🌐 is let go.
     private var forwardedKeys: [UInt16: (control: VPhoneGuestControl, usage: VPhoneGuestKeyMap.Usage)] = [:]
@@ -65,6 +68,28 @@ final class VPhoneApplication: NSApplication {
     /// it goes on to the virtual keyboard, which `VPhoneHostKeyEvents` then
     /// delivers to the view itself.
     func takeKeyEvent(_ event: NSEvent, view: VPhoneVirtualMachineView) -> Bool {
+        // Intercept macOS screen capture hotkeys (Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5, Cmd+Shift+6).
+        // By swallowing them here, they are never passed to VZVirtualMachineView, preventing the iOS guest
+        // from taking an internal screenshot or flashing the screen, while allowing macOS / ScreenCapture /
+        // third-party capture tools (CleanShot, Shottr, etc.) to handle the capture unimpeded.
+        if event.type == .keyUp, screenshotKeyCodes.remove(event.keyCode) != nil {
+            return true
+        }
+        if event.type == .keyDown {
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains([.command, .shift]) {
+                let char = event.charactersIgnoringModifiers ?? ""
+                let isScreenshotKey = char == "3" || char == "4" || char == "5" || char == "6"
+                    || event.keyCode == 20 // 3
+                    || event.keyCode == 21 // 4
+                    || event.keyCode == 23 // 5
+                    || event.keyCode == 22 // 6
+                if isScreenshotKey {
+                    screenshotKeyCodes.insert(event.keyCode)
+                    return true
+                }
+            }
+        }
         if !view.hardwareKeyboardEnabled {
             // Keep host menu shortcuts available, including the keyboard toggle.
             // Do not synthesize dropped keys through vphoned while disconnected.
@@ -127,6 +152,7 @@ final class VPhoneApplication: NSApplication {
         releaseGlobe(leavingWindow: true)
         forwardedKeys.removeAll()
         menuKeyCodes.removeAll()
+        screenshotKeyCodes.removeAll()
     }
 
     /// fn / 🌐 reaches AppKit only as a flags change, and the virtual USB
