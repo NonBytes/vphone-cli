@@ -122,7 +122,10 @@ final class VPhoneMacCameraAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func refreshDevices() {
-        guard let discovery, let picker = cameraPicker else { return }
+        guard let picker = cameraPicker else { return }
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera, .deskViewCamera],
+            mediaType: .video, position: .unspecified)
         let devices = discovery.devices
         let snapshot = devices.map { $0.uniqueID + "\n" + $0.localizedName + "\n" + String($0.isConnected) }
         guard snapshot != deviceSnapshot || selectedDeviceID == nil else { return }
@@ -256,7 +259,7 @@ final class VPhoneMacCameraCapture: NSObject, AVCaptureVideoDataOutputSampleBuff
             channel.control() == .streaming, let selectedDeviceID else { return }
         do {
             let devices = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
+                deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera, .deskViewCamera],
                 mediaType: .video, position: .unspecified
             ).devices
             guard let device = devices.first(where: { $0.uniqueID == selectedDeviceID }), device.isConnected else {
