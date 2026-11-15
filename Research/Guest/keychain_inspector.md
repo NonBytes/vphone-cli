@@ -248,3 +248,234 @@ attempted here; this section only establishes the mechanism. Frida's
 `SecItemAdd`/`SecItemDelete` calls succeed because they run inside the
 *target app's* process, whose own code identity is whatever securityd
 already trusts for that app, not vphoned's.
+
+### Checked whether an existing "debug/RC build" bypass applies (2026-11-15) — inconclusive, blocked by read-only rootfs
+
+Public mirrors of Apple's `Security` project note that `securityd`'s
+eligibility check is skipped on debug/RC builds. Pulled the guest's real
+`/usr/libexec/securityd` (4,217,344 bytes, arm64e) over the automation API —
+no guest shell needed:
+
+```sh
+vphone-cli vm launch codex-pentest-smoke-1115 --api-listen 127.0.0.1:8765
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"files.find","params":{"root":"/usr/libexec","pattern":"securityd"}}' \
+  http://127.0.0.1:8765/v1/rpc
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"files.read","params":{"path":"/usr/libexec/securityd","binary":true,"limit":4300000}}' \
+  http://127.0.0.1:8765/v1/rpc   # base64 content, decode locally
+```
+
+`strings` on the pulled binary turned up, alongside the "is not eligible" /
+"is eligible platform binary" os_log strings themselves: `_isAppleInternal`,
+`hasIsAppleInternal`, `setIsAppleInternal:`, the ObjC type encoding
+`{?="isAppleInternal"b1}`, and imports of `_os_variant_has_internal_content`
+/ `_os_variant_has_internal_ui`. This is consistent with (not proven to be)
+the debug/RC bypass: a client that reads as "AppleInternal" may skip the
+eligibility gate entirely.
+
+The cheapest test of that — `files.mkdir` for `/AppleInternal` at the guest
+root, the conventional on-disk marker `os_variant_has_internal_content`-style
+checks look for — was refused: **`/` is the sealed, read-only APFS system
+volume** (`NSCocoaErrorDomain Code=642` / `EROFS`) on this un-bootstrapped
+VM, so nothing can be written there without first remounting it, which on
+this project's tooling means installing the roothide bootstrap (`Apps >
+Install Bootstrap…`, see `Documents/en/machines/package-environment.md`) —
+untested here. `r2 aaa` on the pulled arm64e binary found the
+`os_variant_has_internal_content` import stub but could not resolve its
+callers (PAC-wrapped arm64e stubs commonly defeat naive xref analysis in
+radare2; no arm64e-aware disassembler was tried), so it is not yet confirmed
+that this function is what the eligibility check actually reads, only that
+it is imported and thematically adjacent to the log strings found.
+
+Next steps if this is picked back up: (1) install the roothide bootstrap on
+a throwaway VM to get a writable `/`, create `/AppleInternal`, `services.kickstart`
+(`force: true`) `com.apple.securityd`, and retest `keychain.add` — cheap and
+conclusive either way; (2) if that doesn't change the result, disassemble the
+actual call site with the project's own `ARM64Disassembler`
+(`libcapstone-spm`, already arm64-aware and used throughout `FirmwarePatcher`)
+instead of bare r2, since Capstone handles the PAC instruction forms this
+binary uses where r2's default analysis did not.
+
+### Option A is a dead end: the system volume stays sealed even with roothide (2026-11-15)
+
+Ran step (1) above. `bootstrap.install {"layout":"roothide"}` over the
+automation API installs Irisin fully scripted (no GUI needed — this is the
+same call `Apps > Install Bootstrap…` makes):
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"bootstrap.install","params":{"layout":"roothide"}}' \
+  http://127.0.0.1:8765/v1/rpc
+```
+
+It created a `jbroot` at
+`/private/var/containers/Bundle/Application/.jbroot-<id>` and registered
+Irisin — but retrying `files.mkdir` for `/AppleInternal` afterward failed
+with the identical `EROFS` as before. This is expected once you know how
+roothide works: it is a **per-process root redirection** (a kernel hook that
+makes jailbroken processes see a translated jbroot tree), not a remount of
+the real `/`. The actual iOS system volume stays the sealed, read-only APFS
+volume it always is — roothide's entire design point is to jailbreak
+*without* unsealing it, unlike old-style "rootful" jailbreaks. `vphoned`
+talks to the real, unredirected `/`, so nothing changes for it.
+
+So "just write a marker file and kickstart the daemon" (Option A as scoped)
+cannot work on this project's jailbreak, with or without bootstrap — not
+because of a missing step, but because the system volume is cryptographically
+sealed and no in-guest write ever reaches it. The only place this project
+modifies sealed system content at all is the **CFW pipeline**
+(`vphone-cli cfw install`, host-mount, VM must be off — see `AGENTS.md`'s
+"Firmware Mode" and `VPhoneExecutable/VPhoneCommand/FirmwarePatcher`), which
+patches the restore image before the seal is computed. If `/AppleInternal`
+or an `os_variant_has_internal_content` override is ever worth pursuing, it
+has to go through that pipeline (a new `cfw` patch target), not through a
+live `files.mkdir`+`services.kickstart` call — which folds this into Option B
+(binary-patch securityd) rather than being a separate, lighter option.
+
+### Option B: the exact patch site, found and verified (2026-11-15)
+
+Pulled `/usr/libexec/securityd` again the same way (`files.find` + `files.read`
+over the automation API) and disassembled it with Capstone in a throwaway
+venv (`python3 -m venv`, `pip install capstone`, outside this repo, per the
+same "stand a tool up in a throwaway environment" rule `AGENTS.md` gives for
+keystone — nothing added to the repo or to system Python). String-anchored on
+the two os_log format strings from the live log capture above
+(`"serverxpc: client %@ is not eligible"` at VA `0x100308d4f`, `"client %@ is
+eligible platform binary"` at VA `0x100308d29`, both in `__TEXT,__oslogstring`)
+and found their `adrp`/`add` cross-references — both inside the same function
+at `0x10008928c`, 0x492 bytes apart:
+
+```
+0x1000893c4: adrp x3, #0x100308000 ; add x3, x3, #0xd29   ; "...eligible platform binary"
+0x1000895b0: adrp x3, #0x100308000 ; add x3, x3, #0xd4f   ; "...is not eligible"
+```
+
+This function (unnamed in the symbol table — release `securityd` strips it,
+so it was never resolved by name, only by this xref, matching the "string
+anchors, ADRP+ADD xrefs" rule in `AGENTS.md`'s kernel guardrails applied to a
+userspace binary) takes `(task, identifierList)`. Tracing it end to end:
+
+1. It masks the task's codesign flags (`csops`-style) and compares against
+   `CS_VALID | CS_PLATFORM_BINARY` (`0x4000001`). If that matches — which it
+   does for `vphoned`, whose jailbroken AMFI evidently grants
+   `CS_PLATFORM_BINARY` for its `platform-application` entitlement even
+   though it's ad hoc signed — it fetches the task's computed signing
+   identifier (this is where `"vphoned-555549448c19fbdc96533b0da89428957827ba60"`
+   comes from: `<process name>-<hash>`, the fallback identity for a process
+   with no proper Team-ID.BundleID). **So the earlier theory in this file —
+   that `vphoned` fails the platform-binary check itself — was wrong**; it
+   passes that part.
+2. If `identifierList` (the second argument, the serverxpc caller's allowed
+   identifiers for this particular keychain operation) is `NULL`, the
+   function returns eligible unconditionally.
+3. If it's non-`NULL` (our case), it calls into a membership-search function
+   at `0x100279c9c`, which writes a one-byte result into a stack-passed
+   result struct at offset `+0x18`. That byte is what decides which of the
+   two log strings to print — and, critically, it is read a **second time**
+   after the log call to produce the actual return value:
+   ```
+   0x1000895cc: bl #0x100279a6c        ; release
+   0x1000895d0: mov x0, x19
+   0x1000895d4: bl #0x10027708c        ; release (the signing identifier)
+   0x1000895d8: ldr x8, [sp, #0x48]    ; reload the result struct pointer
+   0x1000895dc: ldrb w19, [x8, #0x18]  ; <-- the real eligibility byte
+   0x1000895e0: add x0, sp, #0x40
+   0x1000895e4: mov w1, #8
+   0x1000895e8: bl #0x100278bac
+   0x1000895ec: b #0x1000894f0         ; -> `and w0, w19, #1` ; … ; `retab`
+   ```
+   `vphoned`'s computed identifier (`vphoned-<hash>`) is never a member of
+   whatever list `0x100279c9c` searches, so this byte comes back `0`, and the
+   function returns `false` — for every keychain RPC `vphoned` makes,
+   regardless of access group, matching everything observed.
+
+**The patch:** replace `ldrb w19, [x8, #0x18]` at VA `0x1000895dc` (file
+offset `0x895dc` in the pulled 4,217,344-byte binary) with `mov w19, #1`
+(`MOVZ W19, #1`, hand-encoded `0x52800033` / little-endian `33 00 80 52`,
+same four bytes, no length change, no cave). Verified in the throwaway venv:
+Capstone round-trips the patched bytes back to `mov w19, #1`; the register
+it writes is the same one the unconditional branch at `0x1000895ec` carries
+into `and w0, w19, #1`, the function's actual return-value computation
+(confirmed by resolving that branch's target, not by assuming straight-line
+flow — the `and` is physically earlier in the binary than the `ldrb`). This
+only affects the branch reached when the caller passed a non-`NULL`
+identifier list (step 2 above is untouched, and already returns eligible).
+
+### Shipped as `system-securityd-exp-keychain_eligibility` (2026-11-15)
+
+The patch above is now a real CFW patch, following `Skills/authoring-patch-sets/SKILL.md`:
+
+- `VPhoneExecutable/VPhoneCommand/FirmwarePatcher/CustomFirmware/ExecutablePatches/Securityd/CustomFirmwareSecurityd.swift`
+  (`CustomFirmwareSecuritydPatcher`) — written against `ARM64Disassembler`/
+  `ARM64Encoder`/`MachOParser`, not the hand-encoded word above (that was this
+  file's own throwaway verification only): it string-anchors on both os_log
+  literals in `__TEXT,__cstring`/`__TEXT,__oslogstring`, resolves each one's
+  ADRP+ADD xref, scans forward from the "not eligible" xref for `ldrb w?,
+  [x?, #0x18]`, resolves the following unconditional branch's target, and
+  requires that target reach `and w0, <the ldrb's register>, #1` before
+  writing `mov w?, #1` (`ARM64Encoder.encodeMovzW`) over the `ldrb`. A second
+  run recognizes `mov w?, #1` already in place as its own output, same as the
+  other `ExecutablePatches`.
+- `vphone-cli cfw patch-securityd <binary>` (`VPhoneCustomFirmwareMachOVerbsCommand.swift`),
+  wired into `cfw install`/`cfw update-environment` via
+  `machO(FirmwareGuestSystemPatchSet.securitydKeychainEligibility, path:
+  "usr/libexec/securityd", verbs: ["patch-securityd"], codeIdentifier:
+  "com.apple.securityd", preserveEntitlements: true)` in
+  `VPhoneCustomFirmwareInstaller.swift` — the installer's own `patchMachO`
+  re-signs the whole binary afterward, so this verb's own
+  `reattestsCodeSignature` stays `false` by default, same as every other verb
+  there.
+- Declared in `FirmwareGuestSystemPatchSet.manifest` with
+  `target: .guestExecutable(path: "/usr/libexec/securityd")`, and left off by
+  default everywhere (added to `FirmwarePatchSetCatalog.manualOnlyPatches`,
+  which every shipped preset but `experimental` blocks with) because it
+  disables the identifier-allowlist half of this eligibility check
+  *system-wide*, for every client and identifier list securityd checks this
+  way, not only vphoned's keychain calls. `vphone-cli fw set-patches <vm>
+  --allow system-securityd-exp-keychain_eligibility` turns it on for one VM.
+- Tested against a synthetic Mach-O fixture (no `ipsws/ref_extract` binary
+  for securityd), in `CustomFirmwareSecuritydTests.swift`: site discovery,
+  the four refusal shapes (string missing either way, branch not reaching
+  `and w0`, branch target out of bounds), patching, idempotence, dry run, and
+  that re-attestation without a code signature correctly refuses rather than
+  silently no-op'ing. `FirmwarePatchSetCatalogTests` passes with the new
+  declaration in place (naming, uniqueness, preset-plist/Swift-copy parity).
+
+### Verified live against the real guest (2026-11-15)
+
+`sudo cfw update-environment codex-pentest-smoke-1115` (the privileged
+host-mount step this session cannot run non-interactively; the user ran it)
+applied the patch to the real binary, and its own log lines match the
+hand-found addresses exactly:
+
+```
+Found "serverxpc: client %@ is not eligible" at va:0x100308D4F
+Found string ref at 0x895B0
+Found eligibility byte read at 0x1000895DC: ldrb w19, [x8, #0x18]
+[+] Patched at 0x895DC: mov w19, #1
+```
+
+Rebuilding `vphone-vm` changed its own cdhash, so it needed a fresh AMFI
+allow (`vphone-escalator allow <path-to-vphone-vm>`) before it would launch —
+unrelated to this patch, just the usual consequence of a local rebuild.
+
+With the patch live, over the automation API against the booted guest:
+
+```json
+// keychain.add {"account":"canary-postpatch-1","service":"com.vphone.research.postpatch","password":"canary-secret"}
+{"result":{"group":"*","ok":true,"status":0}}
+
+// keychain.list {"class":"genp"} — diag
+"Security: 54 accessible items", "Database: 55 protected metadata rows"
+// (was "Security: 0 accessible items" / 58 protected rows before this patch)
+
+// keychain.get for the same item
+{"result":{"ok":true,"value":"canary-secret"}}
+```
+
+Add, list (shown with `"source": "security"`, not just protected metadata)
+and get all round-trip correctly. The canary item was then deleted via
+`keychain.delete` to leave the guest clean. This closes the investigation:
+`keychain.add`/`.update`/`.list` work on iOS 27.2+ once
+`system-securityd-exp-keychain_eligibility` is turned on for a VM.

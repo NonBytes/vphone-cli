@@ -205,6 +205,7 @@
 			<string>system-paravirt_gpu-cfw-compiler_cache</string>
 			<string>system-preferences-cfw-followup_groups</string>
 			<string>system-preferences-exp-root_rows</string>
+			<string>system-securityd-exp-keychain_eligibility</string>
 			<string>system-setup-exp-deferred_focus</string>
 			<string>system-setupbackground-exp-pineboard_lookup</string>
 			<string>system-springboard-cfw-fold_display</string>

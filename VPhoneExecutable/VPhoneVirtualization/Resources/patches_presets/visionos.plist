@@ -245,6 +245,7 @@
 			<string>system-paravirt_gpu-cfw-primitive_restart</string>
 			<string>system-preferences-cfw-followup_groups</string>
 			<string>system-preferences-exp-root_rows</string>
+			<string>system-securityd-exp-keychain_eligibility</string>
 			<string>system-preferences-exp-visionos_skip_buddy</string>
 			<string>system-remotepairingdeviced-cfw-local_connections</string>
 			<string>system-setup-exp-deferred_focus</string>

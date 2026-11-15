@@ -109,6 +109,7 @@
 			<string>preboot-exp-devicetree_identity</string>
 			<string>dyld-exp-mis_trust_auth</string>
 			<string>system-preferences-exp-root_rows</string>
+			<string>system-securityd-exp-keychain_eligibility</string>
 			<string>dyld-exp-settings_software_update_row</string>
 			<string>dyld-boot-arm64e_x1_bootstrap</string>
 			<string>dyld-boot-iomfb_force_kern</string>

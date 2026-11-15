@@ -2314,6 +2314,13 @@ struct VPhoneCustomFirmwareInstaller {
             codeIdentifier: "com.apple.Preferences",
             preserveEntitlements: true,
         )
+        machO(
+            FirmwareGuestSystemPatchSet.securitydKeychainEligibility,
+            path: "usr/libexec/securityd",
+            verbs: ["patch-securityd"],
+            codeIdentifier: "com.apple.securityd",
+            preserveEntitlements: true,
+        )
 
         if version.hasPrefix("27.") {
             machO("system-diskimagesiod-cfw-is_mount_complete", path: "usr/libexec/diskimagesiod", verbs: ["patch-diskimagesiod"], preserveEntitlements: true)

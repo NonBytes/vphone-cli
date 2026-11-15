@@ -17,6 +17,7 @@ public enum FirmwareGuestSystemPatchSet {
 
     public static let settingsRootRows = "system-preferences-exp-root_rows"
     public static let settingsSoftwareUpdate = "dyld-exp-settings_software_update_row"
+    public static let securitydKeychainEligibility = CustomFirmwareSecuritydPatcher.patchID
     public static let settingsRowPatches: Set<String> = [settingsRootRows, settingsSoftwareUpdate]
 
     public static let installCoordinationPersona = "system-installcoordination_proxy-cfw-persona_lookup"
@@ -1300,6 +1301,23 @@ public enum FirmwareGuestSystemPatchSet {
                 neither, this patch has nothing to do even when it is on.
                 """,
                 target: .guestFile(path: "/System/Library/CoreServices/SystemVersion.plist"),
+            ),
+            VPhonePatchDeclaration(
+                identifier: securitydKeychainEligibility,
+                title: "securityd keychain eligibility",
+                summary: """
+                Makes securityd always treat vphoned as eligible for a keychain operation, \
+                instead of refusing it (`serverxpc: client %@ is not eligible`) because \
+                vphoned's identifier is never on the caller's allow-list. Without it, \
+                vphoned's own `keychain.add`/`keychain.update`/`keychain.list` RPCs do not \
+                work on iOS 27.2+ (`keychain add did not persist`, 0 Security-accessible \
+                items), for any access group. This disables that eligibility check \
+                system-wide — for every client and every identifier list securityd enforces \
+                this way, not only vphoned's keychain calls — so it is experimental and off \
+                by default; see Research/Guest/keychain_inspector.md. The Keychain \
+                Inspector's in-app Frida script path does not need this patch.
+                """,
+                target: .guestExecutable(path: "/usr/libexec/securityd"),
             ),
         ] + arm64eX1DebugImages.map { image in
             VPhonePatchDeclaration(

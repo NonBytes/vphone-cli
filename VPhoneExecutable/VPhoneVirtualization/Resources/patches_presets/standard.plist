@@ -108,6 +108,7 @@
 			<string>dyld-exp-mis_trust_auth</string>
 			<string>system-preferences-exp-root_rows</string>
 			<string>dyld-exp-settings_software_update_row</string>
+			<string>system-securityd-exp-keychain_eligibility</string>
 			<string>system-dyld-exp-tv_tpro</string>
 			<string>kernel-exp-tv_tpro_pagers</string>
 			<string>system-tv-exp-ota_userland</string>

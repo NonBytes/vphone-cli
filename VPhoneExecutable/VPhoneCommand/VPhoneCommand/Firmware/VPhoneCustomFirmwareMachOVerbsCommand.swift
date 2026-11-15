@@ -763,6 +763,7 @@ enum VPhoneCustomFirmwareMachOVerbs {
             VPhoneCustomFirmwarePatchParavirtGPUIndexOffsetCommand.self,
             VPhoneCustomFirmwarePatchParavirtGPUPrimitiveRestartCommand.self,
             VPhoneCustomFirmwarePatchParavirtGPUCompilerCacheCommand.self,
+            VPhoneCustomFirmwarePatchSecuritydCommand.self,
         ]
     }
 }
@@ -782,5 +783,56 @@ struct VPhoneCustomFirmwarePatchRemotePairingCommand: ParsableCommand {
     func run() throws {
         try requireUntruncatedMachO(at: binary)
         try CustomFirmwareRemotePairing.patch(fileAt: binary, dryRun: dryRun)
+    }
+}
+
+// MARK: - patch-securityd
+
+struct VPhoneCustomFirmwarePatchSecuritydCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "patch-securityd",
+        abstract: "Make vphoned's keychain requests always eligible in securityd",
+        discussion: """
+        On iOS 27.2+, securityd refuses every keychain request vphoned makes
+        with a non-NULL identifier list: `serverxpc: client %@ is not
+        eligible`. The byte that both picks that log line and feeds the
+        function's return value is a `ldrb w?, [x?, #0x18]` reached from the
+        "is not eligible" string's adrp+add xref; rewriting it to `mov w?, #1`
+        makes the check always succeed.
+
+        Both the "is not eligible" and "eligible platform binary" os_log
+        strings must be present and referenced in __TEXT,__text, and the
+        branch after the `ldrb` must reach `and w0, <that register>, #1` —
+        confirming the byte actually feeds the return value — or this refuses
+        rather than guess at a moved firmware shape.
+
+        This is a new patch with no Python predecessor. It disables the
+        identifier-allowlist half of this eligibility check system-wide, for
+        every client and every list securityd checks this way, not only
+        vphoned's keychain calls — see
+        `FirmwareGuestSystemPatchSet.securitydKeychainEligibility` and
+        `Research/Guest/keychain_inspector.md` before turning it on.
+
+        Idempotent: a binary already reading `mov w?, #1` at the site is
+        reported and left alone, byte for byte.
+        """,
+    )
+
+    @Argument(help: "Path to the securityd Mach-O, patched in place", transform: URL.init(fileURLWithPath:))
+    var binary: URL
+
+    @Flag(name: .customLong("dry-run"), help: "Report the site without changing the file")
+    var dryRun = false
+
+    func run() throws {
+        try requireUntruncatedMachO(at: binary)
+        // reattestsCodeSignature: false — the installer re-signs the whole
+        // binary after every verb in `patchMachO`, same as every other verb here.
+        try CustomFirmwareSecuritydPatcher.patch(
+            fileAt: binary,
+            dryRun: dryRun,
+            reattestsCodeSignature: false,
+            log: machOVerbLog,
+        )
     }
 }

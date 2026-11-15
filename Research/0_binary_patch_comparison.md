@@ -1,5 +1,23 @@
 # Patch Comparison: Regular / Development / Jailbreak / Experimental
 
+> **securityd keychain eligibility (2026-11-15).**
+> `system-securityd-exp-keychain_eligibility` (`FirmwareGuestSystemPatchSet`,
+> `CustomFirmwareSecuritydPatcher`, `vphone-cli cfw patch-securityd`) rewrites
+> the `ldrb w?, [x?, #0x18]` that feeds the return value of securityd's
+> platform-binary eligibility check to `mov w?, #1`, located purely from the
+> `serverxpc: client %@ is not eligible` / `client %@ is eligible platform
+> binary` os_log strings and the decoded instruction shapes around their
+> xrefs — no literal address. Without it, `vphoned`'s own `keychain.add` /
+> `.update` / `.list` RPCs do not work on iOS 27.2+ for any access group
+> (`keychain add did not persist`, 0 Security-accessible items): securityd
+> refuses vphoned's identifier against the caller's allow-list before
+> `SecItemAdd`/`SecItemCopyMatching` ever run. New patch, no Python
+> predecessor; off by default in every shipped preset (disables the
+> identifier-allowlist half of this check system-wide, not only for
+> vphoned's keychain calls). Built against a synthetic Mach-O fixture, no
+> `ipsws/ref_extract` reference binary. See
+> [the live reproduction, root-cause trace and this patch's derivation](Guest/keychain_inspector.md).
+
 > **SE 3 iOS 18.6.2 pairing and driver extraction (2026-11-12).** The SE
 > catalog uses cloudOS 26.1 and the existing iOS 18.6 GPU transport. Fresh
 > preparation can take the 18.6 driver directly from the PCC OS image when
