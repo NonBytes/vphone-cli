@@ -51,6 +51,8 @@ extension VPhoneMenuController {
         menu.addItem(makeItem("Dynamic Crypto Tracer & Key Sniffer…", action: #selector(showCryptoTracer), symbol: "key.horizontal.fill"))
         menu.addItem(makeItem("Sandbox File Watcher & Integrity Monitor…", action: #selector(showFileWatcher), symbol: "eye.trianglebadge.exclamationmark"))
         menu.addItem(makeItem("Mach-O & Entitlements Visualizer…", action: #selector(showMachOVisualizer), symbol: "doc.badge.gearshape"))
+        menu.addItem(makeItem("Binary Diffing & Baseline Scanner…", action: #selector(showBinaryDiff), symbol: "arrow.left.arrow.right"))
+        menu.addItem(makeItem("Live Exception & Crash Signal Monitor…", action: #selector(showCrashMonitor), symbol: "shield.lefthalf.filled.trianglebadge.exclamationmark"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
 
         menu.addItem(NSMenuItem.separator())
@@ -154,6 +156,8 @@ extension VPhoneMenuController {
     @objc func showCryptoTracer() { cryptoTracerWindowController.show() }
     @objc func showFileWatcher() { fileWatcherWindowController.show() }
     @objc func showMachOVisualizer() { machOVisualizerWindowController.show() }
+    @objc func showBinaryDiff() { binaryDiffWindowController.show() }
+    @objc func showCrashMonitor() { crashMonitorWindowController.show() }
 
     // MARK: - Clipboard & Preferences
 
