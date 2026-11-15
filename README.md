@@ -152,7 +152,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | **App Memory Search & Scanner** | Live process memory scanner (`rw-` memory ranges), regex & secret hunter (JWT, RSA/EC private keys, API secrets, passwords, credit cards, custom regex), Frida 17 in-process enumeration generator, and MASVS-STORAGE-1 finding export |
 | **Automated MASVS Compliance & Audit** | 1-click comprehensive security assessment across 12 automated checks (PIE, Canary, ARC, Stack Execution, FairPlay, Weak Crypto, Dangerous C, `get-task-allow`, ATS, URL Schemes, Permissions, Data Protection), executive score & grade (A+ to F), standalone HTML/Markdown reports, and 1-click export to Evidence Store |
 | **APFS Instant Snapshot & Rollback Hub** | Zero-copy instant VM snapshots using macOS APFS Copy-on-Write (`clonefile`); snapshot state timeline, 1-click instant rollback, machine locking and recovery of the original state if a rollback fails |
-| [Keychain Inspector & Injector](Research/Guest/keychain_inspector.md) | Metadata scan, secret dump, live value editing (`SecItemUpdate`), item deletion (`SecItemDelete`), new item injection (`SecItemAdd`, needs the opt-in `system-securityd-exp-keychain_eligibility` patch on iOS 27.2+ — off by default; use the in-app Frida script instead if you'd rather not enable it), in-app Frida QuickJS script synthesis, and 1-click export to **MASVS Findings** |
+| [Keychain Inspector & Injector](Research/Guest/keychain_inspector.md) | Metadata scan, secret dump, live value editing (`SecItemUpdate`), item deletion (`SecItemDelete`), new item injection (`SecItemAdd`, enabled by default via `system-securityd-exp-keychain_eligibility` in the `pentest` preset on iOS 27.2+; or synthesize in-app Frida scripts), in-app Frida QuickJS script synthesis, and 1-click export to **MASVS Findings** |
 | **Binary Diff & Baseline Scanner** | Deep structural Mach-O binary & IPA comparison (Base/Prod vs Target/Staging), security regression detection (PIE, Stack Canary, W^X Executable Stack, ARC, FairPlay, sensitive entitlements like `get-task-allow`, suspicious injected dylibs), visual split-view inspector, and 1-click export to MASVS Findings (MASVS-CODE-1 / CODE-4) |
 | **Live Exception & Crash Signal Monitor** | Frida native exception events and Objective-C throws, available fault address and ARM64 registers (`PC`, `LR`, `SP`, `FP`), symbolicated backtraces, Frida 17 QuickJS sentinel script synthesizer, and 1-click export to MASVS Findings (MASVS-RESILIENCE-1) |
 | [Evidence & MASVS Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes, interactive **MASVS Findings Builder**, Markdown (`findings-report.md`) & escaped dark HTML (`findings-report.html`) reports, and a redaction review |
@@ -177,11 +177,11 @@ with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/e
 - **Crypto Tracer, Mach-O Visualizer & Sandbox File Watcher** — trace CommonCrypto and CryptoKit calls in real time to catch static IVs and weak ciphers; inspect Mach-O headers and sensitive entitlements; monitor real-time sandbox filesystem operations (create/write/delete/rename) with automatic secret and unencrypted database detection.
 - **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
   capture a baseline, run your test, then select **Scan & Compare**.
-- **Frida Tools** — open **Frida Tools**, choose a release on the **Server**
+- **Frida Tools & Pentest Preset** — open **Frida Tools**, choose a release on the **Server**
   tab, click **Download & Install → Start**, then switch to the **Session**
   tab. Toggle one or more built-in hooks (or a quick preset) in the **Multi-Script Composer**
   alongside custom JS, enter the endpoint and token, select the app, and choose
-  Spawn or Attach. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
+  Spawn or Attach. Create or patch VMs with `--preset pentest` (formerly `frida`) to automatically enable all required Frida kernel relaxations (`kernel-exp-frida_*`) and `system-securityd-exp-keychain_eligibility` for full keychain persistence. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
 - **Network Diagnostics + PCAP** — enter a target for **Test DNS / TCP**.
   Select an interface and filter, then use **Start Capture → Stop → Save PCAP…**.
 - **Logs and deep links** — select an app in App Logs & Crash Viewer and
@@ -237,7 +237,7 @@ in the running VM's window so the guest stays listed as online.
 
 Beyond the upstream sync, this fork carries host-side and workflow fixes found while running the fork day to day:
 
-- **Pentest & Frida Tools** — Unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
+- **Pentest Preset & Frida Tools** — Shipped `pentest` preset (renamed from `frida`) enabling Frida kernel relaxations plus `securityd` keychain eligibility out of the box, unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
 - **Guest Stability & VSOCK** — Resolved transient disconnection blips, single-threaded VSOCK event loop, and localized error reporting.
 - **Workflow & Launchpad** — Direct Pentest menu in VM window, real transfer progress, preset switching, HTTPS proxy verification, and bounded log streaming.
 - **Firmware & Build** — Extended catalog through iOS 27.2.1, unmount retry handling, and consolidated pure-Swift `VPhonePentestKit`.
