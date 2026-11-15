@@ -246,24 +246,26 @@ public enum FirmwarePatchSetCatalog {
         selection: .block([FirmwareGuestSystemPatchSet.visionOSFramePacing, FirmwareGuestSystemPatchSet.visionOSEnvironments, FirmwareGuestSystemPatchSet.visionOSEnvironmentIPC, FirmwareGuestSystemPatchSet.visionOSSkipBuddy, FirmwareGuestSystemPatchSet.visionOSWakeboardSystemIPC, FirmwareGuestSystemPatchSet.visionOSHMDPresentableIPC, FirmwareGuestSystemPatchSet.visionOSHMDSystemSetterIPC, FirmwareGuestSystemPatchSet.visionOSHMDPropertiesIPC, FirmwareGuestSystemPatchSet.visionOSUXMIPC, FirmwareGuestSystemPatchSet.visionOSVirtualProduct, FirmwareGuestSystemPatchSet.visionOSLegacyUXM, FirmwareGuestSystemPatchSet.visionOSNonfatalServices, FirmwareGuestSystemPatchSet.ios16KeybaglessUI, FirmwareGuestSystemPatchSet.ios16Touchscreen, FirmwareGuestSystemPatchSet.ios16EphemeralStorage, FirmwareGuestSystemPatchSet.ios16Framebuffer, FirmwareGuestSystemPatchSet.ios16Surface, FirmwareGuestSystemPatchSet.ios16Desktop, FirmwareGuestSystemPatchSet.ios16Keybag, FirmwareGuestSystemPatchSet.ios16Migration, FirmwareGuestSystemPatchSet.ios16PortsLookup, FirmwareGuestSystemPatchSet.ios16MachPorts, FirmwareGuestSystemPatchSet.ios17Desktop, FirmwareGuestSystemPatchSet.homeViewEnvironmentService, FirmwareGuestSystemPatchSet.homeViewProfileLookup, FirmwareGuestSystemPatchSet.homeViewDisplayLookups, FirmwareGuestSystemPatchSet.homeViewSetupBypass, FirmwareGuestSystemPatchSet.tvLegacySetup, FirmwareGuestSystemPatchSet.tvSetupDisplayLookup, FirmwareGuestSystemPatchSet.tvSetupFocus, FirmwareGuestSystemPatchSet.tvLocalActivation, FirmwareGuestSystemPatchSet.homePodTopCap, FirmwareGuestSystemPatchSet.homePodSetupBypass, FirmwareGuestSystemPatchSet.homePodAirPlayVM, FirmwareGuestSystemPatchSet.homePodAudioProduct, FirmwareGuestSystemPatchSet.homePodWelcome, FirmwareGuestSystemPatchSet.homePodSiriSpeech, FirmwareGuestSystemPatchSet.homePodOTAUserland, FirmwareGuestSystemPatchSet.homePodSoundGlow, FirmwareGuestSystemPatchSet.homePodCryptexStaging, FirmwareGuestSystemPatchSet.homePodCryptexClass, FirmwareGuestSystemPatchSet.homePodAdHocInstall]),
     )
 
-    /// `standard` plus the Frida kernel relaxations only: none of
-    /// `experimental`'s unrelated hv_vmm_present concealment, iPhone17,3
-    /// identity rewrites or HomeView/HomePod/TV patches. A disposable VM
-    /// patched with this preset reached the Lock Screen normally and both
-    /// Spawn (Files/Safari) and Attach (Settings) worked, where `experimental`
-    /// on the same firmware pairing hung at the boot logo; see
-    /// `Research/Guest/frida_server.md`.
-    public static let fridaPreset = VPhonePatchPreset(
-        identifier: "frida",
-        title: "Frida",
+    /// `standard` plus the Frida kernel relaxations and the securityd keychain
+    /// eligibility patch: none of `experimental`'s unrelated hv_vmm_present
+    /// concealment, iPhone17,3 identity rewrites or HomeView/HomePod/TV patches.
+    public static let pentestPreset = VPhonePatchPreset(
+        identifier: "pentest",
+        title: "Pentest",
         summary: """
-        Standard with the opt-in Frida kernel patch set enabled, including fork-child support. Other opt-in patches follow the Standard preset.
+        Standard with the opt-in Frida kernel patch set and securityd keychain eligibility patch enabled for penetration testing and instrumentation. Other opt-in patches follow the Standard preset.
         """,
         patchSets: bundledReferences,
         selection: .block(
-            manualOnlyPatches.subtracting(Set(FirmwareKernelFridaPatchSet.manifest.patches.map(\.identifier))),
+            manualOnlyPatches.subtracting(
+                Set(FirmwareKernelFridaPatchSet.manifest.patches.map(\.identifier))
+                    .union([FirmwareGuestSystemPatchSet.securitydKeychainEligibility])
+            ),
         ),
     )
+
+    @available(*, deprecated, renamed: "pentestPreset")
+    public static var fridaPreset: VPhonePatchPreset { pentestPreset }
 
     /// The iOS payloads, hooks and shared-cache patches an Apple TV guest has no
     /// validated port of: display, camera, audio, sensors, the GPU driver (a
@@ -545,5 +547,5 @@ public enum FirmwarePatchSetCatalog {
     )
 
     /// The presets the bundle ships.
-    public static let builtInPresets: [VPhonePatchPreset] = [standardPreset, experimentalPreset, fridaPreset, tvOSPreset, tvOS4KPreset, homeViewPreset, homePodMiniPreset, minimalPreset, watchOSPreset, visionOSPreset]
+    public static let builtInPresets: [VPhonePatchPreset] = [standardPreset, experimentalPreset, pentestPreset, tvOSPreset, tvOS4KPreset, homeViewPreset, homePodMiniPreset, minimalPreset, watchOSPreset, visionOSPreset]
 }

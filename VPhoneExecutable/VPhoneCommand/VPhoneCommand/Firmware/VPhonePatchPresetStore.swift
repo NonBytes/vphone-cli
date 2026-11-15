@@ -298,12 +298,14 @@ public enum VPhonePatchPresetStore {
     /// the identifier alone say what the preset turns on: a user's preset or
     /// a preset file can change under the same one.
     static func isShipped(_ identifier: String) -> Bool {
-        shippedPresets().contains { $0.identifier == identifier }
+        let canonical = identifier == "frida" ? "pentest" : identifier
+        return shippedPresets().contains { $0.identifier == canonical }
     }
 
     /// The preset with this identifier, or nil.
     public static func preset(named identifier: String) -> VPhonePatchPreset? {
-        availablePresets().first { $0.identifier == identifier }
+        let canonical = identifier == "frida" ? "pentest" : identifier
+        return availablePresets().first { $0.identifier == canonical }
     }
 
     /// The preset with this identifier for one VM: its own copy

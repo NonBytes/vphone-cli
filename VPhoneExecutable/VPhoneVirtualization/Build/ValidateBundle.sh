@@ -399,32 +399,35 @@ print -rn -- 'vphone archive round trip' > "$temporary/source/probe.txt"
 /usr/bin/cmp "$temporary/source/probe.txt" "$temporary/destination/probe.txt"
 
 standard_preset="$resources/patches_presets/standard.plist"
-frida_preset="$resources/patches_presets/frida.plist"
-for preset in "$standard_preset" "$frida_preset"; do
+pentest_preset="$resources/patches_presets/pentest.plist"
+for preset in "$standard_preset" "$pentest_preset"; do
     [[ -f "$preset" ]] || { print -u2 "Missing preset plist: ${preset#$bundle/}"; exit 1; }
     [[ "$(/usr/libexec/PlistBuddy -c 'Print :Selection:Kind' "$preset")" == Block ]] || {
         print -u2 "Expected Block selection in ${preset#$bundle/}"; exit 1
     }
 done
-frida_only_extra="$(/usr/bin/comm -13 \
+pentest_only_extra="$(/usr/bin/comm -13 \
     <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$standard_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort) \
-    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$frida_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
-[[ -z "$frida_only_extra" ]] || {
-    print -u2 "frida.plist blocks patches that standard.plist enables: $frida_only_extra"
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$pentest_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
+[[ -z "$pentest_only_extra" ]] || {
+    print -u2 "pentest.plist blocks patches that standard.plist enables: $pentest_only_extra"
     exit 1
 }
-frida_unblocked="$(/usr/bin/comm -23 \
+pentest_unblocked="$(/usr/bin/comm -23 \
     <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$standard_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort) \
-    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$frida_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
-[[ -n "$frida_unblocked" ]] || {
-    print -u2 "frida.plist unblocks no Frida patches relative to standard.plist"
+    <(/usr/libexec/PlistBuddy -c 'Print :Selection:Patches' "$pentest_preset" | /usr/bin/awk '/^    / {gsub(/^ +/, ""); print}' | LC_ALL=C /usr/bin/sort))"
+[[ -n "$pentest_unblocked" ]] || {
+    print -u2 "pentest.plist unblocks no pentest patches relative to standard.plist"
     exit 1
 }
 while IFS= read -r patch_id; do
-    [[ "$patch_id" == kernel-exp-frida_* ]] || {
-        print -u2 "frida.plist drifted from standard.plist (non-Frida patch unblocked): $patch_id"
-        exit 1
-    }
-done <<< "$frida_unblocked"
+    case "$patch_id" in
+        kernel-exp-frida_*|system-securityd-exp-keychain_eligibility) ;;
+        *)
+            print -u2 "pentest.plist drifted from standard.plist (unexpected patch unblocked): $patch_id"
+            exit 1
+            ;;
+    esac
+done <<< "$pentest_unblocked"
 
 print "Bundle admission passed: $bundle"

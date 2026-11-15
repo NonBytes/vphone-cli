@@ -870,7 +870,7 @@ struct FirmwarePatchSetCatalogTests {
     }
 
     @Test
-    func `Frida preset differs from Standard only by the Frida kernel patch set`() throws {
+    func `Pentest preset differs from Standard only by the Frida kernel patch set and securityd keychain eligibility`() throws {
         let directory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent() // PatchSets
             .deletingLastPathComponent() // FirmwarePatcherTests
@@ -879,16 +879,17 @@ struct FirmwarePatchSetCatalogTests {
             .appendingPathComponent("VPhoneVirtualization/Resources/patches_presets", isDirectory: true)
         let shipped = try VPhonePatchPreset.readAll(fromDirectory: directory)
         let standard = try #require(shipped.first { $0.isStandard })
-        let frida = try #require(shipped.first { $0.identifier == FirmwarePatchSetCatalog.fridaPreset.identifier })
+        let pentest = try #require(shipped.first { $0.identifier == FirmwarePatchSetCatalog.pentestPreset.identifier })
         guard case let .block(standardBlocked) = standard.selection,
-              case let .block(fridaBlocked) = frida.selection
+              case let .block(pentestBlocked) = pentest.selection
         else {
-            Issue.record("Expected Block selections for standard and frida presets")
+            Issue.record("Expected Block selections for standard and pentest presets")
             return
         }
         let fridaIDs = Set(FirmwareKernelFridaPatchSet.manifest.patches.map(\.identifier))
-        #expect(fridaBlocked.subtracting(standardBlocked).isEmpty)
-        #expect(standardBlocked.subtracting(fridaBlocked) == fridaIDs)
+        let pentestIDs = fridaIDs.union([FirmwareGuestSystemPatchSet.securitydKeychainEligibility])
+        #expect(pentestBlocked.subtracting(standardBlocked).isEmpty)
+        #expect(standardBlocked.subtracting(pentestBlocked) == pentestIDs)
 
         for base in ["18.6.2", "26.0", "26.4", "27.0"] {
             for cloud in ["26.1", "26.4"] {
@@ -898,19 +899,20 @@ struct FirmwarePatchSetCatalogTests {
                     iOSBase: VPhoneVersion(base),
                     cloudOS: VPhoneVersion(cloud),
                 )
-                let fridaPlan = try VPhonePatchPlan.resolve(
-                    preset: frida,
+                let pentestPlan = try VPhonePatchPlan.resolve(
+                    preset: pentest,
                     patchSets: FirmwarePatchSetCatalog.bundled,
                     iOSBase: VPhoneVersion(base),
                     cloudOS: VPhoneVersion(cloud),
                 )
                 let standardEnabled = Set(standardPlan.enabled)
-                let fridaEnabled = Set(fridaPlan.enabled)
-                #expect(standardEnabled.subtracting(fridaEnabled).isEmpty)
-                let extra = fridaEnabled.subtracting(standardEnabled)
-                #expect(extra.isSubset(of: fridaIDs))
+                let pentestEnabled = Set(pentestPlan.enabled)
+                #expect(standardEnabled.subtracting(pentestEnabled).isEmpty)
+                let extra = pentestEnabled.subtracting(standardEnabled)
+                #expect(extra.isSubset(of: pentestIDs))
+                #expect(extra.contains(FirmwareGuestSystemPatchSet.securitydKeychainEligibility))
                 if cloud == "26.4" {
-                    #expect(extra == fridaIDs)
+                    #expect(extra == pentestIDs)
                 }
             }
         }
