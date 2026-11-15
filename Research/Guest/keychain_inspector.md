@@ -479,3 +479,24 @@ and get all round-trip correctly. The canary item was then deleted via
 `keychain.delete` to leave the guest clean. This closes the investigation:
 `keychain.add`/`.update`/`.list` work on iOS 27.2+ once
 `system-securityd-exp-keychain_eligibility` is turned on for a VM.
+
+## Automated Security Risk Assessment & Issue Summary (OWASP MASVS)
+
+To streamline pentesting and security audits, Keychain Inspector includes an automated
+security heuristic analyzer evaluating items against OWASP MASVS (MASVS-STORAGE-1 and
+MASVS-STORAGE-2):
+
+1. **Security Audit Summary Bar**:
+   - Displays real-time risk breakdown: `[X High Risk]`, `[Y Medium Risk]`, `[Z Best Practice]`.
+   - **Issues Only Toggle**: Filters the table instantly to show only insecure or non-compliant rows.
+   - **Add All Issues to MASVS Findings**: Dispatches all identified High and Medium risk items into `VPhoneMASVSFindingStore` in a single click, ready for executive compliance reporting.
+
+2. **Risk Classification Heuristics**:
+   - **High Risk**:
+     - `AccessibleAlways` or `AccessibleAlwaysThisDeviceOnly`: Deprecated since iOS 12. Keys remain accessible even when the device is locked, allowing unauthorized extraction if filesystem access or physical dump occurs.
+   - **Medium Risk**:
+     - Missing `ThisDeviceOnly` protection on sensitive items (e.g. `AccessibleAfterFirstUnlock`, `AccessibleWhenUnlocked`): Items may sync across iCloud Keychain or be restored from unencrypted iTunes/Finder backups.
+     - Sensitive token detection (account or service matching `token`, `jwt`, `secret`, `bearer`, `auth`, `refresh`, `password`, `key`) stored without hardware biometric access control (`kSecAccessControlBiometryAny` / Secure Enclave).
+   - **Best Practice (Low/Secure)**:
+     - Items configured with `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` or bound to user presence/biometrics with Secure Enclave.
+

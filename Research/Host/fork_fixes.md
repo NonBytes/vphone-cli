@@ -224,3 +224,10 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   `standard.plist` only by `kernel-exp-frida_*` patches, backed by an explicit
   `FirmwarePatchSetCatalogTests` check over both plist selections and resolved
   patch plans.
+- **Keychain Inspector automated risk assessment and OWASP MASVS issue summary.**
+  Added `VPhoneKeychainSecurityAssessment` and `VPhoneKeychainRiskLevel` evaluating
+  deprecated `kSecAttrAccessibleAlways` (High Risk), missing `ThisDeviceOnly` protections
+  and sensitive plaintext credentials stored without hardware biometric access control
+  (Medium Risk). The Keychain Inspector window now features an interactive Security Audit
+  Summary bar, an "Issues Only" filter, risk badge indicators, and 1-click batch export
+  to `VPhoneMASVSFindingStore`.

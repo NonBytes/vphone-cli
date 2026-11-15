@@ -10,11 +10,14 @@ kit="$root/VPhoneKit/VPhonePentestKit"
     -module-cache-path "$out/modules" \
     "$kit/VPhoneLocalization.swift" \
     "$kit/VPhoneGuestControlError.swift" \
+    "$kit/VPhoneCACertificate.swift" \
+    "$kit/VPhonePasteboardModel.swift" \
     "$kit/VPhoneGuestControlling.swift" \
     "$kit/VPhoneFridaPortRelay.swift" \
     "$kit/VPhoneProxyConfiguration.swift" \
     "$kit/VPhoneProxyScriptResult.swift" \
     "$kit/VPhoneSandboxSnapshot.swift" "$kit/VPhoneEvidencePackage.swift" \
+    "$kit/VPhoneMASVSFinding.swift" \
     "$kit/VPhoneKeychainInspection.swift" \
     "$kit/VPhonePanelShared.swift" "$kit/VPhoneAppRecord.swift" \
     "$kit/VPhoneKeychainItem.swift" "$kit/VPhoneKeychainInspectorModel.swift" \
