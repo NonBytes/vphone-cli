@@ -152,7 +152,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | **App Memory Search & Scanner** | Live process memory scanner (`rw-` memory ranges), regex & secret hunter (JWT, RSA/EC private keys, API secrets, passwords, credit cards, custom regex), Frida 17 in-process enumeration generator, and MASVS-STORAGE-1 finding export |
 | **Automated MASVS Compliance & Audit** | 1-click comprehensive security assessment across 12 automated checks (PIE, Canary, ARC, Stack Execution, FairPlay, Weak Crypto, Dangerous C, `get-task-allow`, ATS, URL Schemes, Permissions, Data Protection), executive score & grade (A+ to F), standalone HTML/Markdown reports, and 1-click export to Evidence Store |
 | **APFS Instant Snapshot & Rollback Hub** | Zero-copy instant VM snapshots using macOS APFS Copy-on-Write (`clonefile`); snapshot state timeline, 1-click instant rollback, safe VM stop/quiesce validation, and zero extra disk overhead |
-| [Keychain Inspector](Research/Guest/keychain_inspector.md) | Metadata and readable items through the guest agent's access; protected rows stay encrypted and access can differ from the app process; send inspected items to **MASVS Findings** |
+| [Keychain Inspector & Injector](Research/Guest/keychain_inspector.md) | Metadata scan, secret dump, live value editing (`SecItemUpdate`), item deletion (`SecItemDelete`), new item injection (`SecItemAdd`), in-app Frida QuickJS script synthesis, and 1-click export to **MASVS Findings** |
 | [Evidence & MASVS Export](Research/Guest/evidence_export.md) | Screenshots, logs, app/guest/Core context, hashes, interactive **MASVS Findings Builder**, Markdown (`findings-report.md`) & escaped dark HTML (`findings-report.html`) reports, and a redaction review |
 | **Photos & Media Browser** | Browse, search, and filter DCIM camera captures, screenshots, and videos; inline preview with metadata (dimensions, file size, date); direct "Copy Image" to Mac clipboard, "Save…", "Open in Preview.app", and batch "Export Selected…" / "Export All…" to Mac |
 | [Export Installed IPA](Research/Guest/ipa_export.md) | Export the installed app bundle; excludes sandbox/Keychain data and performs no decryption |
@@ -189,8 +189,8 @@ with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/e
 - **Proxy, Pasteboard, and Mocking Hub** — configure upstream Burp Suite/mitmproxy with 1-click CA installation into iOS trust store; monitor guest clipboard for leaked secrets and fuzz with test vectors; simulate synthetic battery levels and mock Face ID / Touch ID authentication results.
 - **Runtime Inspector and Memory Scanner** — explore loaded Objective-C/Swift classes, trace method calls in real time, force method return values to bypass checks, and scan writable live process memory (RAM/Heap) for leaked credentials and tokens.
 - **Automated MASVS Audit and APFS Snapshot Hub** — run 1-click comprehensive MASVS security audits with grade evaluation and standalone HTML/Markdown exports; create instant, zero-copy APFS VM snapshots and rollback cleanly before/after malware or bypass testing.
-- **Keychain, MASVS Findings, and Evidence Export** — select an app and group scope
-  for **Scan Metadata** or **Dump Readable Values** (and add flagged rows to MASVS
+- **Keychain Inspector & Injector, MASVS Findings, and Evidence Export** — select an app and group scope
+  for **Scan Metadata**, **Dump Readable Values**, live value editing (`Edit Value…`), deletion, or injection (`Add / Inject Item…`) with in-app Frida script synthesis (and add flagged rows to MASVS
   Findings). Open **Evidence Export**, manage findings on the **MASVS Findings** tab,
   add attachments or guest screenshots, and run **Prepare Preview → Export Reviewed Evidence…**
   to generate redacted `context.txt`, `findings-report.md`, and `findings-report.html`.
