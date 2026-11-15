@@ -135,6 +135,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | --- | --- |
 | [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS, sandbox paths, **App Framework & Tech Stack Detection** (Native Swift/ObjC, Flutter Dart AOT, React Native Hermes/JSC, Unity IL2CPP, Cordova/Capacitor, .NET MAUI/Xamarin, Unreal), **Commercial Protector & RASP Detection** (DexProtector/Licel, iXGuard, Promon SHIELD, Talsec freeRASP, AppSealing, Arxan), anti-debug/anti-jailbreak heuristics, **Tailored Pentest Guidance**, **Static Binary & Manifest Security Scanner** (`MH_PIE`, stack canary, ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`), and **Add to MASVS Findings** |
 | **Storage Inspector** | Browse app data & App Group containers (`files.list`), preview XML/binary Plists, interactive SQLite 3 database & table row browser, live in-app SQL query runner with mutations and commit back to guest (`files.write`), direct **Export to Mac…** and **Open in Default Mac App** (DB Browser / Xcode / VS Code), selectable & 1-click copyable container paths, scan for secrets/JWT/PEM/world-writable permissions, and **Add to MASVS Findings** |
+| **File Browser** | Full-featured interactive guest filesystem explorer with double-click and Return-key folder navigation, forward/back/parent history, editable path bar with "Go", quick-jump presets (`App Data`, `App Bundles`, `Mobile Home`, `DCIM`, `Root`), file upload from Mac (`control.uploadFile`), download to Mac (`control.pullFile`), new directory creation, deletion, copy path, and automatic deep-link reveal from App Inspector for Data Containers and App Bundles |
 | **In-App Network & API Flow Inspector** | Real-time HTTP/HTTPS transaction capture (`NSURLSession` / `CFNetwork`), status/method filtering, formatted request/response headers and body viewers, 1-click cURL generator, in-app request tampering and replay engine (`[Replay]`), active **Map Local / Rewrite / Drop Mock Rules Engine** directly in-process without external proxy tools, and HAR 1.2 export for Postman/Proxyman |
 | **SSL Pinning & Jailbreak Bypass Studio** | Multi-engine runtime evasion studio with real-time toggleable modules: SecTrustEvaluate / TrustKit SSL unpinning, Jailbreak & Root detection cloaking (file checks, dyld hooks, fork/syscall, C-API stat bypass), dynamic Frida script synthesis, and event log telemetry |
 | **Dynamic Crypto Tracer & Key Sniffer** | Dynamic cryptanalysis engine hooking CommonCrypto (`CCCrypt`, `CCHmac`, `CC_MD5`, `CC_SHA*`), SecKey, and Apple CryptoKit; detects insecure ECB modes, hardcoded/static IVs, weak keys, and deprecated hashes in real time, with MASVS-CRYPTO finding export |
@@ -165,81 +166,25 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 | [Patch IPA with Frida Gadget](Research/Guest/gadget_patchipa.md) | Embed Gadget/config in an unencrypted iOS IPA and sign a new IPA ad hoc for vphone VMs |
 | [Install → Launch → Gadget Session](Research/Host/gadget_deployment.md) | Verify the patched IPA hash, select a VM, install/launch explicitly, and transfer endpoint/token through a temporary USB loopback tunnel |
 
-Start the VM for guest operations, then open the tool from **Pentest Tools**.
-After a VM restart, use **Reconnect / Check APIs**. You can also open the hub
-with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/en/launchpad/launchpad-cli.md)
+Start the VM for guest operations, then open tools from **Actions → Pentest Tools…** or via CLI:
+```sh
+vphone-launchpad-cli vm pentest <name>
+```
 
-- **App Inspector, Binary Scanner, and IPA export** — select an app in App Browser,
-  open App Inspector to run **Run Security Scan** (automatically identifies app framework,
-  runtime engine, and commercial hardening/RASP like DexProtector and iXGuard with actionable
-  pentest guidance; checks arm64 Mach-O protections, weak APIs, URLs, entitlements, and ATS),
-  launch **Storage Inspector…**, or choose **Export Installed IPA…** to save its bundle.
-  Use **Install App Package** in App Browser to install a test IPA or TIPA.
-- **Storage Inspector** — open from the Pentest Hub or App Inspector, choose an app and
-  data/App Group root, click any row in the file table to immediately inspect XML/binary Plists or SQLite databases & rows, run custom SQL queries and commit changes back to the guest, export files to Mac or open directly in default macOS apps (DB Browser, Xcode, VS Code), copy file paths with 1-click or text drag, run **Scan for Secrets**,
-  and add findings directly to the MASVS store.
-- **Network Flow Inspector & Bypass Studio** — capture live HTTP/HTTPS traffic from any running guest app without proxy setup; toggle jailbreak and SSL pinning bypass modules on the fly with live Frida instrumentation.
-- **Crypto Tracer, Mach-O Visualizer & Sandbox File Watcher** — trace CommonCrypto and CryptoKit calls in real time to catch static IVs and weak ciphers; inspect Mach-O headers and sensitive entitlements; monitor real-time sandbox filesystem operations (create/write/delete/rename) with automatic secret and unencrypted database detection.
-- **Sandbox Diff** — from the selected app's inspector, open **Sandbox Diff…**,
-  capture a baseline, run your test, then select **Scan & Compare**.
-- **Frida Tools & Pentest Preset** — open **Frida Tools**, choose a release on the **Server**
-  tab, click **Download & Install → Start**, then switch to the **Session**
-  tab. Toggle one or more built-in hooks (or a quick preset) in the **Multi-Script Composer**
-  alongside custom JS, enter the endpoint and token, select the app, and choose
-  Spawn or Attach. Create or patch VMs with `--preset pentest` (formerly `frida`) to automatically enable all required Frida kernel relaxations (`kernel-exp-frida_*`) and `system-securityd-exp-keychain_eligibility` for full keychain persistence. [Frida guest compatibility](Research/Guest/frida_server.md#investigation-lead-missing-opt-in-frida-kernel-relaxations)
-- **Network Diagnostics + PCAP** — enter a target for **Test DNS / TCP**.
-  Select an interface and filter, then use **Start Capture → Stop → Save PCAP…**.
-- **Logs and deep links** — select an app in App Logs & Crash Viewer and
-  start App Logs or open Crash Reports. In Deep Link Tester, review URL schemes
-  and Associated Domains, test manually or run batches on the **Payload Fuzzer** tab,
-  filter the **Run History Matrix**, and add interesting runs to MASVS Findings.
-- **Proxy, Pasteboard, and Mocking Hub** — configure upstream Burp Suite/mitmproxy with 1-click CA installation into iOS trust store; monitor guest clipboard for leaked secrets and fuzz with test vectors; simulate synthetic battery levels and mock Face ID / Touch ID authentication results.
-- **Biometric Testing Capabilities & Hardware SEP Boundaries** —
-  - *Software / Application Layer (Fully Mockable & Bypassable)*: Intercepts `LocalAuthentication` (`LAContext evaluatePolicy:localizedReason:reply:` and `canEvaluatePolicy:error:`) to force biometric authentication success or simulate edge cases (Pass, Fail/Mismatch, User Cancel, `LAErrorBiometryLockout`, and `LAErrorBiometryNotEnrolled`). This successfully evaluates or bypasses ~85% of commercial iOS apps that rely on biometric prompts as a UI gate before accessing session tokens.
-  - *Hardware-Enforced Boundaries (Secure Enclave / SEP)*: If an application enforces asymmetric cryptographic challenge-response authentication using keys generated inside the Secure Enclave (`kSecAttrTokenIDSecureEnclave`, CryptoKit `SecureEnclave.P256`, or FIDO2/Passkeys), the private key never leaves the SEP hardware and requires physical biometric authorization. Digital signatures cannot be forged purely via userland UI hooks if the server cryptographically verifies the signature against Apple attestation. Pentesters assess these applications via Key Downgrade / Enrollment Hooking (intercepting initial key generation in `SecKeyCreateRandomKey` to strip SEP attributes and generate standard Keychain keys).
-- **Runtime Inspector and Memory Scanner** — explore loaded Objective-C/Swift classes, trace method calls in real time, force method return values to bypass checks, and scan writable live process memory (RAM/Heap) for leaked credentials and tokens.
-- **Automated MASVS Audit and APFS Snapshot Hub** — run 1-click comprehensive MASVS security audits with grade evaluation and standalone HTML/Markdown exports; create instant, zero-copy APFS VM snapshots and rollback cleanly before/after malware or bypass testing.
-- **Binary Diff & Live Crash Signal Sentinel** — perform deep structural Mach-O comparisons between Base and Target builds to instantly catch security regressions (dropped PIE/ARC/Canaries, W^X stack regressions, new `get-task-allow` entitlements, or rogue dylibs); monitor native exception events and Objective-C throws with the register and backtrace data available to Frida during fuzzer runs.
-- **Keychain Inspector & Injector, MASVS Findings, and Evidence Export** — select an app and group scope
-  for **Scan Metadata**, **Dump Readable Values**, live value editing (`Edit Value…`), deletion, or injection (`Add / Inject Item…`) with in-app Frida script synthesis (and add flagged rows to MASVS
-  Findings). Open **Evidence Export**, manage findings on the **MASVS Findings** tab,
-  add attachments or guest screenshots, and run **Prepare Preview → Export Reviewed Evidence…**
-  to generate redacted `context.txt`, `findings-report.md`, and `findings-report.html`.
+### Workflows
 
-For the IPA flow, open **Local IPA Tools → Patch IPA with Frida Gadget…**.
-Choose an unencrypted IPA and download or select iOS Gadget. You can patch
-with the VM stopped. Select a running VM for deployment, then use **Install Patched IPA → Launch App → Open Gadget Session**,
-then **Test Connection → Attach Gadget**. USB transport selects the target VM's
-UDID and reaches guest loopback without adding a guest network listener.
-Keep the target app foreground and the VM unlocked during testing. Encrypted
-IPAs and physical-device signing/provisioning are outside this patcher's scope.
+- **App & Storage Analysis** — Select an app in App Browser to run **Run Security Scan** (detects frameworks, DexProtector/iXGuard/Promon RASP, and binary hardening), or inspect files via **Storage Inspector** (live SQLite/Plist editor) and **File Browser** (double-click navigation, upload/download, and 1-click **Show in Files** from App Inspector).
+- **Runtime Instrumentation & Evasion** — Open **Frida Tools** with `--preset pentest` (enables kernel relaxations and keychain eligibility out of the box). Capture HTTP/HTTPS traffic in **Network Flow Inspector** with request tampering/replay, or toggle SSL unpinning and jailbreak cloaking in **Bypass Studio**.
+- **Mocking & Biometrics** — Simulate battery states, thermal levels, and mock Face ID / Touch ID authentication via `LocalAuthentication` hooks. *(SEP hardware-bound private keys remain inside the Secure Enclave).*
+- **Audit, Diffing & Evidence** — Run 1-click **Automated MASVS Compliance** checks, capture zero-copy **APFS Snapshots** for instant rollback, detect regressions in **Binary Diff**, and compile redacted reports in **Evidence Export**.
+- **IPA Tools & Gadget Injection** — Embed Frida Gadget in unencrypted IPAs via **Local IPA Tools → Patch IPA with Frida Gadget…**, or export installed app bundles via **Export Installed IPA…**.
 
-For repeatable checks with synthetic data, see the
-[QA fixture and recorded results](Research/Host/pentest_qa_20261109.md), including
-the observed Keychain and log-capture limitations.
-The fixture also includes [app-context jailbreak checks](Research/Guest/jailbreak_detection_fixture.md)
-with individual observations and an inconclusive result when no selected signal is found.
-Build it with `zsh VPhoneLaunchpad/Tests/BuildPentestFixture.sh`, install the
-generated `.build/pentest-qa-fixture/PentestFixture.ipa` through **App Browser →
-Install App Package**, then open **VPhone Pentest QA → Run jailbreak checks**
-inside the guest. Use the unpatched fixture for the baseline.
+### VM Integrations (Core Bundle)
 
-Keep VM folders, exported evidence, patched IPAs and signing credentials outside
-Git. Evidence may retain identifying metadata; text redaction does not redact
-screenshots or PCAP payloads. Use synthetic apps/data for public examples.
-
-With the fork's Core selected, use **Data → Photos** in the VM window (or **Pentest Tools → Photos & Media Browser…**) to open the dedicated media browser to preview, copy to clipboard, or export camera roll photos, screenshots, and videos directly to your Mac.
-
-Use **Features → Source: Mac Camera…** in the
-VM window, choose a camera, and click **Start Streaming**. Allow macOS Camera
-access when prompted. [Mac camera setup](Research/Guest/mac_camera_local.md)
-
-Open **Network → Proxy…** in the VM window, enable the proxy, enter the host
-and port reachable from the guest, and click **Apply**. Use
-**Import CA Certificate…** to add your test CA. [Proxy and CA setup](Research/Guest/proxy_menu.md)
-
-For Xcode or Instruments, enable **Diagnostics → Keep Developer Tunnel Open**
-in the running VM's window so the guest stays listed as online.
+- **Photos & Media**: Open **Data → Photos** (or **Photos & Media Browser…**) to preview and export guest DCIM media to Mac.
+- **Mac Camera**: Stream host camera input into the VM via **Features → Source: Mac Camera…**.
+- **Proxy & CA**: Configure upstream proxies and install root CAs in **Network → Proxy…**.
+- **Developer Tunnel**: Enable **Diagnostics → Keep Developer Tunnel Open** for Xcode/Instruments connectivity.
 
 ## Host-side fixes in this fork
 
