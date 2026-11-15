@@ -144,6 +144,22 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   checks. Spawns the guest process and verifies live UIPasteboard isolation, in-memory heap secret
   retention, biometric authentication policy binding (`LAContext` vs Secure Enclave), and sandbox
   data protection, rendering visual `[Dynamic]` badges and updated compliance scorecards.
+- **Protector & RASP Runtime String Decryptor (`VPhoneProtectorDecryptor`).**
+  Intercepts decryption routines across commercial iOS protectors and RASP systems (DexProtector/Licel,
+  iXGuard, Promon SHIELD, and Talsec freeRASP). Hooks runtime decryption functions (`dp_decrypt_string`,
+  `_licel_decrypt`, `_ixg_decrypt`, etc.) to capture plaintext strings and endpoints as they are decoded
+  in memory, displaying them in a searchable stream with 1-click Frida QuickJS script generation and JSON export.
+- **In-App Network Interceptor Mock Rules (Map Local / Rewrite / Drop) in Flow Inspector.**
+  The In-App Network Inspector now features a built-in Mocking Rules engine (`VPhoneNetworkMockRule`).
+  Security testers can configure in-process Map Local responses (status code + synthesized JSON/HTML body),
+  URL redirection, and simulated network connection drops directly inside `NSURLSession` hooks without
+  needing an external proxy tool. Matched flows are visibly tagged with purple `[Mocked]` badges.
+- **Frida Live REPL & Interactive Scratchpad Console (`VPhoneFridaREPL`).**
+  Added an interactive REPL console to Frida Tools as a third dedicated tab ("REPL Console") and as
+  a standalone window callable directly from App Inspector. Evaluates JavaScript expressions and scripts
+  live in the target iOS app via QuickJS, features command history navigation, an integrated pentest
+  snippets library (UI view hierarchy dumper, loaded module lister, pasteboard reader, ptrace hook),
+  and auto-scrolling terminal output.
 - **Standalone App Inspector JSON reports now use private `0600` permissions.**
   `saveInspectorReport()` in both `VPhonePentest` and the VM window previously
   wrote `app-inspector.json` with default `0644` permissions; both now route
