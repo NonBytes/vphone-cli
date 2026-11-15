@@ -4,10 +4,10 @@ import Foundation
 
 @main
 enum NetworkFlowInspectorTests {
+    @MainActor
     static func main() async {
-        await MainActor.run {
-            let mock = MockNetworkFlowGuestControl()
-            let model = VPhoneNetworkFlowModel(control: mock)
+        let mock = MockNetworkFlowGuestControl()
+        let model = VPhoneNetworkFlowModel(control: mock)
 
             // 1. Initial State
             precondition(model.flows.isEmpty, "Initial flows must be empty")
@@ -122,12 +122,31 @@ enum NetworkFlowInspectorTests {
             precondition(script.contains("NSURLSession"), "Script must reference NSURLSession")
             precondition(script.contains("dataTaskWithRequest:completionHandler:"), "Script must hook completionHandler")
 
-            // 10. Clear Flows
+            // 10. Test Request Tampering & Replay Engine
+            var replayCaughtError = false
+            do {
+                _ = try await model.replayRequest(
+                    method: "POST",
+                    urlString: "http://127.0.0.1:59999/test-unreachable",
+                    headers: ["X-Test": "1", "Content-Type": "application/json"],
+                    body: "{\"tampered\":true}"
+                )
+            } catch {
+                replayCaughtError = true
+            }
+            precondition(replayCaughtError, "Expected unreachable replay request to fail gracefully")
+            precondition(model.flows.count == 3, "Failed replayed flow must be prepended to stream (total 3)")
+            guard let replayedFlow = model.flows.first else { preconditionFailure("Missing replayed flow") }
+            precondition(replayedFlow.isReplayed, "Flow must be marked isReplayed: true")
+            precondition(replayedFlow.method == "POST", "Replayed method must be POST")
+            precondition(replayedFlow.requestHeaders["X-Test"] == "1", "Replayed headers must be preserved")
+            precondition(replayedFlow.requestBody.contains("tampered"), "Replayed body must be preserved")
+
+            // 11. Clear Flows
             model.clearFlows()
             precondition(model.flows.isEmpty, "Flows must be empty after clear")
-        }
 
-        print("Network Flow Inspector checks passed: transaction ingestion, request/response matching, status/method filters, HAR export, cURL synthesis, and Frida hook engine.")
+        print("Network Flow Inspector checks passed: transaction ingestion, request/response matching, status/method filters, HAR export, cURL synthesis, Frida hook engine, and Request Tampering & Replay.")
     }
 }
 
