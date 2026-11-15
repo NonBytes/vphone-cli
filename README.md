@@ -4,7 +4,7 @@
 
 Run a virtual iPhone on an Apple Silicon Mac for security research, reverse engineering, and debugging.
 
-This is [NonBytes' fork](https://github.com/NonBytes/vphone-cli) of
+This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of
 [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), with additional
 pentest tools, camera selection, and per-VM proxy/CA management.
 
@@ -61,8 +61,8 @@ Build and install VPhone Launchpad from this repository following README.md and 
 1. Install Xcode with the iPhoneOS SDK and clone the fork.
 
    ```sh
-   git clone https://github.com/NonBytes/vphone-cli.git
-   cd vphone-cli
+   git clone https://github.com/NonBytes/vphone-pentest.git
+   cd vphone-pentest
    ```
 
 2. Set `VPHONE_LAUNCHPAD_TEAM` in the local
@@ -146,7 +146,7 @@ Additional VM controls (Mac camera pass-through, per-VM HTTP/HTTPS proxy & CA, d
 
 ## Fork Details & Issues
 
-See [Host-side fork fixes](Research/Host/fork_fixes.md) for changes beyond upstream, and [open an issue here](https://github.com/NonBytes/vphone-cli/issues) for fork-specific bugs (or [upstream issues](https://github.com/Lakr233/vphone-cli/issues) for the original project).
+See [Host-side fork fixes](Research/Host/fork_fixes.md) for changes beyond upstream, and [open an issue here](https://github.com/NonBytes/vphone-pentest/issues) for fork-specific bugs (or [upstream issues](https://github.com/Lakr233/vphone-cli/issues) for the original project).
 
 ## Acknowledgements
 

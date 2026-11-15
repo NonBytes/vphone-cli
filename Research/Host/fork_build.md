@@ -8,7 +8,7 @@ system libraries and their own bundled resources, without Python or Homebrew.
 
 ## Launchpad and Pentest Tools
 
-Clone https://github.com/NonBytes/vphone-cli and open its checkout. Configure
+Clone https://github.com/NonBytes/vphone-pentest and open its checkout. Configure
 `VPhoneLaunchpad/Configuration/Developer.xcconfig` locally before building:
 
 ```xcconfig
