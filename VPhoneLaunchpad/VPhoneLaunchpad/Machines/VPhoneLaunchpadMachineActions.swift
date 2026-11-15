@@ -135,12 +135,6 @@ struct VPhoneLaunchpadMachineActions: View {
                 Text(activity)
             }
             Divider()
-            Button("Settings…") { request(.settings([machine])) }
-                .disabled(!isStopped)
-                .menuShortcut("i", in: placement)
-            // It works on the running guest, and says so when it is not.
-            Button("Guest System…") { request(.guestSystem(machine.path)) }
-                .disabled(library.creation(for: machine.path)?.isRunning == true)
             Button("Pentest Tools…") {
                 Task {
                     do { try await VPhoneLaunchpadPentestTools.shared.open(machine.path) }
@@ -148,6 +142,12 @@ struct VPhoneLaunchpadMachineActions: View {
                 }
             }
             .disabled(library.creation(for: machine.path)?.isRunning == true)
+            Button("Settings…") { request(.settings([machine])) }
+                .disabled(!isStopped)
+                .menuShortcut("i", in: placement)
+            // It works on the running guest, and says so when it is not.
+            Button("Guest System…") { request(.guestSystem(machine.path)) }
+                .disabled(library.creation(for: machine.path)?.isRunning == true)
             changeBundleButton
             Divider()
         }

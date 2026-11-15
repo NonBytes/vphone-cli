@@ -54,10 +54,14 @@ extension VPhoneMenuController {
         let item = NSMenuItem(title: "Features", action: nil, keyEquivalent: "")
         let menu = NSMenu(title: "Features")
         menu.autoenablesItems = false
+
+        menu.addItem(makeItem("Frida Tools…", action: #selector(showFridaTools)))
+        let pentestItem = makeItem("Pentest Tools…", action: #selector(showPentestTools))
+        pentestItem.isEnabled = machineDirectory != nil
+        menu.addItem(pentestItem)
+        menu.addItem(NSMenuItem.separator())
+
         for section in [buildLocationSubmenu(), buildBatterySubmenu(), buildCameraSubmenu()] {
-            if menu.numberOfItems > 0 {
-                menu.addItem(NSMenuItem.separator())
-            }
             menu.addItem(NSMenuItem.sectionHeader(title: section.title))
             // Move, not copy: the controller keeps references to these items.
             let items = section.submenu?.items ?? []
@@ -65,13 +69,9 @@ extension VPhoneMenuController {
             for child in items {
                 menu.addItem(child)
             }
+            menu.addItem(NSMenuItem.separator())
         }
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(buildMotionSensorsMenu())
-        menu.addItem(makeItem("Frida Tools…", action: #selector(showFridaTools)))
-        let pentestItem = makeItem("Pentest Tools…", action: #selector(showPentestTools))
-        pentestItem.isEnabled = machineDirectory != nil
-        menu.addItem(pentestItem)
         item.submenu = menu
         return item
     }
