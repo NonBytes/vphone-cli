@@ -40,7 +40,7 @@ require_signed_macho() {
     }
 }
 
-for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client libswiftCompatibilitySpan.vphone.dylib; do
+for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client libswiftCompatibilitySpan.vphone.dylib libvphone-kmutil-shim.dylib; do
     require_signed_macho "$macos/$name"
 done
 require_signed_macho "$frameworks/VPhonePatchKit.framework/Versions/A/VPhonePatchKit"

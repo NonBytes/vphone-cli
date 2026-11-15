@@ -628,17 +628,6 @@ struct VPhoneLaunchpadControlCommands {
         if let kernelcacheIPSW, !FileManager.default.isExecutableFile(atPath: kernelcacheIPSW) {
             throw VPhoneLaunchpadError("--ipsw names \(kernelcacheIPSW), which is not an executable.")
         }
-        // An iOS 18 guest's kernel-first mix is linked over ssh on the Mac
-        // --kmutil-ssh names; vphone-launchpad-cli passes the password from its
-        // own VPHONE_KMUTIL_SSH_PASSWORD, never as an argument.
-        let kernelcacheBuilder = request.option("kmutil-ssh").map {
-            VPhoneLaunchpadKernelcacheBuilder(destination: $0, password: request.option(VPhoneLaunchpadControlRequest.kmutilSSHPasswordOption))
-        }
-        if let kernelcacheBuilder {
-            guard VPhoneLaunchpadKernelcacheBuilder.isValid(kernelcacheBuilder.destination) else {
-                throw VPhoneLaunchpadError("--kmutil-ssh takes user@host, not \(kernelcacheBuilder.destination).")
-            }
-        }
         let options = try VPhoneLaunchpadCreationPipeline.Options(
             name: machine.name,
             libraryRoot: machine.libraryRoot,
@@ -656,7 +645,6 @@ struct VPhoneLaunchpadControlCommands {
             usesTemplate: usesTemplate,
             slimming: slimming,
             kernelcacheIPSW: kernelcacheIPSW,
-            kernelcacheBuilder: kernelcacheBuilder,
         )
         return library.create(options)
     }
