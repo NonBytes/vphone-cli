@@ -119,6 +119,18 @@ Launchpad (see [Build and install this fork](fork_build.md)) to pick them up.
   `logs.syslog` / `logs.crash` handlers and the host `VPhoneConsoleModel` /
   `VPhoneAppLogsWindowController` coordinate scoped streaming, clear feedback, and
   private exports consistently across both `VPhonePentest` and the VM window.
+- **App Framework & Protector / RASP Detection Engine with actionable Pentest Guidance.**
+  App Inspector's **Run Security Scan** (`VPhoneBinaryScanner`) now features an automated
+  heuristic inspection engine (`VPhoneAppTechStack`) that parses Mach-O 64-bit dylib load
+  commands (`LC_LOAD_DYLIB`), custom section signatures, exported symbols, class names,
+  and raw string pools to classify app frameworks (Native Swift/ObjC, Flutter Dart AOT,
+  React Native with Hermes or JavaScriptCore runtime, Unity IL2CPP, Cordova/Capacitor,
+  .NET MAUI/Xamarin, Unreal Engine) and commercial protectors/RASP (DexProtector/Licel,
+  iXGuard, Promon SHIELD, Talsec freeRASP, AppSealing, Arxan/Digital.ai). It also detects
+  anti-debugging (`ptrace`, `sysctl(P_TRACED)`, Mach exception ports) and anti-jailbreak
+  heuristics, renders distinct UI badges and table rows in App Info, and injects a
+  dedicated **Pentest & Reverse Engineering Guidance** advice panel detailing target-specific
+  Frida hooks, bytecode extraction techniques, and evasion tips.
 - **Standalone App Inspector JSON reports now use private `0600` permissions.**
   `saveInspectorReport()` in both `VPhonePentest` and the VM window previously
   wrote `app-inspector.json` with default `0644` permissions; both now route

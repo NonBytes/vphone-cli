@@ -133,7 +133,7 @@ upstream Core alone does not add these tools to an upstream Launchpad.
 
 | Feature | What it provides |
 | --- | --- |
-| [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS, sandbox paths, **Static Binary & Manifest Security Scanner** (`MH_PIE`, stack canary, ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`), and **Add to MASVS Findings** |
+| [App Inspector / App Browser](Research/Host/launchpad_pentest_tools.md) | App icons, Bundle ID, version/build, PID, entitlements, URL schemes, ATS, sandbox paths, **App Framework & Tech Stack Detection** (Native Swift/ObjC, Flutter Dart AOT, React Native Hermes/JSC, Unity IL2CPP, Cordova/Capacitor, .NET MAUI/Xamarin, Unreal), **Commercial Protector & RASP Detection** (DexProtector/Licel, iXGuard, Promon SHIELD, Talsec freeRASP, AppSealing, Arxan), anti-debug/anti-jailbreak heuristics, **Tailored Pentest Guidance**, **Static Binary & Manifest Security Scanner** (`MH_PIE`, stack canary, ARC, weak crypto/insecure C APIs, cleartext URLs/secrets, `get-task-allow`), and **Add to MASVS Findings** |
 | **Storage Inspector** | Browse app data & App Group containers (`files.list`), preview XML/binary Plists, interactive SQLite 3 database & table row browser, live in-app SQL query runner with mutations and commit back to guest (`files.write`), direct **Export to Mac…** and **Open in Default Mac App** (DB Browser / Xcode / VS Code), selectable & 1-click copyable container paths, scan for secrets/JWT/PEM/world-writable permissions, and **Add to MASVS Findings** |
 | **In-App Network & API Flow Inspector** | Real-time HTTP/HTTPS transaction capture (`NSURLSession` / `CFNetwork`), status/method filtering, formatted request/response headers and body viewers, 1-click cURL generator, in-app request tampering and replay engine (`[Replay]`), and HAR 1.2 export for Postman/Proxyman |
 | **SSL Pinning & Jailbreak Bypass Studio** | Multi-engine runtime evasion studio with real-time toggleable modules: SecTrustEvaluate / TrustKit SSL unpinning, Jailbreak & Root detection cloaking (file checks, dyld hooks, fork/syscall, C-API stat bypass), dynamic Frida script synthesis, and event log telemetry |
@@ -166,10 +166,11 @@ After a VM restart, use **Reconnect / Check APIs**. You can also open the hub
 with `vphone-launchpad-cli vm pentest <name>`. [Launchpad CLI guide](Documents/en/launchpad/launchpad-cli.md)
 
 - **App Inspector, Binary Scanner, and IPA export** — select an app in App Browser,
-  open App Inspector to run **Run Security Scan** (arm64 Mach-O protections, weak APIs,
-  URLs, entitlements, and ATS), launch **Storage Inspector…**, or choose
-  **Export Installed IPA…** to save its bundle. Use **Install App Package** in App
-  Browser to install a test IPA or TIPA.
+  open App Inspector to run **Run Security Scan** (automatically identifies app framework,
+  runtime engine, and commercial hardening/RASP like DexProtector and iXGuard with actionable
+  pentest guidance; checks arm64 Mach-O protections, weak APIs, URLs, entitlements, and ATS),
+  launch **Storage Inspector…**, or choose **Export Installed IPA…** to save its bundle.
+  Use **Install App Package** in App Browser to install a test IPA or TIPA.
 - **Storage Inspector** — open from the Pentest Hub or App Inspector, choose an app and
   data/App Group root, click any row in the file table to immediately inspect XML/binary Plists or SQLite databases & rows, run custom SQL queries and commit changes back to the guest, export files to Mac or open directly in default macOS apps (DB Browser, Xcode, VS Code), copy file paths with 1-click or text drag, run **Scan for Secrets**,
   and add findings directly to the MASVS store.
@@ -237,7 +238,7 @@ in the running VM's window so the guest stays listed as online.
 
 Beyond the upstream sync, this fork carries host-side and workflow fixes found while running the fork day to day:
 
-- **Pentest Preset & Frida Tools** — Shipped `pentest` preset (renamed from `frida`) enabling Frida kernel relaxations plus `securityd` keychain eligibility out of the box, unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
+- **Pentest Preset, Tech Stack Engine & Frida Tools** — Shipped `pentest` preset (renamed from `frida`) enabling Frida kernel relaxations plus `securityd` keychain eligibility out of the box, automatic App Framework & Commercial Protector (DexProtector/iXGuard/Promon/Talsec) detection engine with tailored reverse engineering guidance, unified Frida Tools with 7 built-in safe scripts, storage/binary/deep-link inspectors, photos browser, and MASVS reporting.
 - **Guest Stability & VSOCK** — Resolved transient disconnection blips, single-threaded VSOCK event loop, and localized error reporting.
 - **Workflow & Launchpad** — Direct Pentest menu in VM window, real transfer progress, preset switching, HTTPS proxy verification, and bounded log streaming.
 - **Firmware & Build** — Extended catalog through iOS 27.2.1, unmount retry handling, and consolidated pure-Swift `VPhonePentestKit`.
