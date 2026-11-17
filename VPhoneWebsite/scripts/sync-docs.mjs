@@ -354,6 +354,11 @@ for (const image of images) {
   fs.copyFileSync(path.join(repoRoot, image), destination);
 }
 
+const staticPublic = path.join(siteRoot, 'public');
+if (fs.existsSync(staticPublic)) {
+  fs.cpSync(staticPublic, path.join(outRoot, 'public'), { recursive: true });
+}
+
 // MARK: - Redirects
 
 /**

@@ -28,44 +28,103 @@
   --rp-c-bg-mute: #222222;
 }
 
-/* Flat: no shadows, hairline borders. */
-* {
-  box-shadow: none !important;
-}
+/* Modern clean surfaces with subtle ambient elevation. */
 
-/* Home: type only, no gradients or decoration. */
 .rp-home-background {
-  display: none !important;
+  display: block !important;
+  opacity: 0.5;
+  filter: saturate(1.4);
 }
 
 .rp-home-hero__title-brand {
   background: none !important;
   -webkit-text-fill-color: currentColor !important;
   color: var(--rp-c-text-2) !important;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.rp-home-hero__title,
-.rp-home-hero__subtitle {
+.rp-home-hero__title {
   letter-spacing: -0.03em;
 }
 
+.rp-home-hero__subtitle {
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 800 !important;
+}
+
 .rp-home-hero__tagline {
-  max-width: 34em;
+  max-width: 36em;
   margin-inline: auto;
   color: var(--rp-c-text-2);
+  line-height: 1.6;
+}
+
+.rp-button {
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .rp-button--brand {
-  background: var(--rp-c-brand) !important;
-  background-image: none !important;
-  border-color: var(--rp-c-brand) !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  background-image: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #10b981 !important;
   color: #fff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+.rp-button--brand:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
+  filter: brightness(1.08) !important;
 }
 
 .dark .rp-button--brand {
-  color: #0f0f0f !important;
+  color: #fff !important;
+}
+
+.rp-button--alt {
+  border: 1px solid var(--rp-c-divider) !important;
+  background: var(--rp-c-bg-soft) !important;
+}
+
+.rp-button--alt:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--rp-c-brand) !important;
+  color: var(--rp-c-brand) !important;
+}
+
+/* Feature cards */
+.rp-home-feature__card {
+  border: 1px solid var(--rp-c-divider) !important;
+  background: var(--rp-c-bg-soft) !important;
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.rp-home-feature__card:hover {
+  transform: translateY(-3px) !important;
+  border-color: var(--rp-c-brand) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark .rp-home-feature__card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Nav Logo */
+.rp-nav__title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.rp-nav__title img {
+  border-radius: 6px !important;
 }
 
 /* Documentation text: comfortable measure, quiet tables. */

@@ -17,13 +17,13 @@ hero:
       link: /get-started/overview
 
 features:
-  - title: Pentest Suite
+  - title: 🛠️ Pentest Suite
     details: 17 integrated security tools for iOS app analysis, live SQLite mutations, in-app traffic replay, and MASVS compliance.
     link: /research/Pentest/overview
-  - title: Runtime Evasion
+  - title: 🛡️ Runtime Evasion
     details: Dynamic multi-engine SSL unpinning, Flutter BoringSSL scanning, and RASP/protector string decryption.
     link: /research/Pentest/ssl_pinning_jailbreak
-  - title: Set up & Base Manual
+  - title: ⚙️ Set up & Base Manual
     details: Host security setup, APFS library configuration, and upstream virtual machine management.
     link: /get-started/quick-start
 ---

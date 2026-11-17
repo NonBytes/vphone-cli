@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#182026"/>
+      <stop offset="100%" stop-color="#0b0f13"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="16" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="60%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Device Frame Background -->
+  <rect x="3" y="3" width="58" height="58" rx="16" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2"/>
+
+  <!-- Subtle Dynamic Island Top Bar -->
+  <rect x="25" y="7" width="14" height="3" rx="1.5" fill="#374151" opacity="0.8"/>
+
+  <!-- Security Shield Silhouette -->
+  <path d="M32 14L46 19.5V31.5C46 41.2 39.8 48.8 32 51.5C24.2 48.8 18 41.2 18 31.5V19.5L32 14Z" 
+        fill="url(#shieldGrad)" 
+        stroke="#6ee7b7" 
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+
+  <!-- Inner Dark Core of Shield -->
+  <path d="M32 17.5L42.5 21.6V30.8C42.5 38.3 37.8 44.5 32 47C26.2 44.5 21.5 38.3 21.5 30.8V21.6L32 17.5Z" 
+        fill="#0a1015" 
+        opacity="0.85"/>
+
+  <!-- Terminal Pentest Prompt ('>_') in Neon Emerald -->
+  <path d="M27 26.5L32.5 31L27 35.5" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="34.5" y1="35.5" x2="38.5" y2="35.5" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Active Research Green Pulse Dot -->
+  <circle cx="32" cy="22" r="1.5" fill="#6ee7b7"/>
+</svg>

@@ -23,6 +23,12 @@ export default defineConfig({
   title: 'vphone-pentest',
   description: languages[0].tagline,
   lang: 'en',
+  icon: '/favicon.ico',
+  logo: {
+    light: '/logo.svg',
+    dark: '/logo.svg',
+  },
+  logoText: 'vphone-pentest',
   locales: languages.map(({ lang, label, tagline }) => ({ lang, label, title: 'vphone-pentest', description: tagline })),
   globalStyles: path.join(__dirname, 'theme/index.css'),
   globalUIComponents: [path.join(__dirname, 'theme/ResearchLanguageLinks.tsx')],
