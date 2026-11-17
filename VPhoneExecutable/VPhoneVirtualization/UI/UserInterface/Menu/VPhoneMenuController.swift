@@ -154,8 +154,8 @@ class VPhoneMenuController {
     var cameraSourceOffItem: NSMenuItem?
     var cameraSourceTestPatternItem: NSMenuItem?
     var cameraSourceVideoFileItem: NSMenuItem?
-    var cameraSourceMacCameraItem: NSMenuItem?
     var cameraSourceSystemCameraItem: NSMenuItem?
+    var cameraRotationMenuItems: [NSMenuItem] = []
     var cameraStartStopItem: NSMenuItem?
     weak var captureView: VPhoneVirtualMachineView? {
         didSet {

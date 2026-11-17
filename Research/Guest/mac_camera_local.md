@@ -1,8 +1,13 @@
 # Local Mac camera source
 
-Adds Camera > Source: Mac Camera and a separately launched VPhoneMacCamera.app.
-The companion owns macOS Camera consent. Launchpad's Developer ID signature,
-helper, VM guest environment and security settings stay as installed.
+> [!NOTE]
+> Unified Camera Architecture: The legacy external `VPhoneMacCamera.app` companion helper
+> has been retired and replaced by in-process `VPhoneSystemCameraProducer` (System Camera)
+> enhanced with native 4-way rotation (`VPhoneCameraRotation`: 0° upright, 90° clockwise,
+> 180° upside-down, 90° counterclockwise). Camera selection, device switching, and
+> hardware-accelerated CoreImage frame rotation are handled natively in-process.
+
+Adds Camera > Source: System Camera and Camera Rotation submenu.
 
 Each streaming session creates a fresh mkstemp file (0600), mapped into both
 processes. Stopped helpers cannot write into a later session's buffer.
