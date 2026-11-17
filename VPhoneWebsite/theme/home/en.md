@@ -10,7 +10,7 @@ hero:
       text: Pentest Tools Guide
       link: /research/Pentest/overview
     - theme: alt
-      text: Upstream Repository (Lakr233)
+      text: Upstream (Lakr233)
       link: https://github.com/Lakr233/vphone-cli
     - theme: alt
       text: Base Manual

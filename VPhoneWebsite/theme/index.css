@@ -63,10 +63,33 @@
   line-height: 1.6;
 }
 
+.rp-home-hero__actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  margin-top: 32px !important;
+}
+
 .rp-button {
   border-radius: 9999px !important;
   font-weight: 600 !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.rp-button.rp-button--big,
+.rp-home-hero__action {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  padding: 0 28px !important;
+  font-size: 14.5px !important;
+  white-space: nowrap !important;
+  letter-spacing: -0.01em !important;
+  margin: 0 !important;
 }
 
 .rp-button--brand {
