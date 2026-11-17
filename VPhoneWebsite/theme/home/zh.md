@@ -2,19 +2,19 @@
 pageType: home
 
 hero:
-  name: vphone-pentest
-  text: iOS 渗透测试版
-  tagline: NonBytes 基于 <a href="https://github.com/Lakr233/vphone-cli" target="_blank" rel="noopener noreferrer">Lakr233/vphone-cli</a> 的社区分支版本，专为 iOS 移动安全研究、逆向工程与渗透测试定制。
+  name: vphone
+  text: 在 Mac 上运行虚拟 iPhone
+  tagline: 基于 Apple Virtualization.framework 和 PCC 研究虚拟机运行 iOS，用于安全研究、逆向工程和调试。
   actions:
     - theme: brand
-      text: 渗透工具指南
-      link: /research/Pentest/overview
-    - theme: alt
-      text: 上游原版 (Lakr233)
-      link: https://github.com/Lakr233/vphone-cli
+      text: 快速开始
+      link: /zh/get-started/quick-start
     - theme: alt
       text: 使用手册
       link: /zh/get-started/overview
+    - theme: alt
+      text: 研究笔记（英文）
+      link: /research/
 
 features:
   - title: 安装与设置

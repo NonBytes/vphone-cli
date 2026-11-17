@@ -21,9 +21,9 @@ import { bundledLanguages, bundledLanguagesAlias } from 'shiki';
 const siteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(siteRoot, '..');
 const outRoot = path.join(siteRoot, 'docs');
-const githubBlob = 'https://github.com/NonBytes/vphone-pentest/blob/main/';
-const githubTree = 'https://github.com/NonBytes/vphone-pentest/tree/main/';
-const siteURL = 'https://nonbytes.github.io/vphone-pentest/';
+const githubBlob = 'https://github.com/Lakr233/vphone-cli/blob/main/';
+const githubTree = 'https://github.com/Lakr233/vphone-cli/tree/main/';
+const siteURL = 'https://lakr233.github.io/vphone-cli/';
 
 export const languages = ['en', 'zh', 'ja', 'ko'];
 const defaultLanguage = 'en';
@@ -266,19 +266,6 @@ function manualSidebar(indexSource) {
   return groups.filter((group) => group.items.length > 0);
 }
 
-const pentestOrder = [
-  '/research/Pentest/overview',
-  '/research/Pentest/storage_sqlite',
-  '/research/Pentest/network_flow',
-  '/research/Pentest/ssl_pinning_jailbreak',
-  '/research/Pentest/frida_tools',
-  '/research/Pentest/keychain_injection',
-  '/research/Pentest/crypto_rasp',
-  '/research/Pentest/socks5_tunnel',
-  '/research/Pentest/environment_mocking',
-  '/research/Pentest/masvs_evidence',
-];
-
 /** Research folders, as collapsed sidebar groups titled by their notes' headings. */
 function researchSidebar(titles) {
   const groups = new Map();
@@ -293,34 +280,10 @@ function researchSidebar(titles) {
     }
     groups.get(group).push({ text: titles.get(source) ?? parts.at(-1), link: route });
   }
-  const ordered = [...groups].sort(([a], [b]) => {
-    if (a === 'Pentest') return -1;
-    if (b === 'Pentest') return 1;
-    if (a === 'General') return -1;
-    if (b === 'General') return 1;
-    return a.localeCompare(b);
-  });
+  const ordered = [...groups].sort(([a], [b]) => (a === 'General' ? -1 : b === 'General' ? 1 : a.localeCompare(b)));
   return [
     { text: 'Research', items: [{ text: 'Index', link: '/research/' }] },
-    ...ordered.map(([text, items]) => {
-      let sortedItems = items;
-      if (text === 'Pentest') {
-        sortedItems = [...items].sort((a, b) => {
-          const idxA = pentestOrder.indexOf(a.link);
-          const idxB = pentestOrder.indexOf(b.link);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return a.text.localeCompare(b.text);
-        });
-      }
-      return {
-        text: text === 'Pentest' ? 'Pentest Suite Guide' : text,
-        collapsible: true,
-        collapsed: text !== 'Pentest',
-        items: sortedItems,
-      };
-    }),
+    ...ordered.map(([text, items]) => ({ text, collapsible: true, collapsed: true, items })),
   ];
 }
 
@@ -352,11 +315,6 @@ for (const image of images) {
   const destination = path.join(outRoot, 'public/images', image);
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(path.join(repoRoot, image), destination);
-}
-
-const staticPublic = path.join(siteRoot, 'public');
-if (fs.existsSync(staticPublic)) {
-  fs.cpSync(staticPublic, path.join(outRoot, 'public'), { recursive: true });
 }
 
 // MARK: - Redirects

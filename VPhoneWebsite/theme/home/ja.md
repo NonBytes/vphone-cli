@@ -2,19 +2,19 @@
 pageType: home
 
 hero:
-  name: vphone-pentest
-  text: iOS ペンテスト版
-  tagline: モバイルセキュリティ研究、リバースエンジニアリング、ペネトレーションテスト向けにカスタマイズされた <a href="https://github.com/Lakr233/vphone-cli" target="_blank" rel="noopener noreferrer">Lakr233/vphone-cli</a> の NonBytes コミュニティフォークです。
+  name: vphone
+  text: Mac で仮想 iPhone を動かす
+  tagline: Apple の Virtualization.framework と PCC リサーチ VM で iOS を実行します。セキュリティ研究、リバースエンジニアリング、デバッグ向けです。
   actions:
     - theme: brand
-      text: ペンテストツールガイド
-      link: /research/Pentest/overview
-    - theme: alt
-      text: アップストリーム (Lakr233)
-      link: https://github.com/Lakr233/vphone-cli
+      text: クイックスタート
+      link: /ja/get-started/quick-start
     - theme: alt
       text: マニュアル
       link: /ja/get-started/overview
+    - theme: alt
+      text: 研究ノート（英語）
+      link: /research/
 
 features:
   - title: セットアップ
