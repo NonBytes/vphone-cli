@@ -51,13 +51,13 @@ jobs:
         run: npm run build
 
       - name: Upload site
-        if: (github.repository == 'Lakr233/vphone-cli' || github.repository == 'NonBytes/vphone-pentest') && github.event_name != 'pull_request'
+        if: github.repository == 'Lakr233/vphone-cli' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: VPhoneWebsite/doc_build
 
   deploy:
-    if: (github.repository == 'Lakr233/vphone-cli' || github.repository == 'NonBytes/vphone-pentest') && github.event_name != 'pull_request'
+    if: github.repository == 'Lakr233/vphone-cli' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
