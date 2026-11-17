@@ -2,6 +2,9 @@ import AppKit
 import CryptoKit
 import Foundation
 import VPhoneCoreKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 
 /// Controls only the per-user job installed by the optional guest SOCKS5 add-on.
 /// The job follows vphone.sock independently of the menu, also for headless boots.

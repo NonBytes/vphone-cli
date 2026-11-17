@@ -189,13 +189,6 @@ class VPhoneMenuController {
     convenience init(keySender: VPhoneVirtualMachineKeySender, control: VPhoneGuestControl, machineDirectory: URL? = nil) {
         self.init(keySender: keySender, control: control, machine: machineDirectory ?? URL(fileURLWithPath: "/"))
     }
-        guestToolsWindowController = VPhoneGuestToolsWindowController(control: control)
-        guestPanelsWindowController = VPhoneGuestPanelsWindowController(control: control)
-        NotificationCenter.default.addObserver(forName: Notification.Name("VPhoneOpenFridaTools"), object: nil, queue: .main) { [weak self] _ in
-            self?.showFridaTools()
-        }
-        setupMenuBar()
-    }
 
     // MARK: - Menu Bar Setup
 
