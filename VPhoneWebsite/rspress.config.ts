@@ -44,6 +44,7 @@ export default defineConfig({
       description: tagline,
       nav: [
         { text: manual, link: `${prefix}/get-started/overview`, activeMatch: manualSections },
+        { text: 'Pentest Tools', link: '/research/Pentest/overview', activeMatch: '^/research/Pentest/' },
         { text: downloads, link: `${prefix}/get-started/downloads` },
         // Rspress prefixes links in a translated locale; the research notes are English only.
         { text: research, link: prefix ? 'https://nonbytes.github.io/vphone-pentest/research/' : '/research/', activeMatch: '^/research/' },

@@ -4,26 +4,26 @@ pageType: home
 hero:
   name: vphone-pentest
   text: iOS Pentest Edition
-  tagline: NonBytes' fork of Lakr233/vphone-cli for mobile security research, reverse engineering, and iOS penetration testing.
+  tagline: NonBytes' community fork of Lakr233/vphone-cli tailored for mobile security research, reverse engineering, and iOS penetration testing.
   actions:
     - theme: brand
-      text: Quick Start
-      link: /get-started/quick-start
+      text: Pentest Tools Guide
+      link: /research/Pentest/overview
     - theme: alt
-      text: Manual
+      text: Upstream Repository (Lakr233)
+      link: https://github.com/Lakr233/vphone-cli
+    - theme: alt
+      text: Base Manual
       link: /get-started/overview
-    - theme: alt
-      text: Pentest & Research
-      link: /research/
 
 features:
-  - title: Set up
-    details: Requirements, host security settings and the four steps in Launchpad.
+  - title: Pentest Suite
+    details: 17 integrated security tools for iOS app analysis, live SQLite mutations, in-app traffic replay, and MASVS compliance.
+    link: /research/Pentest/overview
+  - title: Runtime Evasion
+    details: Dynamic multi-engine SSL unpinning, Flutter BoringSSL scanning, and RASP/protector string decryption.
+    link: /research/Pentest/ssl_pinning_jailbreak
+  - title: Set up & Base Manual
+    details: Host security setup, APFS library configuration, and upstream virtual machine management.
     link: /get-started/quick-start
-  - title: Daily use
-    details: Create, start and back up VMs, pick firmware, configure the network.
-    link: /machines/create-and-run
-  - title: Troubleshooting
-    details: Launch refusals, restore failures and guest problems, by symptom.
-    link: /help/troubleshooting
 ---

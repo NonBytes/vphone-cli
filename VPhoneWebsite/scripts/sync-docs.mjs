@@ -280,10 +280,21 @@ function researchSidebar(titles) {
     }
     groups.get(group).push({ text: titles.get(source) ?? parts.at(-1), link: route });
   }
-  const ordered = [...groups].sort(([a], [b]) => (a === 'General' ? -1 : b === 'General' ? 1 : a.localeCompare(b)));
+  const ordered = [...groups].sort(([a], [b]) => {
+    if (a === 'Pentest') return -1;
+    if (b === 'Pentest') return 1;
+    if (a === 'General') return -1;
+    if (b === 'General') return 1;
+    return a.localeCompare(b);
+  });
   return [
     { text: 'Research', items: [{ text: 'Index', link: '/research/' }] },
-    ...ordered.map(([text, items]) => ({ text, collapsible: true, collapsed: true, items })),
+    ...ordered.map(([text, items]) => ({
+      text: text === 'Pentest' ? 'Pentest Suite Guide' : text,
+      collapsible: true,
+      collapsed: text !== 'Pentest',
+      items,
+    })),
   ];
 }
 
