@@ -1,4 +1,7 @@
 import AppKit
+#if canImport(VPhonePentestKit)
+import VPhonePentestKit
+#endif
 import AVFoundation
 import UniformTypeIdentifiers
 
@@ -33,6 +36,16 @@ extension VPhoneMenuController {
         let rotationItem = NSMenuItem(title: "Camera Rotation", action: nil, keyEquivalent: "")
         rotationItem.image = menuSymbol("rotate.right")
         let rotationMenu = NSMenu(title: "Camera Rotation")
+        let rotateCycleItem = makeItem(
+            "Rotate 90° Clockwise",
+            action: #selector(cycleCameraRotation),
+            keyEquivalent: "r",
+            modifiers: [.command, .control],
+            symbol: "arrow.clockwise"
+        )
+        rotationMenu.addItem(rotateCycleItem)
+        rotationMenu.addItem(NSMenuItem.separator())
+
         cameraRotationMenuItems.removeAll()
         for rotation in VPhoneCameraRotation.allCases {
             let rotItem = NSMenuItem(
@@ -102,6 +115,14 @@ extension VPhoneMenuController {
     @objc func selectCameraRotation(_ sender: NSMenuItem) {
         guard let rotation = VPhoneCameraRotation(rawValue: sender.tag) else { return }
         cameraServer?.setCameraRotation(rotation)
+        refreshCameraSourceCheckmarks()
+    }
+
+    @objc func cycleCameraRotation() {
+        let current = cameraServer?.cameraRotation ?? .upright
+        let nextRaw = (current.rawValue + 1) % VPhoneCameraRotation.allCases.count
+        guard let next = VPhoneCameraRotation(rawValue: nextRaw) else { return }
+        cameraServer?.setCameraRotation(next)
         refreshCameraSourceCheckmarks()
     }
 

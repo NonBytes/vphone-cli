@@ -55,8 +55,22 @@ extension VPhoneMenuController {
         let menu = NSMenu(title: "Features")
         menu.autoenablesItems = false
 
-        menu.addItem(makeItem("Frida Tools…", action: #selector(showFridaTools)))
-        let pentestItem = makeItem("Pentest Tools…", action: #selector(showPentestTools))
+        let fridaItem = makeItem(
+            "Frida Tools…",
+            action: #selector(showFridaTools),
+            keyEquivalent: "f",
+            modifiers: [.command, .control],
+            symbol: "bolt.horizontal"
+        )
+        menu.addItem(fridaItem)
+
+        let pentestItem = makeItem(
+            "Pentest Tools…",
+            action: #selector(showPentestTools),
+            keyEquivalent: "p",
+            modifiers: [.command, .control],
+            symbol: "shield"
+        )
         pentestItem.isEnabled = machineDirectory != nil
         menu.addItem(pentestItem)
         menu.addItem(NSMenuItem.separator())
