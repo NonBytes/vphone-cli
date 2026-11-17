@@ -42,7 +42,7 @@ export default defineConfig({
     darkMode: true,
     enableContentAnimation: false,
     socialLinks: [{ icon: 'github', mode: 'link', content: 'https://github.com/NonBytes/vphone-pentest' }],
-    footer: { message: 'vphone-pentest · Fork of Lakr233/vphone-cli · MIT License' },
+    footer: { message: 'vphone-pentest · Fork of <a href="https://github.com/Lakr233/vphone-cli" target="_blank" rel="noopener noreferrer">Lakr233/vphone-cli</a> · MIT License' },
     locales: languages.map(({ lang, label, prefix, manual, research, downloads, tagline }) => ({
       lang,
       label,

@@ -4,7 +4,7 @@ pageType: home
 hero:
   name: vphone-pentest
   text: iOS Pentest Edition
-  tagline: NonBytes' community fork of Lakr233/vphone-cli tailored for mobile security research, reverse engineering, and iOS penetration testing.
+  tagline: NonBytes' community fork of <a href="https://github.com/Lakr233/vphone-cli" target="_blank" rel="noopener noreferrer">Lakr233/vphone-cli</a> tailored for mobile security research, reverse engineering, and iOS penetration testing.
   actions:
     - theme: brand
       text: Pentest Tools Guide

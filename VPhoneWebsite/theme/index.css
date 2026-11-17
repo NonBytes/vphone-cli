@@ -63,6 +63,31 @@
   line-height: 1.6;
 }
 
+.rp-home-hero__tagline a {
+  color: var(--rp-c-brand);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.rp-home-hero__tagline a:hover {
+  opacity: 0.8;
+  color: var(--rp-c-brand-dark, #059669);
+}
+
+.rp-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.rp-footer a:hover {
+  opacity: 0.7;
+}
+
 .rp-home-hero__actions {
   display: flex !important;
   justify-content: center !important;
