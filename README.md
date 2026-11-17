@@ -1,12 +1,17 @@
 <div align="right"><a href="Documents/en/README.md">Docs</a> · <strong>English</strong> · <a href="Documents/zh/README.md">中文</a> · <a href="Documents/ja/README.md">日本語</a> · <a href="Documents/ko/README.md">한국어</a></div>
 
-# vphone-cli
+# vphone-cli (Pentest Edition)
 
-Run a virtual iPhone on an Apple Silicon Mac for security research, reverse engineering, and debugging.
+[![Release](https://img.shields.io/github/v/release/NonBytes/vphone-pentest?color=blue&label=Latest%20Release)](https://github.com/NonBytes/vphone-pentest/releases/latest)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-macOS%2015%2B%20(Apple%20Silicon)-lightgrey.svg)](https://support.apple.com)
+
+Run a virtual iPhone or iPad on an Apple Silicon Mac for security research, reverse engineering, and mobile penetration testing.
 
 This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of
-[Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), with additional
-pentest tools, camera selection, and per-VM proxy/CA management.
+[Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), featuring 17 integrated iOS pentest tools, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and per-VM proxy/CA management.
+
+> 🚀 **Quick Download**: Grab the signed app from [Latest Releases](https://github.com/NonBytes/vphone-pentest/releases/latest) (`vphone-launchpad-v2.17.1-arm64.zip`) without compiling.
 
 > [!WARNING]
 > This project has never issued or authorized any cryptocurrency or token, and does not accept cryptocurrency payments or donations. Any cryptocurrency or token issued or promoted in this project's name, or claiming any affiliation with it, is a scam.
@@ -142,7 +147,20 @@ Start the VM for guest operations, then open tools from **Actions → Pentest To
 vphone-launchpad-cli vm pentest <name>
 ```
 
-Additional VM controls (Mac camera pass-through, per-VM HTTP/HTTPS proxy & CA, developer tunnel) are available in Launchpad menus when paired with the fork's Core Bundle.
+### VM Controls & Hotkeys
+
+When running a VM, the following global hotkeys and built-in controls are available:
+
+| Shortcut | Action | Description |
+| :--- | :--- | :--- |
+| `⌃⌘R` (`Ctrl+Cmd+R`) | **Cycle Camera Rotation** | Rotates camera feed 90° clockwise (`0° → 90° → 180° → 270°`) to fix iPad/landscape orientation |
+| `⌃⌘P` (`Ctrl+Cmd+P`) | **Open Pentest Tools** | Opens the Pentest Tools Hub for the active VM |
+| `⌃⌘F` (`Ctrl+Cmd+F`) | **Open Frida Tools** | Opens the Frida Server, Session & Multi-Script Composer window |
+
+**Built-in Fork Enhancements:**
+- **Unified Camera with 4-Way Rotation**: Native GPU-accelerated rotation & aspect-fit letterboxing directly in the system camera pipeline (no external helper app needed).
+- **SOCKS5 Pivoting Tunnel**: Route Mac traffic (Burp Suite, curl, browsers) through the VM's network environment via `socks5://<guest-ip>:1080`.
+- **Per-VM HTTP/HTTPS Proxy & CA**: 1-click PortSwigger Burp CA injection into `trustd` and automatic system proxy configuration.
 
 ## Fork Details & Issues
 
