@@ -266,6 +266,19 @@ function manualSidebar(indexSource) {
   return groups.filter((group) => group.items.length > 0);
 }
 
+const pentestOrder = [
+  '/research/Pentest/overview',
+  '/research/Pentest/storage_sqlite',
+  '/research/Pentest/network_flow',
+  '/research/Pentest/ssl_pinning_jailbreak',
+  '/research/Pentest/frida_tools',
+  '/research/Pentest/keychain_injection',
+  '/research/Pentest/crypto_rasp',
+  '/research/Pentest/socks5_tunnel',
+  '/research/Pentest/environment_mocking',
+  '/research/Pentest/masvs_evidence',
+];
+
 /** Research folders, as collapsed sidebar groups titled by their notes' headings. */
 function researchSidebar(titles) {
   const groups = new Map();
@@ -289,12 +302,25 @@ function researchSidebar(titles) {
   });
   return [
     { text: 'Research', items: [{ text: 'Index', link: '/research/' }] },
-    ...ordered.map(([text, items]) => ({
-      text: text === 'Pentest' ? 'Pentest Suite Guide' : text,
-      collapsible: true,
-      collapsed: text !== 'Pentest',
-      items,
-    })),
+    ...ordered.map(([text, items]) => {
+      let sortedItems = items;
+      if (text === 'Pentest') {
+        sortedItems = [...items].sort((a, b) => {
+          const idxA = pentestOrder.indexOf(a.link);
+          const idxB = pentestOrder.indexOf(b.link);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.text.localeCompare(b.text);
+        });
+      }
+      return {
+        text: text === 'Pentest' ? 'Pentest Suite Guide' : text,
+        collapsible: true,
+        collapsed: text !== 'Pentest',
+        items: sortedItems,
+      };
+    }),
   ];
 }
 
