@@ -246,7 +246,7 @@ class VPhoneVirtualMachineAppDelegate: NSObject, NSApplicationDelegate {
 
             let mc = VPhoneMenuController(
                 keySender: keySender, control: control,
-                machineDirectory: options.configURL.deletingLastPathComponent()
+                machine: options.configURL.deletingLastPathComponent()
                     .standardizedFileURL.resolvingSymlinksInPath(),
             )
             mc.guestPanelsWindowController.displayWindow = wc.displayWindow
