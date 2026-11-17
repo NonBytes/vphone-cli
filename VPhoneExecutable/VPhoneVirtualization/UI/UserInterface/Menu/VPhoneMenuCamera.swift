@@ -1,7 +1,4 @@
 import AppKit
-#if canImport(VPhonePentestKit)
-import VPhonePentestKit
-#endif
 import AVFoundation
 import UniformTypeIdentifiers
 
