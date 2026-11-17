@@ -21,9 +21,9 @@ import { bundledLanguages, bundledLanguagesAlias } from 'shiki';
 const siteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(siteRoot, '..');
 const outRoot = path.join(siteRoot, 'docs');
-const githubBlob = 'https://github.com/Lakr233/vphone-cli/blob/main/';
-const githubTree = 'https://github.com/Lakr233/vphone-cli/tree/main/';
-const siteURL = 'https://lakr233.github.io/vphone-cli/';
+const githubBlob = 'https://github.com/NonBytes/vphone-pentest/blob/main/';
+const githubTree = 'https://github.com/NonBytes/vphone-pentest/tree/main/';
+const siteURL = 'https://nonbytes.github.io/vphone-pentest/';
 
 export const languages = ['en', 'zh', 'ja', 'ko'];
 const defaultLanguage = 'en';

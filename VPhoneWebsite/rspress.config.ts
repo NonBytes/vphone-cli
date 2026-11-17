@@ -18,12 +18,12 @@ const manualSections = '^/(?:zh/|ja/|ko/)?(?:get-started|machines|firmware|stora
 
 export default defineConfig({
   root: docs,
-  // GitHub Pages serves the project site under /vphone-cli/; previews use the same path.
-  base: '/vphone-cli/',
-  title: 'vphone',
+  // GitHub Pages serves the project site under /vphone-pentest/; previews use the same path.
+  base: '/vphone-pentest/',
+  title: 'vphone-pentest',
   description: languages[0].tagline,
   lang: 'en',
-  locales: languages.map(({ lang, label, tagline }) => ({ lang, label, title: 'vphone', description: tagline })),
+  locales: languages.map(({ lang, label, tagline }) => ({ lang, label, title: 'vphone-pentest', description: tagline })),
   globalStyles: path.join(__dirname, 'theme/index.css'),
   globalUIComponents: [path.join(__dirname, 'theme/ResearchLanguageLinks.tsx')],
   route: {
@@ -35,18 +35,18 @@ export default defineConfig({
   themeConfig: {
     darkMode: true,
     enableContentAnimation: false,
-    socialLinks: [{ icon: 'github', mode: 'link', content: 'https://github.com/Lakr233/vphone-cli' }],
-    footer: { message: 'vphone-cli · MIT License' },
+    socialLinks: [{ icon: 'github', mode: 'link', content: 'https://github.com/NonBytes/vphone-pentest' }],
+    footer: { message: 'vphone-pentest · MIT License' },
     locales: languages.map(({ lang, label, prefix, manual, research, downloads, tagline }) => ({
       lang,
       label,
-      title: 'vphone',
+      title: 'vphone-pentest',
       description: tagline,
       nav: [
         { text: manual, link: `${prefix}/get-started/overview`, activeMatch: manualSections },
         { text: downloads, link: `${prefix}/get-started/downloads` },
         // Rspress prefixes links in a translated locale; the research notes are English only.
-        { text: research, link: prefix ? 'https://lakr233.github.io/vphone-cli/research/' : '/research/', activeMatch: '^/research/' },
+        { text: research, link: prefix ? 'https://nonbytes.github.io/vphone-pentest/research/' : '/research/', activeMatch: '^/research/' },
       ],
       sidebar: prefix ? { [`${prefix}/`]: sidebars[lang] } : { '/': sidebars.en, '/research/': sidebars.research },
     })),
