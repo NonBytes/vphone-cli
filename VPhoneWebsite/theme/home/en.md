@@ -2,9 +2,9 @@
 pageType: home
 
 hero:
-  name: vphone
-  text: A virtual iPhone on your Mac
-  tagline: iOS on Apple's Virtualization.framework and PCC research VMs, for security research, reverse engineering and debugging.
+  name: vphone-pentest
+  text: iOS Pentest Edition
+  tagline: NonBytes' fork of Lakr233/vphone-cli for mobile security research, reverse engineering, and iOS penetration testing.
   actions:
     - theme: brand
       text: Quick Start
@@ -13,7 +13,7 @@ hero:
       text: Manual
       link: /get-started/overview
     - theme: alt
-      text: Research Notes
+      text: Pentest & Research
       link: /research/
 
 features:
