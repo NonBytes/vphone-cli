@@ -102,7 +102,7 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 ### 🌐 Network & Traffic Interception
 | Tool | Capabilities |
 | :--- | :--- |
-| **In-App Network & API Flow Inspector** | Live HTTP/HTTPS capture via `NSURLSession`/`WKWebView` hooks without proxy setup. Pretty JSON viewer, 1-click **Copy as cURL**, request tampering & replay engine (`[Replay]`), HAR 1.2 export, and plaintext raw HTTP/S dump export. |
+| **In-App Network & API Flow Inspector** | Live HTTP/HTTPS capture via `NSURLSession`/`WKWebView` hooks without proxy setup. In-app MITM Intercept On/Off (pause, edit & forward live requests), bidirectional WebSocket frames inspector (`NSURLSessionWebSocketTask`), pretty JSON viewer, 1-click **Copy as cURL**, request tampering & replay engine (`[Replay]`), HAR 1.2 export, and plaintext raw HTTP/S dump export. |
 | **HTTP/S Parameter Fuzzer & Auto-Repeater** | Automated payload fuzzer for query parameters, headers, and JSON bodies. Presets for IDOR, Path Traversal, SQLi, XSS, Command Injection, and Boundary tests with response baseline anomaly detection (`⚠️ Anomaly`) and CSV export. |
 | **Zero-Config Proxy & Burp Assistant** | Automatic system-wide and per-app proxy routing for Burp Suite and mitmproxy. 1-click PortSwigger Root CA certificate import into guest `trustd` store with active connection reachability verification. |
 | **Guest SOCKS5 Pivoting Tunnel** | In-guest SOCKS5 proxy (`socks5://<guest-ip>:1080`) allowing host-side penetration testing tools (Burp Suite, Nmap, curl, browsers) to route traffic through the virtual device into private intranets/VPNs. |
@@ -111,7 +111,7 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 | Tool | Capabilities |
 | :--- | :--- |
 | **Runtime Class & Method Inspector** | Dynamic Objective-C and Swift `@objc` class explorer with categorization (`Security`, `App`, `System`). Real-time method call tracer recording arguments, return values, and latency, plus 1-click return value override hooks. |
-| **SSL Pinning & Jailbreak Bypass Studio** | Comprehensive evasion studio with 11 toggleable modules: SecTrustEvaluate, BoringSSL, Flutter BoringSSL, filesystem artifact checks, dyld hooks, fork/syscall, `sysctl`/`ptrace` anti-debugging, and Biometrics (Face ID/Touch ID) bypass. |
+| **SSL Pinning & Jailbreak Bypass Studio** | Comprehensive evasion studio with 15 toggleable modules across 5 categories: Jailbreak, SSL Pinning, Anti-Debug, Biometrics, and **Anti-RASP & Stealth** (ARM64 inline `svc #0x80` syscall neutralizer, Frida thread cloaking, runtime string de-obfuscator, code signature & text section integrity spoofing). |
 | **Automated Jailbreak Defense Profiler** | Static & binary scanner detecting anti-jailbreak checks (files, URL schemes, dyld, ptrace/sysctl, fork, inline `svc #0x80`). Evaluates defense posture and provides 1-click "Apply Recommended Bypasses" into auto-hook profiles. |
 | **Live UI Component Inspector & Hidden View Revealer** | Real-time Frida UI introspection dumping view hierarchies with frames, visibility (`isHidden`, `alpha`), and secure text flags. Detects hidden containers and provides 1-click live "Reveal View", "Enable Control", and "Reveal All Hidden Views". |
 | **Auto-Hook on App Launch** | Configurable per-bundle automation profiles executing tailored Frida scripts (SSL pinning, JB bypass, biometrics bypass, keychain query loggers) immediately upon regular launch or safe launch. |
