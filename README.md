@@ -127,6 +127,12 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 | **Dynamic Crypto Tracer & Key Sniffer** | Dynamic cryptanalysis engine hooking `libcommonCrypto` (`CCCrypt`, `CCHmac`). Intercepts AES, DES, RC4 keys, IVs, plaintexts, and ciphertexts on the fly, flagging ECB modes and weak keys. |
 | **App Extensions & Shared Container Auditor** | Audits `.appex` bundles (Share, Action, Keyboard, Widgets) for security flaws (e.g. `RequestsOpenAccess = YES`, overly permissive `TRUEPREDICATE` share rules) and inspects shared App Group containers. |
 
+### 🤖 AI Security Copilot & Automated Auditing
+| Tool | Capabilities |
+| :--- | :--- |
+| **AI Security Copilot (Multi-Provider & Local LLM)** | Multi-provider AI assistant supporting **Antigravity (Gemini)**, **Claude (Anthropic)**, **Codex / OpenAI**, **Kimi (Moonshot)**, **Ollama (Local LLM)**, and **OpenRouter**. Provides context-aware vulnerability remediation, automated Frida hook synthesis, and native Model Context Protocol (MCP) server for autonomous agents. |
+| **1-Click Automated Full-Scope Pentest Auditor** | End-to-end automated assessment scanning Mach-O hardening flags, private entitlements, App Extensions, On-Device AI models, XPC services, sandbox databases, and anti-jailbreak defenses. Calculates CVSS v3.1 scores, letter grades (A+ to F), and exports executive HTML/Markdown reports. |
+
 ### 🔍 Binary Analysis, AI & Security Auditing
 | Tool | Capabilities |
 | :--- | :--- |
