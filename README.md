@@ -95,6 +95,41 @@ Build and install VPhone Launchpad from this repository following README.md and 
 
 ---
 
+## 💻 Headless Pentest CLI & AI Agent MCP Integration (CI/CD)
+
+The Core Bundle ships native `vphone-cli pentest` subcommands for headless security regression testing, automated binary analysis, and AI agent integration:
+
+```sh
+# 1. Run full-scope audit in CI/CD pipeline (fails build if High/Critical risks found)
+vphone-cli pentest audit <machine> --bundle-id <bundle-id> \
+  --html-out audit-report.html \
+  --json-out audit-report.json \
+  --fail-on high
+
+# 2. Inspect Mach-O compiler hardening flags (PIE, stack canary, ARC, FairPlay, W^X)
+vphone-cli pentest binary-check <machine> --bundle-id <bundle-id>
+
+# 3. List all installed user/system apps inside guest
+vphone-cli pentest list-apps <machine> [--json]
+
+# 4. Run native Stdio MCP Server for external AI Agents (Antigravity / Claude / Cursor / Codex)
+vphone-cli pentest mcp
+```
+
+Connect your AI agent in `claude_desktop_config.json` or `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "vphone": {
+      "command": "vphone-cli",
+      "args": ["pentest", "mcp"]
+    }
+  }
+}
+```
+
+---
+
 ## 🛠️ Integrated Pentest Tools
 
 Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or directly within any running VM window via **Right-Click → Pentest Tools** (or shortcut `⌃⌘P`).
