@@ -28,11 +28,9 @@ A physical Apple Silicon Mac with macOS 15+ (Sequoia) is required. The shipped a
 ## ⚡ Key Highlights of the Pentest Edition
 
 1. **21 Integrated Mobile Pentest Tools**: Native AppKit/SwiftUI security suite covering network flow tampering, memory scanning, keychain injection, storage SQL editing, and live UI revealer.
-2. **Zero Python / 100% Native Swift 6**: Strictly zero Python runtime dependency (`git ls-files '*.py'` is 0). All hooks, parsers, and inspectors are compiled Swift 6.0 with strict concurrency.
-3. **Frida 17 Dynamic Instrumentation**: Built-in QuickJS multi-script composer, automated Frida hooking on launch, 1-click live method tracer, and real-time REPL scratchpad.
-4. **On-Device AI & Advanced Security Audits**: CoreML / TFLite / ONNX model security scanner, XPC & Mach service attack surface auditor, and FairPlay decrypted IPA memory exporter.
-5. **Native GPU Camera & Hardware Mocking**: Unified 4-way hardware-accelerated camera rotation (`Cmd+Ctrl+R`), synthetic battery/thermal controls, Face ID/Touch ID simulator, and foldable hinge postures.
-6. **APFS Instant Snapshots & Safe Malware Mode**: Zero-copy instant VM checkpointing via APFS copy-on-write (`clonefile`) with 1-click rollback and auto-snapshot before launching untrusted apps.
+2. **On-Device AI & Advanced Security Audits**: CoreML / TFLite / ONNX model security scanner, XPC & Mach service attack surface auditor, and FairPlay decrypted IPA memory exporter.
+3. **Native GPU Camera & Hardware Mocking**: Unified 4-way hardware-accelerated camera rotation (`Cmd+Ctrl+R`), synthetic battery/thermal controls, Face ID/Touch ID simulator, and foldable hinge postures.
+4. **APFS Instant Snapshots & Safe Malware Mode**: Zero-copy instant VM checkpointing via APFS copy-on-write (`clonefile`) with 1-click rollback and auto-snapshot before launching untrusted apps.
 
 ---
 
