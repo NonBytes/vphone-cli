@@ -19,6 +19,8 @@ This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233
 
 ![Virtual iPhone running on macOS](Documents/demo.jpeg)
 
+![VPhone Pentest Suite](Documents/pentest-suite.png)
+
 A physical Apple Silicon Mac with macOS 15+ (Sequoia) is required. The shipped apps need **no Xcode, Python, or Homebrew at runtime**. See the [documentation site](https://lakr233.github.io/vphone-cli/), [Host Setup](Documents/en/get-started/host-setup.md), and [manual](Documents/en/README.md) for base requirements.
 
 ---
