@@ -9,6 +9,53 @@ import VPhonePentestKit
 extension VPhoneMenuController {
     @objc func showFridaTools() { fridaToolsWindowController.show() }
 
+    @objc func showSnapshotManager() {
+        snapshotManagerWindowController.show()
+    }
+
+    @objc func triggerQuickRollback() {
+        guard let machineDirectory else { return }
+        let snapshotsRoot = machineDirectory.appendingPathComponent("Snapshots", isDirectory: true)
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: snapshotsRoot.path),
+              let entries = try? fm.contentsOfDirectory(atPath: snapshotsRoot.path).filter({ !$0.hasPrefix(".") }),
+              !entries.isEmpty else {
+            VPhoneAlert.present(
+                title: "No Snapshots Available",
+                message: "No snapshots were found for this machine. Open Snapshot Manager (⌃⌘S) to inspect snapshot state.",
+                style: .informational
+            )
+            return
+        }
+
+        var latestSnapshot: (name: String, date: Date)?
+        for entry in entries {
+            let plistURL = snapshotsRoot.appendingPathComponent(entry).appendingPathComponent("Snapshot.plist")
+            if let data = try? Data(contentsOf: plistURL),
+               let dict = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+               let created = dict["Created"] as? Date {
+                if latestSnapshot == nil || created > latestSnapshot!.date {
+                    latestSnapshot = (entry, created)
+                }
+            }
+        }
+
+        let targetName = latestSnapshot?.name ?? entries.sorted().last!
+        VPhoneAlert.present(
+            title: "Rollback to '\(targetName)'?",
+            message: "Reverting to snapshot '\(targetName)' requires stopping the VM to maintain SEP and APFS disk synchronization.\n\nOpen Snapshot Manager to inspect snapshots, or shut down the guest before reverting.",
+            style: .warning,
+            buttons: ["Open Snapshot Hub", "Shut Down Guest", "Cancel"]
+        ) { [weak self] response in
+            guard let self else { return }
+            if response == .alertFirstButtonReturn {
+                self.snapshotManagerWindowController.show()
+            } else if response == .alertSecondButtonReturn {
+                self.shutDownGuest()
+            }
+        }
+    }
+
     /// Opens Launchpad's Pentest Tools helper for this VM directly from its
     /// own window, so using it doesn't mean switching to Launchpad first to
     /// find this machine and its Actions menu. Pentest Tools ships with
@@ -73,6 +120,26 @@ extension VPhoneMenuController {
         )
         pentestItem.isEnabled = machineDirectory != nil
         menu.addItem(pentestItem)
+
+        let snapshotItem = makeItem(
+            "Snapshot Manager…",
+            action: #selector(showSnapshotManager),
+            keyEquivalent: "s",
+            modifiers: [.command, .control],
+            symbol: "camera.metering.matrix"
+        )
+        snapshotItem.isEnabled = machineDirectory != nil
+        menu.addItem(snapshotItem)
+
+        let rollbackItem = makeItem(
+            "Rollback to Latest Snapshot…",
+            action: #selector(triggerQuickRollback),
+            keyEquivalent: "z",
+            modifiers: [.command, .control],
+            symbol: "arrow.uturn.backward"
+        )
+        rollbackItem.isEnabled = machineDirectory != nil
+        menu.addItem(rollbackItem)
         menu.addItem(NSMenuItem.separator())
 
         for section in [buildLocationSubmenu(), buildBatterySubmenu(), buildCameraSubmenu()] {

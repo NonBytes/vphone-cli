@@ -43,6 +43,7 @@ class VPhoneMenuController {
     lazy var evidenceExportWindowController = VPhoneEvidenceExportWindowController(control: control)
     lazy var appLogsWindowController = VPhoneAppLogsWindowController(control: control)
     lazy var fridaToolsWindowController = VPhoneFridaToolsWindowController(control: control, machineDirectory: machineDirectory)
+    lazy var snapshotManagerWindowController = VPhoneSnapshotManagerWindowController(control: control, machineDirectory: machineDirectory)
     lazy var photosWindowController = VPhonePhotosWindowController(control: control)
     lazy var pasteboardInspectorWindowController = VPhonePasteboardWindowController(control: control)
     lazy var deviceMockingWindowController = VPhoneDeviceMockingWindowController(control: control)
