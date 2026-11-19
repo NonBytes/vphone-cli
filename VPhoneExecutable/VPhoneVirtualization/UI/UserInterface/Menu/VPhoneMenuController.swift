@@ -59,7 +59,7 @@ class VPhoneMenuController {
     lazy var appStoreWindowController: VPhoneAppStoreWindowController = VPhoneAppStoreWindowController(control: control, machineDirectory: machineDirectory) { [weak self] tool, bundleID in
         guard let self else { return }
         Task { @MainActor in
-            let appRecord = (try? await self.control.call("apps.list", params: ["type": "user"]))?
+            let appRecord = (try? await self.control.call("apps.list", params: ["filter": "user"]))?
                 .objects("apps")
                 .compactMap(VPhoneAppRecord.init(json:))
                 .first { $0.bundleID == bundleID }
