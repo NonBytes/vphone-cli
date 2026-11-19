@@ -183,16 +183,16 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 | Tool | Capabilities |
 | :--- | :--- |
 | **APFS Instant Snapshots & Safe Malware Mode** | Zero-copy instant VM checkpointing via APFS copy-on-write (`clonefile`). Timeline management, 1-click rollback, and "Safe Launch" capturing an auto-snapshot before launching suspicious apps. |
-| **Deep Link & URL Scheme Automated Fuzzer** | Fuzzes custom URL schemes and Associated Domains across 8 OWASP injection vectors (XSS, Path Traversal, SQLi, Buffer Overflow) with active process crash detection. |
+| **Deep Link & URL Scheme Automated Fuzzer + Push Injector** | Fuzzes custom URL schemes and Associated Domains across 8 OWASP injection vectors (XSS, Path Traversal, SQLi, Buffer Overflow) with crash detection, plus a **Local Push Notification (`aps` JSON) Injector** that dispatches remote & local push payloads directly into running apps without an APNs certificate. |
 | **Live Exception & Crash Signal Monitor** | Real-time crash monitor capturing native signals, fault addresses, ARM64 register state (`PC`, `LR`, `SP`, `FP`), and symbolicated backtraces. |
 | **App Memory Search & Secret Hunter** | Live process RAM scanner (`rw-` ranges) searching for leaked JWTs, private keys, API secrets, passwords, and credit cards with interactive 64-byte Hex & ASCII dump preview. |
 | **Pasteboard Inspector & Fuzzer** | Monitors `UIPasteboard` for leaked credentials and allows 1-click clipboard injection of categorized security payloads (Unicode, RTF, JSON, format strings). |
-| **Device Environment & Hardware Mocking Hub** | Real-time synthetic battery (percentage, charging state), thermal status simulation, Face ID/Touch ID biometric outcome mocking, and foldable hinge posture simulation (0° to 180°). |
+| **Device Environment, GPS Spoofer & Biometric Auditor** | Real-time battery/thermal simulation, **Interactive MapKit GPS Location Spoofer & `.gpx` Route Simulator** with automatic iOS `Location Services` toggle, **Biometric Auth (`LAContext`) Bypass Auditor (`MASVS-AUTH-2`)**, and foldable hinge posture simulation (0° to 180°). |
 
 ### 📦 Local IPA & App Store Pipeline (`vphone-apps`)
 | Tool | Capabilities |
 | :--- | :--- |
-| **App Store & `vphone-apps` Installer** | Live Apple App Store search across regions (`US`, `TH`, `JP`, `GB`, `SG`, `DE`, `KR`, `AU`) integrated with **[securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps)** (`ipatool` + `unfairplay` + `vphone.sock`). Downloads App Store IPAs, removes FairPlay encryption on your Mac without needing a physical iPhone, and installs & launches them directly in the running VM. |
+| **App Store & `vphone-apps` Installer** | Live Apple App Store search across regions (`US`, `TH`, `JP`, `GB`, `SG`, `DE`, `KR`, `AU`) with bundled **[securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps)** (`ipatool v2.8.2+` + `unfairplay` + `vphone.sock`). Features in-app interactive Apple ID/2FA sign-in & Sign Out, App Store **Version History / Downgrade Picker** (`--version-id`), automatic Watch/`arm64_32` IPA sanitization, auto-wake before launch, and a **1-Click Pentest Pipeline** (`Frida`, `Storage`, `Mach-O`, `Full Audit`, `Binary Diff`). |
 | **Patch IPA with Frida Gadget** | Injects `FridaGadget.dylib` into an unencrypted IPA, adds the Mach-O load command, embeds the listener config + token, re-signs ad hoc, and deploys directly to the virtual iPhone. |
 
 #### Installing Apps from the App Store via `vphone-apps`

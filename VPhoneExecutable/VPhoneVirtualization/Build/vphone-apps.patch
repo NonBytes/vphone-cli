@@ -1,0 +1,407 @@
+diff --git a/cmd/vphone-apps/install.go b/cmd/vphone-apps/install.go
+index 54304dc..0ed921b 100644
+--- a/cmd/vphone-apps/install.go
++++ b/cmd/vphone-apps/install.go
+@@ -1,11 +1,15 @@
+ package main
+ 
+ import (
++	"archive/zip"
++	"bytes"
+ 	"context"
++	"encoding/binary"
+ 	"encoding/json"
+ 	"errors"
+ 	"flag"
+ 	"fmt"
++	"io"
+ 	"os"
+ 	"strings"
+ 	"time"
+@@ -32,7 +36,7 @@ Exit codes: 0 success, 1 failure, 2 usage error.
+ `
+ 
+ type installOpts struct {
+-	id, vmName, term                string
++	id, vmName, term, versionID     string
+ 	purchase, keepAccountData, keep bool
+ 	launch                          bool
+ }
+@@ -42,6 +46,7 @@ func (a *app) install(ctx context.Context, args []string) int {
+ 	var o installOpts
+ 	fs.StringVar(&o.id, "id", "", "")
+ 	fs.StringVar(&o.vmName, "vm", "", "")
++	fs.StringVar(&o.versionID, "version-id", "", "")
+ 	fs.BoolVar(&o.purchase, "purchase", false, "")
+ 	fs.BoolVar(&o.keepAccountData, "keep-account-data", false, "")
+ 	fs.BoolVar(&o.keep, "keep", false, "")
+@@ -127,7 +132,7 @@ func (a *app) run(ctx context.Context, o *installOpts) (*cache.Cache, *failure)
+ 	if err != nil {
+ 		return c, fail("cache", "%s", err.Error())
+ 	}
+-	if err := st.Download(store.WithProgress(ctx, pr.progress()), app, ipa, o.purchase, ""); err != nil {
++	if err := st.Download(store.WithProgress(ctx, pr.progress()), app, ipa, o.purchase, o.versionID); err != nil {
+ 		return c, classify(ctx, ctx, 0, "download", err)
+ 	}
+ 
+@@ -256,6 +261,10 @@ func (a *app) decryptStep(ctx context.Context, c *cache.Cache, ipa string, keepA
+ 			return "", fail("decrypt", "%s", err.Error())
+ 		}
+ 	}
++	if err := sanitizeDecryptedIPA(out + ".part"); err != nil {
++		_ = os.Remove(out + ".part")
++		return "", fail("decrypt", "%s", err.Error())
++	}
+ 	if err := c.Commit("app.decrypted.ipa"); err != nil {
+ 		return "", fail("decrypt", "%s", err.Error())
+ 	}
+@@ -263,6 +272,177 @@ func (a *app) decryptStep(ctx context.Context, c *cache.Cache, ipa string, keepA
+ 	return out, nil
+ }
+ 
++func isWatchBundleEntry(name string) bool {
++	if !strings.HasPrefix(name, "Payload/") {
++		return false
++	}
++	rest := strings.TrimPrefix(name, "Payload/")
++	slash := strings.IndexByte(rest, '/')
++	if slash < 0 || !strings.HasSuffix(rest[:slash], ".app") {
++		return false
++	}
++	sub := rest[slash+1:]
++	return sub == "Watch" || strings.HasPrefix(sub, "Watch/")
++}
++
++func thinFat64MachO(data []byte) ([]byte, bool) {
++	if len(data) < 28 || binary.BigEndian.Uint32(data[0:4]) != 0xcafebabe {
++		return data, false
++	}
++	count := int(binary.BigEndian.Uint32(data[4:8]))
++	if count < 1 || count >= 20 || len(data) < 8+count*20 {
++		return data, false
++	}
++	hasNon64 := false
++	var arm64Slice []byte
++	for i := 0; i < count; i++ {
++		entry := 8 + i*20
++		cpuType := binary.BigEndian.Uint32(data[entry : entry+4])
++		offset := int(binary.BigEndian.Uint32(data[entry+8 : entry+12]))
++		size := int(binary.BigEndian.Uint32(data[entry+12 : entry+16]))
++		if offset < 0 || size < 4 || offset+size > len(data) {
++			return data, false
++		}
++		sliceMagic := binary.LittleEndian.Uint32(data[offset : offset+4])
++		if sliceMagic != 0xfeedfacf {
++			hasNon64 = true
++		} else if cpuType == 0x0100000c && arm64Slice == nil {
++			arm64Slice = data[offset : offset+size]
++		}
++	}
++	if hasNon64 && arm64Slice != nil {
++		return arm64Slice, true
++	}
++	return data, false
++}
++
++func sanitizeDecryptedIPA(ipaPath string) error {
++	zr, err := zip.OpenReader(ipaPath)
++	if err != nil {
++		return err
++	}
++	needsRewrite := false
++	for _, f := range zr.File {
++		if isWatchBundleEntry(f.Name) {
++			needsRewrite = true
++			break
++		}
++		if f.FileInfo().Mode().IsRegular() && f.UncompressedSize64 >= 28 && f.UncompressedSize64 <= 512<<20 {
++			rc, oerr := f.Open()
++			if oerr == nil {
++				var hdr [8]byte
++				n, _ := io.ReadFull(rc, hdr[:])
++				rc.Close()
++				if n == 8 && binary.BigEndian.Uint32(hdr[0:4]) == 0xcafebabe {
++					cnt := binary.BigEndian.Uint32(hdr[4:8])
++					if cnt >= 1 && cnt < 20 {
++						needsRewrite = true
++						break
++					}
++				}
++			}
++		}
++	}
++	if !needsRewrite {
++		return zr.Close()
++	}
++	cleanPath := ipaPath + ".clean"
++	outFile, err := os.OpenFile(cleanPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
++	if err != nil {
++		zr.Close()
++		return err
++	}
++	zw := zip.NewWriter(outFile)
++	for _, f := range zr.File {
++		if isWatchBundleEntry(f.Name) {
++			continue
++		}
++		hdr := f.FileHeader
++		if f.FileInfo().Mode().IsRegular() && f.UncompressedSize64 >= 28 && f.UncompressedSize64 <= 512<<20 {
++			rc, err := f.Open()
++			if err != nil {
++				zw.Close()
++				outFile.Close()
++				zr.Close()
++				_ = os.Remove(cleanPath)
++				return err
++			}
++			var peek [8]byte
++			n, _ := io.ReadFull(rc, peek[:])
++			if n == 8 && binary.BigEndian.Uint32(peek[0:4]) == 0xcafebabe {
++				rest, rerr := io.ReadAll(rc)
++				rc.Close()
++				if rerr != nil {
++					zw.Close()
++					outFile.Close()
++					zr.Close()
++					_ = os.Remove(cleanPath)
++					return rerr
++				}
++				full := append(peek[:], rest...)
++				thinned, changed := thinFat64MachO(full)
++				if changed {
++					hdr.UncompressedSize64 = uint64(len(thinned))
++					hdr.UncompressedSize = uint32(len(thinned))
++				}
++				w, werr := zw.CreateHeader(&hdr)
++				if werr != nil {
++					zw.Close()
++					outFile.Close()
++					zr.Close()
++					_ = os.Remove(cleanPath)
++					return werr
++				}
++				if _, werr := io.Copy(w, bytes.NewReader(thinned)); werr != nil {
++					zw.Close()
++					outFile.Close()
++					zr.Close()
++					_ = os.Remove(cleanPath)
++					return werr
++				}
++				continue
++			}
++			rc.Close()
++		}
++		raw, err := f.OpenRaw()
++		if err != nil {
++			zw.Close()
++			outFile.Close()
++			zr.Close()
++			_ = os.Remove(cleanPath)
++			return err
++		}
++		w, err := zw.CreateRaw(&hdr)
++		if err != nil {
++			zw.Close()
++			outFile.Close()
++			zr.Close()
++			_ = os.Remove(cleanPath)
++			return err
++		}
++		if _, err := io.Copy(w, raw); err != nil {
++			zw.Close()
++			outFile.Close()
++			zr.Close()
++			_ = os.Remove(cleanPath)
++			return err
++		}
++	}
++	if err := zw.Close(); err != nil {
++		outFile.Close()
++		zr.Close()
++		_ = os.Remove(cleanPath)
++		return err
++	}
++	if err := outFile.Close(); err != nil {
++		zr.Close()
++		_ = os.Remove(cleanPath)
++		return err
++	}
++	_ = zr.Close()
++	return os.Rename(cleanPath, ipaPath)
++}
++
+ func (a *app) push(ctx context.Context, m *vm.Machine, local, guest string) *failure {
+ 	err := m.Push(ctx, local, guest)
+ 	if err == nil {
+@@ -314,6 +494,7 @@ func (a *app) appsInstall(ctx context.Context, m *vm.Machine, guest string, pr *
+ }
+ 
+ func (a *app) appsLaunch(ctx context.Context, m *vm.Machine, bundleID string, pr *stepDisplay) *failure {
++	_, _ = m.RPC(ctx, "screen.unlock", map[string]string{}, a.to.Launch)
+ 	raw, err := m.RPC(ctx, "apps.launch", map[string]string{"bundle_id": bundleID}, a.to.Launch)
+ 	if err != nil {
+ 		return vmFailure(ctx, "launch", err)
+diff --git a/cmd/vphone-apps/main.go b/cmd/vphone-apps/main.go
+index 3297465..a83e629 100644
+--- a/cmd/vphone-apps/main.go
++++ b/cmd/vphone-apps/main.go
+@@ -43,6 +43,7 @@ type command func(a *app, ctx context.Context, args []string) int
+ var commands = map[string]command{
+ 	"login":      (*app).login,
+ 	"search":     (*app).search,
++	"versions":   (*app).versions,
+ 	"install":    (*app).install,
+ 	"setup":      (*app).setup,
+ 	"doctor":     (*app).doctor,
+diff --git a/cmd/vphone-apps/versions.go b/cmd/vphone-apps/versions.go
+new file mode 100644
+index 0000000..bfdc3ca
+--- /dev/null
++++ b/cmd/vphone-apps/versions.go
+@@ -0,0 +1,82 @@
++package main
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"flag"
++	"fmt"
++
++	"github.com/majd/ipatool/v2/pkg/appstore"
++	"github.com/securityvoid/vphone-apps/internal/store"
++)
++
++const versionsUsage = `usage: vphone-apps versions --id <bundleId>
++Lists available App Store external version identifiers as JSON.
++`
++
++type versionLister interface {
++	ListVersions(ctx context.Context, app appstore.App) (appstore.ListVersionsOutput, error)
++}
++
++func (a *app) versions(ctx context.Context, args []string) int {
++	fs := flag.NewFlagSet("versions", flag.ContinueOnError)
++	var id string
++	fs.StringVar(&id, "id", "", "")
++	words, code, done := a.parse(fs, versionsUsage, args)
++	if done {
++		return code
++	}
++	if id == "" && len(words) == 1 {
++		id = words[0]
++	}
++	if id == "" {
++		return a.usageError(versionsUsage, "--id is required")
++	}
++	st, err := a.newStore()
++	if err != nil {
++		return a.report(fail("versions", "%s", err.Error()))
++	}
++	lister, ok := st.(versionLister)
++	if !ok {
++		return a.report(fail("versions", "store does not support version listing"))
++	}
++	var appInfo appstore.App
++	if f := bounded(ctx, a.to.Select, "versions", func(cx context.Context) error {
++		got, err := st.Lookup(cx, id)
++		if errors.Is(err, store.ErrAppNotFound) {
++			return fmt.Errorf("no app with bundle id %s", id)
++		}
++		appInfo = got
++		return err
++	}); f != nil {
++		return a.report(f)
++	}
++	var out appstore.ListVersionsOutput
++	if f := bounded(ctx, a.to.Select, "versions", func(cx context.Context) error {
++		var err error
++		out, err = lister.ListVersions(cx, appInfo)
++		return err
++	}); f != nil {
++		return a.report(f)
++	}
++	// Reverse to newest-first for UI selection.
++	ids := make([]string, 0, len(out.ExternalVersionIdentifiers))
++	for i := len(out.ExternalVersionIdentifiers) - 1; i >= 0; i-- {
++		ids = append(ids, out.ExternalVersionIdentifiers[i])
++	}
++	payload := struct {
++		BundleID string   `json:"bundle_id"`
++		Latest   string   `json:"latest"`
++		Versions []string `json:"versions"`
++	}{
++		BundleID: appInfo.BundleID,
++		Latest:   out.LatestExternalVersionID,
++		Versions: ids,
++	}
++	enc := json.NewEncoder(a.stdout)
++	if err := enc.Encode(payload); err != nil {
++		return a.report(fail("versions", "%s", err.Error()))
++	}
++	return 0
++}
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4569740..3365e4d 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -224,6 +224,17 @@ func (s *Store) Lookup(ctx context.Context, bundleID string) (appstore.App, erro
+ 	return out.App, err
+ }
+ 
++// ListVersions returns available external version identifiers for app.
++func (s *Store) ListVersions(ctx context.Context, app appstore.App) (appstore.ListVersionsOutput, error) {
++	acct, err := s.Account()
++	if err != nil {
++		return appstore.ListVersionsOutput{}, err
++	}
++	return call(ctx, func() (appstore.ListVersionsOutput, error) {
++		return s.as.ListVersions(appstore.ListVersionsInput{Context: ctx, Account: acct, App: app})
++	})
++}
++
+ // orDefault returns d, or def when d is zero.
+ func orDefault(d, def time.Duration) time.Duration {
+ 	if d == 0 {
+@@ -242,24 +253,28 @@ func (s *Store) Download(ctx context.Context, app appstore.App, outPath string,
+ 	if err != nil {
+ 		return err
+ 	}
+-	if purchase {
+-		ttl := orDefault(s.PurchaseTimeout, 120*time.Second)
+-		pctx, cancel := context.WithTimeout(ctx, ttl)
+-		_, err := call(pctx, func() (struct{}, error) {
++	ttl := orDefault(s.DownloadTimeout, 30*time.Minute)
++	dctx, cancel := context.WithTimeout(ctx, ttl)
++	defer cancel()
++	err = s.fetch(dctx, acct, app, outPath, externalVersionID)
++	if purchase && errors.Is(err, ErrNotOwned) {
++		pttl := orDefault(s.PurchaseTimeout, 120*time.Second)
++		pctx, pcancel := context.WithTimeout(ctx, pttl)
++		_, perr := call(pctx, func() (struct{}, error) {
+ 			return struct{}{}, s.as.Purchase(appstore.PurchaseInput{Account: acct, App: app})
+ 		})
+-		cancel()
+-		if err != nil && !errors.Is(err, appstore.ErrLicenseAlreadyExists) {
+-			if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+-				return &TimeoutError{D: ttl}
++		pcancel()
++		if perr != nil && !errors.Is(perr, appstore.ErrLicenseAlreadyExists) {
++			if ctx.Err() == nil && errors.Is(perr, context.DeadlineExceeded) {
++				return &TimeoutError{D: pttl}
+ 			}
+-			return err
++			return perr
+ 		}
++		if refreshed, rerr := s.Account(); rerr == nil {
++			acct = refreshed
++		}
++		err = s.fetch(dctx, acct, app, outPath, externalVersionID)
+ 	}
+-	ttl := orDefault(s.DownloadTimeout, 30*time.Minute)
+-	dctx, cancel := context.WithTimeout(ctx, ttl)
+-	defer cancel()
+-	err = s.fetch(dctx, acct, app, outPath, externalVersionID)
+ 	if err != nil && ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+ 		return &TimeoutError{D: ttl}
+ 	}

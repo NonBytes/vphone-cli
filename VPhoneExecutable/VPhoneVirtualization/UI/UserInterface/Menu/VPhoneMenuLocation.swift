@@ -132,6 +132,7 @@ extension VPhoneMenuController {
             print("[location] sync toggled off by user")
         } else {
             locationProvider?.stopReplay()
+            Task { _ = try? await self.control.call("location.services", params: ["enabled": true]) }
             locationProvider?.startForwarding()
             item.state = .on
             print("[location] sync toggled on by user")
