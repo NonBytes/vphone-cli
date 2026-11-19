@@ -56,6 +56,8 @@ class VPhoneMenuController {
     lazy var binaryDiffWindowController = VPhoneBinaryDiffWindowController(control: control)
     lazy var fileWatcherWindowController = VPhoneFileWatcherWindowController(control: control)
     lazy var crashMonitorWindowController = VPhoneCrashMonitorWindowController(control: control)
+    lazy var storageInspectorWindowController = VPhoneStorageInspectorWindowController(control: control)
+    lazy var fullAuditWindowController = VPhoneFullAuditWindowController(control: control)
     lazy var appStoreWindowController: VPhoneAppStoreWindowController = VPhoneAppStoreWindowController(
         control: control,
         machineDirectory: machineDirectory,
@@ -74,7 +76,9 @@ class VPhoneMenuController {
                 case .machO:
                     self.machOVisualizerWindowController.show(targetApp: appRecord)
                 case .fullAudit:
-                    self.showPentestTools(tool: "full_audit")
+                    if !self.openInPentestTools(toolID: "ai.fullaudit") {
+                        self.fullAuditWindowController.show(targetApp: appRecord)
+                    }
                 case .binaryDiff:
                     self.binaryDiffWindowController.show()
                 }

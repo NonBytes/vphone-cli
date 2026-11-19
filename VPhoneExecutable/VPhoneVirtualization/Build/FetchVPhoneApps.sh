@@ -43,7 +43,9 @@ done
 
 if [[ ! -f "$patched_bin" && -n "$go_bin" ]]; then
     src_dir="$root/.build/vphone-apps/src-${vphone_apps_rev:0:12}-${patch_hash}"
-    /bin/rm -rf "$src_dir"
+    tmp_bin="${patched_bin}.tmp.$$"
+    trap '/bin/rm -rf "$src_dir" "$tmp_bin"' EXIT
+    /bin/rm -rf "$src_dir" "$tmp_bin"
     /usr/bin/git clone --depth 1 https://github.com/securityvoid/vphone-apps.git "$src_dir"
     (
         cd "$src_dir"
@@ -54,8 +56,9 @@ if [[ ! -f "$patched_bin" && -n "$go_bin" ]]; then
         /usr/bin/git apply "$patch_file"
         PATH="${go_bin:h}:/usr/bin:/bin:/usr/sbin:/sbin" "$go_bin" get "github.com/majd/ipatool/v2@$ipatool_rev"
         PATH="${go_bin:h}:/usr/bin:/bin:/usr/sbin:/sbin" "$go_bin" mod tidy
-        PATH="${go_bin:h}:/usr/bin:/bin:/usr/sbin:/sbin" "$go_bin" build -o "$patched_bin" ./cmd/vphone-apps
+        PATH="${go_bin:h}:/usr/bin:/bin:/usr/sbin:/sbin" "$go_bin" build -o "$tmp_bin" ./cmd/vphone-apps
     )
+    /bin/mv "$tmp_bin" "$patched_bin"
     /bin/rm -rf "$src_dir"
 fi
 
