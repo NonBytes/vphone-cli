@@ -111,6 +111,10 @@ done
 /usr/bin/gzip -c "$root/.build/frida-client/products/vphone-frida-client.o" > "$resources/FridaClient/vphone-frida-client.o.gz"
 /usr/bin/gzip -c "$root/.build/frida-client/17.25.2/frida-core.h" > "$resources/FridaClient/frida-core.h.gz"
 /bin/cp "$root/VPhoneExecutable/VPhoneVirtualization/Frida/Client/"* "$resources/FridaClient/"
+"${0:a:h}/FetchVPhoneApps.sh" "$root/.build/vphone-apps/products"
+/bin/cp "$root/.build/vphone-apps/products/vphone-apps" "$macos/"
+/bin/mkdir -p "$resources/VPhoneApps"
+/bin/cp "$root/.build/vphone-apps/products/"{LICENSE,NOTICE,README.md} "$resources/VPhoneApps/"
 /bin/cp "$amfi_products/vphone-escalator" "$macos/vphone-escalator"
 # kmutil of another macOS, inserted into its ad hoc signed copy to link a
 # kernelcache mix as the user (KernelCollectionToolchain). arm64e like kmutil.

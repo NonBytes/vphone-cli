@@ -61,6 +61,10 @@ for framework in "$pentest/Contents/Frameworks/"*.framework(N); do
 done
 codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.frida-client \
   --sign "$identity" "$pentest/Contents/MacOS/vphone-frida-client"
+if [[ -f "$pentest/Contents/MacOS/vphone-apps" ]]; then
+  codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.vphone-apps \
+    --sign "$identity" "$pentest/Contents/MacOS/vphone-apps"
+fi
 codesign --force --options runtime --timestamp --sign "$identity" "$pentest"
 codesign --force --options runtime --timestamp --entitlements "$entitlements" \
   --sign "$identity" "$app"

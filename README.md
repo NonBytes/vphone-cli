@@ -196,19 +196,15 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 | **Patch IPA with Frida Gadget** | Injects `FridaGadget.dylib` into an unencrypted IPA, adds the Mach-O load command, embeds the listener config + token, re-signs ad hoc, and deploys directly to the virtual iPhone. |
 
 #### Installing Apps from the App Store via `vphone-apps`
-To use the **App Store & `vphone-apps` Installer** (or run it directly from Terminal):
+`vphone-apps` is **bundled directly inside `vphone-launchpad.app` and `VPhone.bundle`** (`CLI: Bundled`) — no Homebrew installation required.
+1. Open **Pentest Tools → App Store & `vphone-apps` Installer**.
+2. Click **`1. Sign In (vphone-apps login)`** and **`2. FairPlay Setup (vphone-apps setup)`** to authenticate and complete one-time FairPlay enrollment directly inside the in-app interactive console.
+3. Search for any App Store app (or enter a Bundle ID) and click **`Download, Decrypt & Install to <vm-name>`**.
+
+*(Optional standalone CLI usage via Homebrew)*:
 ```sh
-# 1. Install securityvoid/vphone-apps via Homebrew
 brew install securityvoid/tap/vphone-apps
-
-# 2. Sign in to your Apple Account & run one-time FairPlay enrollment on your Mac
-vphone-apps login
-vphone-apps setup
-
-# 3. Verify preflight status against your running VM
-vphone-apps doctor --vm <vm-name>
-
-# 4. Install from GUI (Pentest Tools → App Store & vphone-apps Installer) or CLI:
+vphone-apps login && vphone-apps setup
 vphone-apps install --id <bundle-id> --vm <vm-name> --purchase --launch
 ```
 

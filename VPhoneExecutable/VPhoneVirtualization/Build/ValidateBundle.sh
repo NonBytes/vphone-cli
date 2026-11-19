@@ -38,7 +38,7 @@ require_signed_macho() {
     }
 }
 
-for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client libswiftCompatibilitySpan.vphone.dylib libvphone-kmutil-shim.dylib; do
+for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client vphone-apps libswiftCompatibilitySpan.vphone.dylib libvphone-kmutil-shim.dylib; do
     require_signed_macho "$macos/$name"
 done
 require_signed_macho "$frameworks/VPhonePatchKit.framework/Versions/A/VPhonePatchKit"
@@ -339,7 +339,7 @@ for daemon in vphoned vphoned-tvos vphoned-watchos vphoned-visionos; do
         exit 1
     }
 done
-for name in vphone-cli vphone-escalator vphone-frida-client ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
+for name in vphone-cli vphone-escalator vphone-frida-client vphone-apps ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
     process_entitlements="$(/usr/bin/codesign -d --entitlements - --xml "$macos/$name" 2>/dev/null || true)"
     [[ "$process_entitlements" != *'com.apple.private.virtualization'* &&
         "$process_entitlements" != *'com.apple.CommCenter.fine-grained'* ]] || {
@@ -348,7 +348,7 @@ for name in vphone-cli vphone-escalator vphone-frida-client ../Helpers/VPhoneLoc
     }
 done
 
-for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
+for name in vphone-vm vphone-cli vphone-escalator vphone-frida-client vphone-apps ../Helpers/VPhoneLocation.app/Contents/MacOS/vphone-location; do
     /usr/bin/otool -L "$macos/$name" | /usr/bin/awk 'NR > 1 {print $1}' |
     while IFS= read -r dependency; do
         case "$dependency" in
