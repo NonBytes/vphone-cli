@@ -7,10 +7,16 @@ import VPhonePentestKit
 
 /// Host sensor controls, with the motion panels grouped in their own submenu.
 extension VPhoneMenuController {
-    @objc func showFridaTools() { fridaToolsWindowController.show() }
+    @objc func showFridaTools() {
+        if !openInPentestTools(toolID: "ins.frida") {
+            fridaToolsWindowController.show()
+        }
+    }
 
     @objc func showSnapshotManager() {
-        snapshotManagerWindowController.show()
+        if !openInPentestTools(toolID: "sys.snapshot") {
+            snapshotManagerWindowController.show()
+        }
     }
 
     @objc func triggerQuickRollback() {
@@ -49,43 +55,56 @@ extension VPhoneMenuController {
         ) { [weak self] response in
             guard let self else { return }
             if response == .alertFirstButtonReturn {
-                self.snapshotManagerWindowController.show()
+                self.showSnapshotManager()
             } else if response == .alertSecondButtonReturn {
                 self.shutDownGuest()
             }
         }
     }
 
-    /// Opens Launchpad's Pentest Tools helper for this VM directly from its
-    /// own window, so using it doesn't mean switching to Launchpad first to
-    /// find this machine and its Actions menu. Pentest Tools ships with
-    /// Launchpad, not the Core Bundle, so this locates an installed
-    /// Launchpad by bundle identifier rather than assuming a path.
-    @objc func showPentestTools() {
-        guard let machineDirectory else { return }
-        if let existing = pentestToolsApp, !existing.isTerminated {
+    /// Routes a Pentest tool menu item to Launchpad's `VPhone Pentest.app`
+    /// when installed, avoiding duplicate windows and version drift between
+    /// `vphone-vm` and Launchpad. Returns `false` for standalone CLI users
+    /// without Launchpad so callers can fall back to the embedded window.
+    @discardableResult
+    func openInPentestTools(toolID: String?) -> Bool {
+        guard let machineDirectory else { return false }
+        let resolvedPath = machineDirectory.resolvingSymlinksInPath().path
+        let existing = (pentestToolsApp?.isTerminated == false ? pentestToolsApp : nil)
+            ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.vphone.launchpad.pentest").first(where: { !$0.isTerminated })
+        if let existing {
+            pentestToolsApp = existing
             existing.activate(options: [])
-            return
+            if let toolID {
+                DistributedNotificationCenter.default().postNotificationName(
+                    .init("com.vphone.launchpad.pentest.openTool"),
+                    object: resolvedPath,
+                    userInfo: ["tool": toolID],
+                    deliverImmediately: true
+                )
+            } else {
+                DistributedNotificationCenter.default().postNotificationName(
+                    .init("com.vphone.launchpad.pentest.show"),
+                    object: resolvedPath,
+                    userInfo: nil,
+                    deliverImmediately: true
+                )
+            }
+            return true
         }
         guard let launchpad = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.vphone.launchpad") else {
-            VPhoneAlert.present(
-                title: "Launchpad Not Found",
-                message: "Pentest Tools ships with VPhone Launchpad, not this VM. Install Launchpad to use it from here.",
-                style: .warning,
-            )
-            return
+            return false
         }
         let app = launchpad.appendingPathComponent("Contents/Helpers/VPhone Pentest.app")
         guard FileManager.default.isExecutableFile(atPath: app.appendingPathComponent("Contents/MacOS/VPhone Pentest").path) else {
-            VPhoneAlert.present(
-                title: "Pentest Tools Missing",
-                message: "This Launchpad installation does not include Pentest Tools.",
-                style: .warning,
-            )
-            return
+            return false
         }
         let configuration = NSWorkspace.OpenConfiguration()
-        configuration.arguments = ["--machine-directory", machineDirectory.resolvingSymlinksInPath().path]
+        var args = ["--machine-directory", resolvedPath]
+        if let toolID {
+            args += ["--open-tool", toolID]
+        }
+        configuration.arguments = args
         configuration.createsNewApplicationInstance = true
         configuration.activates = true
         Task {
@@ -94,6 +113,30 @@ extension VPhoneMenuController {
             } catch {
                 VPhoneAlert.present(title: "Unable to Open Pentest Tools", message: error.localizedDescription, style: .warning)
             }
+        }
+        return true
+    }
+
+    /// Opens Launchpad's Pentest Tools helper for this VM directly from its
+    /// own window, so using it doesn't mean switching to Launchpad first to
+    /// find this machine and its Actions menu. Pentest Tools ships with
+    /// Launchpad, not the Core Bundle, so this locates an installed
+    /// Launchpad by bundle identifier rather than assuming a path.
+    @objc func showPentestTools() {
+        guard machineDirectory != nil else { return }
+        if openInPentestTools(toolID: nil) { return }
+        if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.vphone.launchpad") == nil {
+            VPhoneAlert.present(
+                title: "Launchpad Not Found",
+                message: "Pentest Tools ships with VPhone Launchpad, not this VM. Install Launchpad to use it from here.",
+                style: .warning,
+            )
+        } else {
+            VPhoneAlert.present(
+                title: "Pentest Tools Missing",
+                message: "This Launchpad installation does not include Pentest Tools.",
+                style: .warning,
+            )
         }
     }
 

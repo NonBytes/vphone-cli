@@ -120,9 +120,15 @@ extension VPhoneMenuController {
         guestPanelsWindowController.show(panel)
     }
 
-    @objc func showAppLogs() { appLogsWindowController.show() }
-    @objc func showDeepLinkTester() { deepLinkTesterWindowController.show() }
-    @objc func showEvidenceExport() { evidenceExportWindowController.show() }
+    @objc func showAppLogs() {
+        if !openInPentestTools(toolID: "sys.logs") { appLogsWindowController.show() }
+    }
+    @objc func showDeepLinkTester() {
+        if !openInPentestTools(toolID: "sys.deeplink") { deepLinkTesterWindowController.show() }
+    }
+    @objc func showEvidenceExport() {
+        if !openInPentestTools(toolID: "sys.evidence") { evidenceExportWindowController.show() }
+    }
 
     /// Saved to this machine's config.plist, so the next start holds the
     /// tunnel, or does not, the same way.

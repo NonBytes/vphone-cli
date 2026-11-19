@@ -140,24 +140,48 @@ extension VPhoneMenuController {
     }
 
     @objc func openPhotos() {
-        photosWindowController.show()
+        if !openInPentestTools(toolID: "sto.photos") { photosWindowController.show() }
     }
 
     @objc func openKeychain() {
         onKeychainPressed?()
     }
-    @objc func showKeychainInspector() { keychainInspectorWindowController.show() }
-    @objc func showPasteboardInspector() { pasteboardInspectorWindowController.show() }
-    @objc func showDeviceMockingHub() { deviceMockingWindowController.show() }
-    @objc func showRuntimeInspector() { runtimeInspectorWindowController.show() }
-    @objc func showMemoryScanner() { memoryScannerWindowController.show() }
-    @objc func showNetworkFlowInspector() { networkFlowInspectorWindowController.show() }
-    @objc func showBypassStudio() { bypassStudioWindowController.show() }
-    @objc func showCryptoTracer() { cryptoTracerWindowController.show() }
-    @objc func showFileWatcher() { fileWatcherWindowController.show() }
-    @objc func showMachOVisualizer() { machOVisualizerWindowController.show() }
-    @objc func showBinaryDiff() { binaryDiffWindowController.show() }
-    @objc func showCrashMonitor() { crashMonitorWindowController.show() }
+    @objc func showKeychainInspector() {
+        if !openInPentestTools(toolID: "sto.keychain") { keychainInspectorWindowController.show() }
+    }
+    @objc func showPasteboardInspector() {
+        if !openInPentestTools(toolID: "sys.pasteboard") { pasteboardInspectorWindowController.show() }
+    }
+    @objc func showDeviceMockingHub() {
+        if !openInPentestTools(toolID: "sys.mocking") { deviceMockingWindowController.show() }
+    }
+    @objc func showRuntimeInspector() {
+        if !openInPentestTools(toolID: "ins.runtime") { runtimeInspectorWindowController.show() }
+    }
+    @objc func showMemoryScanner() {
+        if !openInPentestTools(toolID: "sys.memory") { memoryScannerWindowController.show() }
+    }
+    @objc func showNetworkFlowInspector() {
+        if !openInPentestTools(toolID: "net.flow") { networkFlowInspectorWindowController.show() }
+    }
+    @objc func showBypassStudio() {
+        if !openInPentestTools(toolID: "ins.bypass") { bypassStudioWindowController.show() }
+    }
+    @objc func showCryptoTracer() {
+        if !openInPentestTools(toolID: "sto.crypto") { cryptoTracerWindowController.show() }
+    }
+    @objc func showFileWatcher() {
+        if !openInPentestTools(toolID: "sto.watcher") { fileWatcherWindowController.show() }
+    }
+    @objc func showMachOVisualizer() {
+        if !openInPentestTools(toolID: "bin.macho") { machOVisualizerWindowController.show() }
+    }
+    @objc func showBinaryDiff() {
+        if !openInPentestTools(toolID: "bin.diff") { binaryDiffWindowController.show() }
+    }
+    @objc func showCrashMonitor() {
+        if !openInPentestTools(toolID: "sys.crash") { crashMonitorWindowController.show() }
+    }
 
     // MARK: - Clipboard & Preferences
 

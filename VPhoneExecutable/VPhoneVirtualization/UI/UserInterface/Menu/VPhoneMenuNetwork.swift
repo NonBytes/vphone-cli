@@ -15,7 +15,11 @@ extension VPhoneMenuController {
         return item
     }
 
-    @objc func showProxyAssistant() { proxyAssistantWindowController.show() }
+    @objc func showProxyAssistant() {
+        if !openInPentestTools(toolID: "net.proxy") { proxyAssistantWindowController.show() }
+    }
     @objc func showProxy() { proxyWindowController.show() }
-    @objc func showNetworkDiagnostics() { networkDiagnosticsWindowController.show() }
+    @objc func showNetworkDiagnostics() {
+        if !openInPentestTools(toolID: "net.diagnostics") { networkDiagnosticsWindowController.show() }
+    }
 }
