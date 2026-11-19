@@ -65,11 +65,11 @@ class VPhoneMenuController {
                 .first { $0.bundleID == bundleID }
             switch tool {
             case .frida:
-                self.fridaToolsWindowController.show()
+                self.fridaToolsWindowController.show(targetBundleID: bundleID)
             case .storage:
                 self.storageInspectorWindowController.show(app: appRecord)
             case .machO:
-                self.machOVisualizerWindowController.show()
+                self.machOVisualizerWindowController.show(targetApp: appRecord)
             case .fullAudit:
                 self.showPentestTools(tool: "full_audit")
             case .binaryDiff:

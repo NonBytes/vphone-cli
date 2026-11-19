@@ -192,7 +192,7 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 ### 📦 Local IPA & App Store Pipeline (`vphone-apps`)
 | Tool | Capabilities |
 | :--- | :--- |
-| **App Store & `vphone-apps` Installer** | Live Apple App Store search across regions (`US`, `TH`, `JP`, `GB`, `SG`, `DE`, `KR`, `AU`) integrated with **[securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps)** (`ipatool` + `unfairplay` + `vphone.sock`). Downloads App Store IPAs, removes FairPlay encryption on your Mac without needing a physical iPhone, and installs & launches them directly in the running VM. |
+| **App Store & `vphone-apps` Installer** | Live Apple App Store search across regions (`US`, `TH`, `JP`, `GB`, `SG`, `DE`, `KR`, `AU`) with bundled **[securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps)** (`ipatool v2.8.2+` + `unfairplay` + `vphone.sock`). Features in-app interactive Apple ID/2FA sign-in & Sign Out, App Store **Version History / Downgrade Picker** (`--version-id`), automatic Watch/`arm64_32` IPA sanitization, auto-wake before launch, and a **1-Click Pentest Pipeline** (`Frida`, `Storage`, `Mach-O`, `Full Audit`, `Binary Diff`). |
 | **Patch IPA with Frida Gadget** | Injects `FridaGadget.dylib` into an unencrypted IPA, adds the Mach-O load command, embeds the listener config + token, re-signs ad hoc, and deploys directly to the virtual iPhone. |
 
 #### Installing Apps from the App Store via `vphone-apps`
