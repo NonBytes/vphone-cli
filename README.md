@@ -8,7 +8,7 @@
 
 Run a virtual iPhone or iPad on an Apple Silicon Mac for security research, reverse engineering, and mobile application penetration testing.
 
-This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), supercharged into a complete, workstation-class iOS security testing laboratory with **32 integrated pentest tools**, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and automated Frida instrumentation.
+This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), supercharged into a complete, workstation-class iOS security testing laboratory with **33 integrated pentest tools**, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and automated Frida instrumentation.
 
 > 🚀 **Quick Download**: Grab the pre-built binaries from [Latest Releases](https://github.com/NonBytes/vphone-pentest/releases/latest) without compiling:
 > - [`vphone-launchpad-v2.17.1-pentest.6-arm64.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Workstation GUI app)
@@ -27,7 +27,7 @@ A physical Apple Silicon Mac with macOS 15+ (Sequoia) is required. The shipped a
 
 ## ⚡ Key Highlights of the Pentest Edition
 
-1. **32 Integrated Mobile Pentest Tools**: Native AppKit/SwiftUI security suite covering network flow tampering, memory scanning, keychain injection, storage SQL editing, and live UI revealer.
+1. **33 Integrated Mobile Pentest Tools**: Native AppKit/SwiftUI security suite covering network flow tampering, memory scanning, keychain injection, storage SQL editing, live UI revealer, and App Store + `vphone-apps` installation.
 2. **On-Device AI & Advanced Security Audits**: CoreML / TFLite / ONNX model security scanner, XPC & Mach service attack surface auditor, and FairPlay decrypted IPA memory exporter.
 3. **Native GPU Camera & Hardware Mocking**: Unified 4-way hardware-accelerated camera rotation (`Cmd+Ctrl+R`), synthetic battery/thermal controls, Face ID/Touch ID simulator, and foldable hinge postures.
 4. **APFS Instant Snapshots & Safe Malware Mode**: Zero-copy instant VM checkpointing via APFS copy-on-write (`clonefile`) with 1-click rollback and auto-snapshot before launching untrusted apps.
@@ -189,6 +189,29 @@ Access all tools via **Actions → Pentest Tools…** in VPhone Launchpad, or di
 | **Pasteboard Inspector & Fuzzer** | Monitors `UIPasteboard` for leaked credentials and allows 1-click clipboard injection of categorized security payloads (Unicode, RTF, JSON, format strings). |
 | **Device Environment & Hardware Mocking Hub** | Real-time synthetic battery (percentage, charging state), thermal status simulation, Face ID/Touch ID biometric outcome mocking, and foldable hinge posture simulation (0° to 180°). |
 
+### 📦 Local IPA & App Store Pipeline (`vphone-apps`)
+| Tool | Capabilities |
+| :--- | :--- |
+| **App Store & `vphone-apps` Installer** | Live Apple App Store search across regions (`US`, `TH`, `JP`, `GB`, `SG`, `DE`, `KR`, `AU`) integrated with **[securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps)** (`ipatool` + `unfairplay` + `vphone.sock`). Downloads App Store IPAs, removes FairPlay encryption on your Mac without needing a physical iPhone, and installs & launches them directly in the running VM. |
+| **Patch IPA with Frida Gadget** | Injects `FridaGadget.dylib` into an unencrypted IPA, adds the Mach-O load command, embeds the listener config + token, re-signs ad hoc, and deploys directly to the virtual iPhone. |
+
+#### Installing Apps from the App Store via `vphone-apps`
+To use the **App Store & `vphone-apps` Installer** (or run it directly from Terminal):
+```sh
+# 1. Install securityvoid/vphone-apps via Homebrew
+brew install securityvoid/tap/vphone-apps
+
+# 2. Sign in to your Apple Account & run one-time FairPlay enrollment on your Mac
+vphone-apps login
+vphone-apps setup
+
+# 3. Verify preflight status against your running VM
+vphone-apps doctor --vm <vm-name>
+
+# 4. Install from GUI (Pentest Tools → App Store & vphone-apps Installer) or CLI:
+vphone-apps install --id <bundle-id> --vm <vm-name> --purchase --launch
+```
+
 ---
 
 ## ⌨️ VM Controls & Hotkeys
@@ -210,6 +233,7 @@ See [Host-side fork fixes](Research/Host/fork_fixes.md) for changes beyond upstr
 ## Acknowledgements
 
 - [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), the upstream project
+- [securityvoid/vphone-apps](https://github.com/securityvoid/vphone-apps), [majd/ipatool](https://github.com/majd/ipatool), and [DrWhax/unfairplay](https://github.com/DrWhax/unfairplay), for App Store search, FairPlay decryption, and VM installation
 - [wh1te4ever/super-tart-vphone-writeup](https://github.com/wh1te4ever/super-tart-vphone-writeup)
 - [OpenAVB](https://github.com/owngoal-dev/OpenAVB) and [OpenSEP](https://github.com/owngoal-dev/OpenSEP), the boot ROMs used by new VMs
 

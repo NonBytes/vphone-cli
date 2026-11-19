@@ -54,6 +54,7 @@ extension VPhoneMenuController {
         menu.addItem(makeItem("Binary Diffing & Baseline Scanner…", action: #selector(showBinaryDiff), symbol: "arrow.left.arrow.right"))
         menu.addItem(makeItem("Live Exception & Crash Signal Monitor…", action: #selector(showCrashMonitor), symbol: "shield.lefthalf.filled.trianglebadge.exclamationmark"))
         menu.addItem(makeItem("Proxy & CA Assistant (Burp / mitmproxy)…", action: #selector(showProxyAssistant), symbol: "bolt.shield"))
+        menu.addItem(makeItem("App Store & vphone-apps Installer…", action: #selector(showAppStoreInstaller), symbol: "bag.fill"))
 
         menu.addItem(NSMenuItem.separator())
 
@@ -181,6 +182,9 @@ extension VPhoneMenuController {
     }
     @objc func showCrashMonitor() {
         if !openInPentestTools(toolID: "sys.crash") { crashMonitorWindowController.show() }
+    }
+    @objc func showAppStoreInstaller() {
+        if !openInPentestTools(toolID: "ipa.appstore") { appStoreWindowController.show() }
     }
 
     // MARK: - Clipboard & Preferences

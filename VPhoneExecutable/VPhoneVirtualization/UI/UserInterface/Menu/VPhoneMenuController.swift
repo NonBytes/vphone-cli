@@ -56,6 +56,7 @@ class VPhoneMenuController {
     lazy var binaryDiffWindowController = VPhoneBinaryDiffWindowController(control: control)
     lazy var fileWatcherWindowController = VPhoneFileWatcherWindowController(control: control)
     lazy var crashMonitorWindowController = VPhoneCrashMonitorWindowController(control: control)
+    lazy var appStoreWindowController = VPhoneAppStoreWindowController(control: control, machineDirectory: machineDirectory)
     /// Launchpad's Pentest Tools helper, opened directly from this VM's own
     /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
     var pentestToolsApp: NSRunningApplication?
