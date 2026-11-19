@@ -11,8 +11,8 @@ Run a virtual iPhone or iPad on an Apple Silicon Mac for security research, reve
 This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), supercharged into a complete, workstation-class iOS security testing laboratory with **33 integrated pentest tools**, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and automated Frida instrumentation.
 
 > 🚀 **Quick Download**: Grab the pre-built binaries from [Latest Releases](https://github.com/NonBytes/vphone-pentest/releases/latest) without compiling:
-> - [`vphone-launchpad-v2.17.1-pentest.7-arm64.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Workstation GUI app)
-> - [`VPhone-v2.17.1-pentest.7.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Core Virtualization Bundle)
+> - [`vphone-launchpad-v2.17.1-pentest.8-arm64.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Workstation GUI app)
+> - [`VPhone-v2.17.1-pentest.8.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Core Virtualization Bundle)
 
 > [!WARNING]
 > This project has never issued or authorized any cryptocurrency or token, and does not accept cryptocurrency payments or donations. Any cryptocurrency or token issued or promoted in this project's name, or claiming any affiliation with it, is a scam.
