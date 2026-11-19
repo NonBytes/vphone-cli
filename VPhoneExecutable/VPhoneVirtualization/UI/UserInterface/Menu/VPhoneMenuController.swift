@@ -59,6 +59,8 @@ class VPhoneMenuController {
     /// Launchpad's Pentest Tools helper, opened directly from this VM's own
     /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
     var pentestToolsApp: NSRunningApplication?
+    var isLaunchingPentestTools = false
+    var pendingPentestToolID: String?
 
     /// An Apple TV guest has a TV button that opens Control Center when held.
     var showsTVControls = false {

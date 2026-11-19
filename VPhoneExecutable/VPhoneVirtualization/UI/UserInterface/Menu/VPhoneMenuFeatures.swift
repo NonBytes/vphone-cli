@@ -69,29 +69,35 @@ extension VPhoneMenuController {
     @discardableResult
     func openInPentestTools(toolID: String?) -> Bool {
         guard let machineDirectory else { return false }
-        let resolvedPath = machineDirectory.resolvingSymlinksInPath().path
-        let existing = (pentestToolsApp?.isTerminated == false ? pentestToolsApp : nil)
-            ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.vphone.launchpad.pentest").first(where: { !$0.isTerminated })
+        let resolvedDir = machineDirectory.resolvingSymlinksInPath()
+        let resolvedPath = resolvedDir.path
+
+        var existing: NSRunningApplication?
+        if let tracked = pentestToolsApp, !tracked.isTerminated {
+            existing = tracked
+        } else {
+            let pidURL = resolvedDir.appendingPathComponent(".pentest-app.pid")
+            if let pidText = try? String(contentsOf: pidURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               let pid = pid_t(pidText),
+               let app = NSRunningApplication(processIdentifier: pid),
+               !app.isTerminated,
+               app.bundleIdentifier == "com.vphone.launchpad.pentest" {
+                existing = app
+            }
+        }
+
         if let existing {
             pentestToolsApp = existing
             existing.activate(options: [])
-            if let toolID {
-                DistributedNotificationCenter.default().postNotificationName(
-                    .init("com.vphone.launchpad.pentest.openTool"),
-                    object: resolvedPath,
-                    userInfo: ["tool": toolID],
-                    deliverImmediately: true
-                )
-            } else {
-                DistributedNotificationCenter.default().postNotificationName(
-                    .init("com.vphone.launchpad.pentest.show"),
-                    object: resolvedPath,
-                    userInfo: nil,
-                    deliverImmediately: true
-                )
-            }
+            postPentestToolNotification(resolvedPath: resolvedPath, toolID: toolID)
             return true
         }
+
+        if isLaunchingPentestTools {
+            if let toolID { pendingPentestToolID = toolID }
+            return true
+        }
+
         guard let launchpad = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.vphone.launchpad") else {
             return false
         }
@@ -107,14 +113,41 @@ extension VPhoneMenuController {
         configuration.arguments = args
         configuration.createsNewApplicationInstance = true
         configuration.activates = true
+        isLaunchingPentestTools = true
+        pendingPentestToolID = nil
         Task {
+            defer { isLaunchingPentestTools = false }
             do {
-                pentestToolsApp = try await NSWorkspace.shared.openApplication(at: app, configuration: configuration)
+                let launched = try await NSWorkspace.shared.openApplication(at: app, configuration: configuration)
+                pentestToolsApp = launched
+                if let queuedToolID = pendingPentestToolID {
+                    pendingPentestToolID = nil
+                    try? await Task.sleep(for: .milliseconds(300))
+                    postPentestToolNotification(resolvedPath: resolvedPath, toolID: queuedToolID)
+                }
             } catch {
                 VPhoneAlert.present(title: "Unable to Open Pentest Tools", message: error.localizedDescription, style: .warning)
             }
         }
         return true
+    }
+
+    private func postPentestToolNotification(resolvedPath: String, toolID: String?) {
+        if let toolID {
+            DistributedNotificationCenter.default().postNotificationName(
+                .init("com.vphone.launchpad.pentest.openTool"),
+                object: resolvedPath,
+                userInfo: ["tool": toolID],
+                deliverImmediately: true
+            )
+        } else {
+            DistributedNotificationCenter.default().postNotificationName(
+                .init("com.vphone.launchpad.pentest.show"),
+                object: resolvedPath,
+                userInfo: nil,
+                deliverImmediately: true
+            )
+        }
     }
 
     /// Opens Launchpad's Pentest Tools helper for this VM directly from its
