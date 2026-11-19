@@ -56,27 +56,34 @@ class VPhoneMenuController {
     lazy var binaryDiffWindowController = VPhoneBinaryDiffWindowController(control: control)
     lazy var fileWatcherWindowController = VPhoneFileWatcherWindowController(control: control)
     lazy var crashMonitorWindowController = VPhoneCrashMonitorWindowController(control: control)
-    lazy var appStoreWindowController: VPhoneAppStoreWindowController = VPhoneAppStoreWindowController(control: control, machineDirectory: machineDirectory) { [weak self] tool, bundleID in
-        guard let self else { return }
-        Task { @MainActor in
-            let appRecord = (try? await self.control.call("apps.list", params: ["filter": "user"]))?
-                .objects("apps")
-                .compactMap(VPhoneAppRecord.init(json:))
-                .first { $0.bundleID == bundleID }
-            switch tool {
-            case .frida:
-                self.fridaToolsWindowController.show(targetBundleID: bundleID)
-            case .storage:
-                self.storageInspectorWindowController.show(app: appRecord)
-            case .machO:
-                self.machOVisualizerWindowController.show(targetApp: appRecord)
-            case .fullAudit:
-                self.showPentestTools(tool: "full_audit")
-            case .binaryDiff:
-                self.binaryDiffWindowController.show()
+    lazy var appStoreWindowController: VPhoneAppStoreWindowController = VPhoneAppStoreWindowController(
+        control: control,
+        machineDirectory: machineDirectory,
+        onOpenTool: { [weak self] tool, bundleID in
+            guard let self else { return }
+            Task { @MainActor in
+                let appRecord = (try? await self.control.call("apps.list", params: ["filter": "user"]))?
+                    .objects("apps")
+                    .compactMap(VPhoneAppRecord.init(json:))
+                    .first { $0.bundleID == bundleID }
+                switch tool {
+                case .frida:
+                    self.fridaToolsWindowController.show(targetBundleID: bundleID)
+                case .storage:
+                    self.storageInspectorWindowController.show(app: appRecord)
+                case .machO:
+                    self.machOVisualizerWindowController.show(targetApp: appRecord)
+                case .fullAudit:
+                    self.showPentestTools(tool: "full_audit")
+                case .binaryDiff:
+                    self.binaryDiffWindowController.show()
+                }
             }
+        },
+        onOpenBinaryDiff: { [weak self] baseData, baseName, targetData, targetName in
+            self?.binaryDiffWindowController.showComparison(baseData: baseData, baseName: baseName, targetData: targetData, targetName: targetName)
         }
-    }
+    )
     /// Launchpad's Pentest Tools helper, opened directly from this VM's own
     /// window — see `showPentestTools()` in VPhoneMenuFeatures.swift.
     var pentestToolsApp: NSRunningApplication?
