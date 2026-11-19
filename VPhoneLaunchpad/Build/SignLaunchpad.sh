@@ -24,6 +24,7 @@ set -euo pipefail
 app=${1:?usage: SignLaunchpad.sh <vphone-launchpad.app> <identity>}
 identity=${2:?usage: SignLaunchpad.sh <vphone-launchpad.app> <identity>}
 entitlements="${0:a:h}/../Resources/VPhoneLaunchpad.entitlements"
+vphone_apps_entitlements="${0:a:h}/../Resources/VPhoneApps.entitlements"
 label=com.vphone.launchpad.helper
 helper="$app/Contents/Library/LaunchServices/$label"
 pentest="$app/Contents/Helpers/VPhone Pentest.app"
@@ -63,6 +64,7 @@ codesign --force --options runtime --timestamp --identifier com.vphone.launchpad
   --sign "$identity" "$pentest/Contents/MacOS/vphone-frida-client"
 if [[ -f "$pentest/Contents/MacOS/vphone-apps" ]]; then
   codesign --force --options runtime --timestamp --identifier com.vphone.launchpad.vphone-apps \
+    --entitlements "$vphone_apps_entitlements" \
     --sign "$identity" "$pentest/Contents/MacOS/vphone-apps"
 fi
 codesign --force --options runtime --timestamp --sign "$identity" "$pentest"
