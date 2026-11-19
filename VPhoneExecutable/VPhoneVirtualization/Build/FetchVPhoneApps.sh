@@ -8,7 +8,7 @@ ipatool_rev=3b02b4c55576562f2a55284cda9db9a4411d3067
 archive="$root/.build/vphone-apps/vphone-apps_${version}_darwin_arm64.tar.gz"
 digest=03f16e8be3bf3fda39010ca3966c20097bca5efbab8066568315b0f878781fba
 cache="$root/.build/vphone-apps/$version"
-patched_bin="$root/.build/vphone-apps/vphone-apps-${version}-ipatool-${ipatool_rev:0:12}-r2"
+patched_bin="$root/.build/vphone-apps/vphone-apps-${version}-ipatool-${ipatool_rev:0:12}-r4"
 /bin/mkdir -p "${archive:h}" "$cache" "$output"
 if [[ ! -f "$archive" ]]; then
     temporary="$(/usr/bin/mktemp "${archive}.XXXXXX")"

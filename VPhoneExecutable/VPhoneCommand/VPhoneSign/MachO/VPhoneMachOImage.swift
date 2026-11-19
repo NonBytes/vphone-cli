@@ -481,7 +481,7 @@ struct VPhoneMachOFile {
                 let cpuType: UInt32 = data.bigEndianValue(at: entry)
                 let cpuSubtype: UInt32 = data.bigEndianValue(at: entry + 4)
                 var preservedImage: Data?
-                if cpuType == UInt32(CPU_TYPE_ARM) {
+                if cpuType == UInt32(CPU_TYPE_ARM) || cpuType == UInt32(bitPattern: CPU_TYPE_ARM64_32) {
                     let headerSize = MemoryLayout<mach_header>.size
                     guard length >= headerSize,
                           data.littleEndianValue(at: offset) as UInt32 == MH_MAGIC,
