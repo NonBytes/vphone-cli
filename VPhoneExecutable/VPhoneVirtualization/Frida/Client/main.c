@@ -221,6 +221,13 @@ static gboolean input(GIOChannel *channel, GIOCondition condition, gpointer unus
     } else if (load(source, &error)) {
       emit("loaded", "Script loaded", 0);
     }
+  } else if (operation && !strcmp(operation, "post") && script && session && !frida_session_is_detached(session)) {
+    const gchar *payload = text(command, "payload");
+    if (!payload || !*payload) {
+      emit("error", "Post requires a nonempty JSON payload", 0);
+    } else {
+      frida_script_post(script, payload, NULL);
+    }
   } else if (operation && !strcmp(operation, "detach")) {
     keep = FALSE;
   } else {

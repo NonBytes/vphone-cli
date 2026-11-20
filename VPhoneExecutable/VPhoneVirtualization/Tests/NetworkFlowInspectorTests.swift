@@ -120,7 +120,92 @@ enum NetworkFlowInspectorTests {
             let script = model.fridaHookScript
             precondition(script.contains("VPhone In-App Network & API Flow Inspector"), "Script must contain header")
             precondition(script.contains("NSURLSession"), "Script must reference NSURLSession")
-            precondition(script.contains("dataTaskWithRequest:completionHandler:"), "Script must hook completionHandler")
+            precondition(script.contains("dataTaskWithRequest:completionHandler:"), "Script must hook dataTaskWithRequest")
+            precondition(script.contains("dataTaskWithURL:completionHandler:"), "Script must hook dataTaskWithURL")
+            precondition(script.contains("uploadTaskWithRequest:fromData:completionHandler:"), "Script must hook uploadTask")
+            precondition(script.contains("vphone_control"), "Script must support live control channel")
+            precondition(script.contains("applyRewriteRule"), "Script must include response rewriter")
+            precondition(script.contains("makeHTTPResponse"), "Script must construct NSHTTPURLResponse")
+
+            // 9b. Test Response Rewrite Rule Engine (JSON dot-path, removal, regex, status, headers)
+            let rewriteRule = VPhoneNetworkMockRule(
+                name: "Premium & Admin Rewrite",
+                urlPattern: "api/v1/profile",
+                methodFilter: "GET",
+                ruleType: .rewriteResponse,
+                jsonPatches: [
+                    VPhoneJSONPatchOperation(keyPath: "user.isPremium", valueLiteral: "true"),
+                    VPhoneJSONPatchOperation(keyPath: "user.role", valueLiteral: "\"admin\""),
+                    VPhoneJSONPatchOperation(keyPath: "user.balance", valueLiteral: "999999"),
+                    VPhoneJSONPatchOperation(keyPath: "error", valueLiteral: "", removeKey: true)
+                ],
+                bodyFindPattern: "free_tier",
+                bodyReplaceWith: "enterprise_tier",
+                bodyUseRegex: false,
+                overrideStatusCode: 200,
+                responseHeadersToAdd: ["X-VPhone-Rewritten": "1"],
+                responseHeadersToRemove: ["X-RateLimit-Remaining"]
+            )
+            let rewritten = rewriteRule.applyResponseRewrite(
+                statusCode: 403,
+                headers: ["Content-Type": "application/json", "X-RateLimit-Remaining": "0"],
+                body: "{\"error\":\"forbidden\",\"plan\":\"free_tier\",\"user\":{\"isPremium\":false,\"role\":\"guest\",\"balance\":10}}"
+            )
+            precondition(rewritten.modified, "Rewrite rule must mark response as modified")
+            precondition(rewritten.statusCode == 200, "Status must be overridden to 200")
+            precondition(rewritten.headers["X-VPhone-Rewritten"] == "1", "Injected response header missing")
+            precondition(rewritten.headers["X-RateLimit-Remaining"] == nil, "Removed header must be stripped")
+            precondition(rewritten.body.contains("\"isPremium\":true"), "Nested boolean JSON patch failed: \(rewritten.body)")
+            precondition(rewritten.body.contains("\"role\":\"admin\""), "Nested string JSON patch failed: \(rewritten.body)")
+            precondition(rewritten.body.contains("\"balance\":999999"), "Nested numeric JSON patch failed: \(rewritten.body)")
+            precondition(!rewritten.body.contains("\"error\""), "Key removal patch failed: \(rewritten.body)")
+            precondition(rewritten.body.contains("enterprise_tier"), "Body find/replace failed: \(rewritten.body)")
+
+            // 9c. Test Live Response Breakpoint Ingestion & Resolution
+            let bpFlowID = UUID()
+            model.ingest(event: [
+                "type": "network_flow_request",
+                "id": bpFlowID.uuidString,
+                "method": "POST",
+                "url": "https://api.example.com/v1/checkout"
+            ])
+            model.ingest(event: [
+                "type": "network_breakpoint_hit",
+                "phase": "response",
+                "id": bpFlowID.uuidString,
+                "method": "POST",
+                "url": "https://api.example.com/v1/checkout",
+                "status": 402,
+                "headers": ["Content-Type": "application/json"],
+                "body": "{\"paid\":false}",
+                "rule_name": "Checkout Breakpoint",
+                "duration_ms": 55.0
+            ])
+            precondition(model.pendingResponseBreakpoints.count == 1, "Must queue 1 paused breakpoint")
+            precondition(model.activeBreakpoint?.id == bpFlowID, "Active breakpoint must match flow ID")
+            model.resolveResponseBreakpoint(
+                id: bpFlowID,
+                drop: false,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"],
+                body: "{\"paid\":true}"
+            )
+            precondition(model.pendingResponseBreakpoints.isEmpty, "Breakpoint queue must be empty after resolution")
+            if let resolvedFlow = model.flows.first(where: { $0.id == bpFlowID }) {
+                precondition(resolvedFlow.responseStatus == 200, "Resolved flow status must be 200")
+                precondition(resolvedFlow.responseBody == "{\"paid\":true}", "Resolved flow body must match edited payload")
+                precondition(resolvedFlow.isMocked, "Edited breakpoint response must be flagged isMocked")
+                precondition(!resolvedFlow.isIntercepted, "Resolved flow must clear isIntercepted")
+            } else {
+                preconditionFailure("Resolved breakpoint flow missing")
+            }
+
+            // 9d. Test 1-Click Create Rule From Flow
+            let generatedRule = model.createRuleFromFlow(flowCompleted, ruleType: .rewriteResponse)
+            precondition(generatedRule.urlPattern == "api.example.com/v1/auth/login", "Generated pattern mismatch: \(generatedRule.urlPattern)")
+            precondition(generatedRule.methodFilter == "POST", "Generated method filter mismatch")
+            precondition(!generatedRule.jsonPatches.isEmpty, "Generated rewrite rule should extract starter JSON patches")
+            model.removeMockRule(id: generatedRule.id)
 
             // 10. Test Request Tampering & Replay Engine
             var replayCaughtError = false
@@ -135,7 +220,7 @@ enum NetworkFlowInspectorTests {
                 replayCaughtError = true
             }
             precondition(replayCaughtError, "Expected unreachable replay request to fail gracefully")
-            precondition(model.flows.count == 3, "Failed replayed flow must be prepended to stream (total 3)")
+            precondition(model.flows.count == 4, "Failed replayed flow must be prepended to stream (total 4)")
             guard let replayedFlow = model.flows.first else { preconditionFailure("Missing replayed flow") }
             precondition(replayedFlow.isReplayed, "Flow must be marked isReplayed: true")
             precondition(replayedFlow.method == "POST", "Replayed method must be POST")
