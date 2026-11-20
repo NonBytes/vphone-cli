@@ -8,11 +8,11 @@
 
 Run a virtual iPhone or iPad on an Apple Silicon Mac for security research, reverse engineering, and mobile application penetration testing.
 
-This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), supercharged into a complete, workstation-class iOS security testing laboratory with **33 integrated pentest tools**, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and automated Frida instrumentation.
+This is [NonBytes' fork](https://github.com/NonBytes/vphone-pentest) of [Lakr233/vphone-cli](https://github.com/Lakr233/vphone-cli), supercharged into a complete, workstation-class iOS security testing laboratory with **37 integrated pentest tools**, unified system camera with 4-way rotation, guest SOCKS5 pivoting tunnel, and automated Frida instrumentation.
 
 > 🚀 **Quick Download**: Grab the pre-built binaries from [Latest Releases](https://github.com/NonBytes/vphone-pentest/releases/latest) without compiling:
-> - [`vphone-launchpad-v2.17.1-pentest.8-arm64.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Workstation GUI app)
-> - [`VPhone-v2.17.1-pentest.8.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Core Virtualization Bundle)
+> - [`vphone-launchpad-v2.17.1-pentest.9-arm64.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Workstation GUI app)
+> - [`VPhone-v2.17.1-pentest.9.zip`](https://github.com/NonBytes/vphone-pentest/releases/latest) (Core Virtualization Bundle)
 
 > [!WARNING]
 > This project has never issued or authorized any cryptocurrency or token, and does not accept cryptocurrency payments or donations. Any cryptocurrency or token issued or promoted in this project's name, or claiming any affiliation with it, is a scam.
@@ -27,7 +27,7 @@ A physical Apple Silicon Mac with macOS 15+ (Sequoia) is required. The shipped a
 
 ## ⚡ Key Highlights of the Pentest Edition
 
-1. **33 Integrated Mobile Pentest Tools**: Native AppKit/SwiftUI security suite covering network flow tampering, memory scanning, keychain injection, storage SQL editing, live UI revealer, and App Store + `vphone-apps` installation.
+1. **37 Integrated Mobile Pentest Tools**: Native AppKit/SwiftUI security suite covering in-app network response rewriting & breakpoints, WKWebView/JS bridge auditing, static secret hunting, TLS pinning fingerprinting & mTLS (`.p12`), multi-script Frida hot-reload, memory scanning, keychain injection, storage SQL editing, live UI revealer, and App Store + `vphone-apps` installation.
 2. **On-Device AI & Advanced Security Audits**: CoreML / TFLite / ONNX model security scanner, XPC & Mach service attack surface auditor, and FairPlay decrypted IPA memory exporter.
 3. **Native GPU Camera & Hardware Mocking**: Unified 4-way hardware-accelerated camera rotation (`Cmd+Ctrl+R`), synthetic battery/thermal controls, Face ID/Touch ID simulator, and foldable hinge postures.
 4. **APFS Instant Snapshots & Safe Malware Mode**: Zero-copy instant VM checkpointing via APFS copy-on-write (`clonefile`) with 1-click rollback and auto-snapshot before launching untrusted apps.
